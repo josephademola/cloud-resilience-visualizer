@@ -1,0 +1,67 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# === Virtual environments ===
+.venv/
+venv/
+env/
+ENV/
+
+# === Distribution / packaging ===
+build/
+dist/
+*.egg-info/
+*.egg
+
+# === Testing and coverage ===
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# === Type checkers and linters ===
+.mypy_cache/
+.ruff_cache/
+
+# === IDEs and editors ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === OS metadata ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Logs and runtime artifacts ===
+*.log
+logs/
+reports/
+
+# === Environment files (secrets) ===
+# Never commit real .env files. .env.example is the committed template.
+.env
+.env.local
+.env.*.local
+
+# === Credentials and keys (belt-and-braces) ===
+*.pem
+*.key
+credentials
+aws-credentials
+aws-config
+
+# === Node (if frontend ever uses npm) ===
+node_modules/
+npm-debug.log
+
+# === Project-specific ===
+*.bak
+*.tmp
+local_*/
