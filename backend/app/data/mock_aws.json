@@ -316,17 +316,11 @@
           }
         },
         "get_bucket_encryption": {
-          "ServerSideEncryptionConfiguration": {
-            "Rules": [
-              {
-                "ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"},
-                "BucketKeyEnabled": false
-              }
-            ]
-          }
+         "_error": "ServerSideEncryptionConfigurationNotFoundError"
         }
       }
     }
+
   },
   "rds": {
     "describe_db_instances": {
