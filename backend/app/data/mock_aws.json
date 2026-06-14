@@ -1,0 +1,375 @@
+{
+  "ec2": {
+    "describe_vpcs": {
+      "Vpcs": [
+        {
+          "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+          "CidrBlock": "10.0.0.0/16",
+          "DhcpOptionsId": "dopt-0aaabbbcccdddeeef",
+          "State": "available",
+          "OwnerId": "123456789012",
+          "InstanceTenancy": "default",
+          "IsDefault": false,
+          "Tags": [
+            {"Key": "Name", "Value": "cloudres-fintech-vpc"},
+            {"Key": "Environment", "Value": "production"}
+          ]
+        }
+      ]
+    },
+    "describe_subnets": {
+      "Subnets": [
+        {
+          "SubnetId": "subnet-0aa1bb2cc3dd4ee55",
+          "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+          "CidrBlock": "10.0.1.0/24",
+          "AvailabilityZone": "eu-west-2a",
+          "AvailabilityZoneId": "euw2-az1",
+          "AvailableIpAddressCount": 251,
+          "State": "available",
+          "MapPublicIpOnLaunch": true,
+          "OwnerId": "123456789012",
+          "Tags": [
+            {"Key": "Name", "Value": "cloudres-fintech-public-subnet"},
+            {"Key": "Tier", "Value": "public"}
+          ]
+        },
+        {
+          "SubnetId": "subnet-0ff6aa7bb8cc9dd00",
+          "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+          "CidrBlock": "10.0.2.0/24",
+          "AvailabilityZone": "eu-west-2a",
+          "AvailabilityZoneId": "euw2-az1",
+          "AvailableIpAddressCount": 250,
+          "State": "available",
+          "MapPublicIpOnLaunch": false,
+          "OwnerId": "123456789012",
+          "Tags": [
+            {"Key": "Name", "Value": "cloudres-fintech-private-subnet"},
+            {"Key": "Tier", "Value": "private"}
+          ]
+        }
+      ]
+    },
+    "describe_internet_gateways": {
+      "InternetGateways": [
+        {
+          "InternetGatewayId": "igw-0123456789abcdef0",
+          "Attachments": [
+            {"State": "available", "VpcId": "vpc-0a1b2c3d4e5f6a7b8"}
+          ],
+          "OwnerId": "123456789012",
+          "Tags": [
+            {"Key": "Name", "Value": "cloudres-fintech-igw"}
+          ]
+        }
+      ]
+    },
+    "describe_security_groups": {
+      "SecurityGroups": [
+        {
+          "GroupId": "sg-0aabbccddeeff1122",
+          "GroupName": "cloudres-fintech-web-sg",
+          "Description": "Web tier - accepts HTTP/HTTPS from the public internet",
+          "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+          "OwnerId": "123456789012",
+          "IpPermissions": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 80,
+              "ToPort": 80,
+              "IpRanges": [{"CidrIp": "0.0.0.0/0", "Description": "HTTP from anywhere"}],
+              "Ipv6Ranges": [],
+              "UserIdGroupPairs": []
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 443,
+              "ToPort": 443,
+              "IpRanges": [{"CidrIp": "0.0.0.0/0", "Description": "HTTPS from anywhere"}],
+              "Ipv6Ranges": [],
+              "UserIdGroupPairs": []
+            }
+          ],
+          "IpPermissionsEgress": [
+            {
+              "IpProtocol": "-1",
+              "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+              "Ipv6Ranges": [],
+              "UserIdGroupPairs": []
+            }
+          ],
+          "Tags": [
+            {"Key": "Name", "Value": "cloudres-fintech-web-sg"},
+            {"Key": "Tier", "Value": "web"}
+          ]
+        },
+        {
+          "GroupId": "sg-09a8b7c6d5e4f3a21",
+          "GroupName": "cloudres-fintech-app-sg",
+          "Description": "App tier - accepts traffic only from the web SG",
+          "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+          "OwnerId": "123456789012",
+          "IpPermissions": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 8080,
+              "ToPort": 8080,
+              "IpRanges": [],
+              "Ipv6Ranges": [],
+              "UserIdGroupPairs": [
+                {
+                  "GroupId": "sg-0aabbccddeeff1122",
+                  "UserId": "123456789012",
+                  "Description": "From web tier"
+                }
+              ]
+            }
+          ],
+          "IpPermissionsEgress": [
+            {
+              "IpProtocol": "-1",
+              "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+              "Ipv6Ranges": [],
+              "UserIdGroupPairs": []
+            }
+          ],
+          "Tags": [
+            {"Key": "Name", "Value": "cloudres-fintech-app-sg"},
+            {"Key": "Tier", "Value": "app"}
+          ]
+        },
+        {
+          "GroupId": "sg-01122334455667788",
+          "GroupName": "cloudres-fintech-db-sg",
+          "Description": "Database tier - accepts MySQL traffic only from the app SG",
+          "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+          "OwnerId": "123456789012",
+          "IpPermissions": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": 3306,
+              "ToPort": 3306,
+              "IpRanges": [],
+              "Ipv6Ranges": [],
+              "UserIdGroupPairs": [
+                {
+                  "GroupId": "sg-09a8b7c6d5e4f3a21",
+                  "UserId": "123456789012",
+                  "Description": "From app tier"
+                }
+              ]
+            }
+          ],
+          "IpPermissionsEgress": [
+            {
+              "IpProtocol": "-1",
+              "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+              "Ipv6Ranges": [],
+              "UserIdGroupPairs": []
+            }
+          ],
+          "Tags": [
+            {"Key": "Name", "Value": "cloudres-fintech-db-sg"},
+            {"Key": "Tier", "Value": "database"}
+          ]
+        }
+      ]
+    },
+    "describe_instances": {
+      "Reservations": [
+        {
+          "ReservationId": "r-0aaa1111bbbb2222c",
+          "OwnerId": "123456789012",
+          "Instances": [
+            {
+              "InstanceId": "i-0aaa1bbb2ccc3ddd4",
+              "ImageId": "ami-0fb55cd1aa9b3e4e1",
+              "InstanceType": "t3.small",
+              "LaunchTime": "2025-01-15T09:42:11+00:00",
+              "Platform": "Linux/UNIX",
+              "PrivateDnsName": "ip-10-0-1-20.eu-west-2.compute.internal",
+              "PrivateIpAddress": "10.0.1.20",
+              "PublicDnsName": "ec2-13-40-123-45.eu-west-2.compute.amazonaws.com",
+              "PublicIpAddress": "13.40.123.45",
+              "SubnetId": "subnet-0aa1bb2cc3dd4ee55",
+              "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+              "Architecture": "x86_64",
+              "State": {"Code": 16, "Name": "running"},
+              "SecurityGroups": [
+                {"GroupId": "sg-0aabbccddeeff1122", "GroupName": "cloudres-fintech-web-sg"}
+              ],
+              "Tags": [
+                {"Key": "Name", "Value": "cloudres-fintech-web"},
+                {"Key": "Role", "Value": "web-server"}
+              ]
+            }
+          ]
+        },
+        {
+          "ReservationId": "r-0bbb2222cccc3333d",
+          "OwnerId": "123456789012",
+          "Instances": [
+            {
+              "InstanceId": "i-0eee5fff6aaa7bbb8",
+              "ImageId": "ami-0fb55cd1aa9b3e4e1",
+              "InstanceType": "t3.medium",
+              "LaunchTime": "2025-01-15T09:45:33+00:00",
+              "Platform": "Linux/UNIX",
+              "PrivateDnsName": "ip-10-0-2-30.eu-west-2.compute.internal",
+              "PrivateIpAddress": "10.0.2.30",
+              "SubnetId": "subnet-0ff6aa7bb8cc9dd00",
+              "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+              "Architecture": "x86_64",
+              "State": {"Code": 16, "Name": "running"},
+              "SecurityGroups": [
+                {"GroupId": "sg-09a8b7c6d5e4f3a21", "GroupName": "cloudres-fintech-app-sg"}
+              ],
+              "Tags": [
+                {"Key": "Name", "Value": "cloudres-fintech-app"},
+                {"Key": "Role", "Value": "app-server"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "s3": {
+    "list_buckets": {
+      "Buckets": [
+        {"Name": "cloudres-fintech-logs",    "CreationDate": "2025-01-15T10:30:00+00:00"},
+        {"Name": "cloudres-fintech-uploads", "CreationDate": "2025-02-01T14:22:00+00:00"}
+      ],
+      "Owner": {
+        "DisplayName": "joseph",
+        "ID": "8a6b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+      }
+    },
+    "bucket_details": {
+      "cloudres-fintech-logs": {
+        "get_bucket_acl": {
+          "Owner": {
+            "DisplayName": "joseph",
+            "ID": "8a6b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+          },
+          "Grants": [
+            {
+              "Grantee": {
+                "Type": "CanonicalUser",
+                "DisplayName": "joseph",
+                "ID": "8a6b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+              },
+              "Permission": "FULL_CONTROL"
+            }
+          ]
+        },
+        "get_public_access_block": {
+          "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls": true,
+            "IgnorePublicAcls": true,
+            "BlockPublicPolicy": true,
+            "RestrictPublicBuckets": true
+          }
+        },
+        "get_bucket_encryption": {
+          "ServerSideEncryptionConfiguration": {
+            "Rules": [
+              {
+                "ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"},
+                "BucketKeyEnabled": false
+              }
+            ]
+          }
+        }
+      },
+      "cloudres-fintech-uploads": {
+        "get_bucket_acl": {
+          "Owner": {
+            "DisplayName": "joseph",
+            "ID": "8a6b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+          },
+          "Grants": [
+            {
+              "Grantee": {
+                "Type": "CanonicalUser",
+                "DisplayName": "joseph",
+                "ID": "8a6b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+              },
+              "Permission": "FULL_CONTROL"
+            },
+            {
+              "Grantee": {
+                "Type": "Group",
+                "URI": "http://acs.amazonaws.com/groups/global/AllUsers"
+              },
+              "Permission": "READ"
+            }
+          ]
+        },
+        "get_public_access_block": {
+          "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls": false,
+            "IgnorePublicAcls": false,
+            "BlockPublicPolicy": false,
+            "RestrictPublicBuckets": false
+          }
+        },
+        "get_bucket_encryption": {
+          "ServerSideEncryptionConfiguration": {
+            "Rules": [
+              {
+                "ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"},
+                "BucketKeyEnabled": false
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "rds": {
+    "describe_db_instances": {
+      "DBInstances": [
+        {
+          "DBInstanceIdentifier": "cloudres-fintech-primary",
+          "DBInstanceClass": "db.t3.micro",
+          "Engine": "mysql",
+          "EngineVersion": "8.0.35",
+          "DBInstanceStatus": "available",
+          "MasterUsername": "admin",
+          "Endpoint": {
+            "Address": "cloudres-fintech-primary.cluster-abc123def.eu-west-2.rds.amazonaws.com",
+            "Port": 3306,
+            "HostedZoneId": "Z1TTGA775OQIYO"
+          },
+          "AllocatedStorage": 20,
+          "InstanceCreateTime": "2025-01-15T10:00:00+00:00",
+          "PreferredBackupWindow": "02:00-03:00",
+          "BackupRetentionPeriod": 7,
+          "DBSubnetGroup": {
+            "DBSubnetGroupName": "cloudres-fintech-private-subnet-group",
+            "DBSubnetGroupDescription": "Private subnet group for fintech DB",
+            "VpcId": "vpc-0a1b2c3d4e5f6a7b8",
+            "SubnetGroupStatus": "Complete",
+            "Subnets": [
+              {
+                "SubnetIdentifier": "subnet-0ff6aa7bb8cc9dd00",
+                "SubnetAvailabilityZone": {"Name": "eu-west-2a"},
+                "SubnetStatus": "Active"
+              }
+            ]
+          },
+          "PubliclyAccessible": false,
+          "StorageEncrypted": true,
+          "VpcSecurityGroups": [
+            {"VpcSecurityGroupId": "sg-01122334455667788", "Status": "active"}
+          ],
+          "MultiAZ": false,
+          "DBName": "fintech_main",
+          "AvailabilityZone": "eu-west-2a"
+        }
+      ]
+    }
+  }
+}
