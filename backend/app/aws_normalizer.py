@@ -621,3 +621,14 @@ if __name__ == "__main__":
         f"Stats:   {topology['metadata']['node_count']} nodes, "
         f"{topology['metadata']['security_group_count']} security groups"
     )
+
+    # Also write a copy to the frontend folder so the visualisation
+    # can fetch it without crossing into the backend tree. Keeps the
+    # normalizer as the single source of truth: edit the mock, rerun
+    # this command, both copies update.
+    frontend_dir = Path(__file__).parent.parent.parent / "frontend"
+    if frontend_dir.exists():
+        frontend_file = frontend_dir / "topology.json"
+        with open(frontend_file, "w", encoding="utf-8") as f:
+            json.dump(topology, f, indent=2)
+        print(f"Copied:  {frontend_file}")
