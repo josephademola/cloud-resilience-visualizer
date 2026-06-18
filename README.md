@@ -1,6 +1,6 @@
 # Cloud Resilience Visualizer
 
-A visual threat-modelling and AWS infrastructure compliance platform.
+A Cloud Security Posture Management (CSPM) learning project — visualises AWS configurations on a logical topology and maps misconfigurations to NIS2, NCSC CAF 4.0, and MITRE ATT&CK.
 
 > Portfolio / learning project. Not a commercial Cloud Security Posture Management (CSPM) tool.
 
@@ -20,7 +20,7 @@ Under active development. Current focus: visualising a mock AWS environment with
 
 ## Setup
 
-Setup instructions will be added once Phase 1 is complete.
+Setup instructions will be added once the topology visualisation is in place.
 
 ## Author
 
