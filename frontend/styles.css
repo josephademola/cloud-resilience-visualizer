@@ -153,19 +153,35 @@ body {
 }
 
 /* Resource labels (EC2, RDS, S3, IGW) — pill background so the
-   text stays readable when it overlaps the parent's border. */
+   text stays readable when it overlaps the parent's border.
+   The inner span uses min-width:0 + ellipsis so long names like
+   "cloudres-fintech-app · t3.micro" truncate cleanly rather than
+   bleeding into the sibling resource's box. */
 .label-resource {
     background: rgba(20, 32, 58, 0.85);
     border-radius: 6px;
     padding: 4px 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    box-sizing: border-box;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    line-height: 22px;
 }
 
 .label-resource .ti {
     font-size: 14px;
     color: #8FA3C7;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.label-resource span {
+    display: inline-block;
+    vertical-align: middle;
+    max-width: calc(100% - 24px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Misconfigured resource — red accent on the label. */
@@ -177,4 +193,132 @@ body {
 
 .label-misconfig .ti {
     color: #E84A5F;
+}
+
+
+/* ---- IGW-to-VPC connector line (drawn via L.polyline) ---- */
+
+.topo-connector {
+    stroke: #4A6B9D;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-dasharray: 3 3;
+}
+
+
+/* ---- Details panel (slides in from the right on node click) ---- */
+
+.details-panel {
+    position: fixed;
+    top: 50px;                    /* below the app header */
+    right: 0;
+    width: 360px;
+    max-width: 90vw;              /* don't overflow on narrow screens */
+    height: calc(100% - 50px);
+    background: #14203A;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
+    padding: 20px 24px;
+    overflow-y: auto;
+    transform: translateX(100%);  /* hidden offscreen by default */
+    transition: transform 250ms ease-out;
+    z-index: 500;
+}
+
+.details-panel.details-open {
+    transform: translateX(0);
+}
+
+.details-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: transparent;
+    border: 0;
+    color: #8FA3C7;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 2px 10px;
+    line-height: 1;
+    border-radius: 4px;
+}
+
+.details-close:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #E1E7F0;
+}
+
+.details-header {
+    margin-bottom: 16px;
+    padding-right: 32px;          /* space for close button */
+}
+
+.details-name {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #E1E7F0;
+    word-break: break-all;
+}
+
+.details-type {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #8FA3C7;
+}
+
+.details-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #8FA3C7;
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.details-property {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.details-property .key {
+    color: #8FA3C7;
+    flex-shrink: 0;
+}
+
+.details-property .value {
+    color: #E1E7F0;
+    text-align: right;
+    word-break: break-all;
+}
+
+.details-property .value-bad {
+    color: #E84A5F;
+}
+
+.details-issue {
+    background: rgba(180, 50, 60, 0.1);
+    border-left: 3px solid #E84A5F;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: 0 4px 4px 0;
+}
+
+.details-issue-title {
+    color: #FFB3BB;
+    font-weight: 500;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.details-issue-text {
+    color: #C2C9D6;
+    font-size: 12px;
+    line-height: 1.5;
 }
