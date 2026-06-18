@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Resilience Visualizer</title>
+
+    <!-- Leaflet stylesheet: provides .leaflet-* utility classes used
+         by the library to position panes, controls, overlays. -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <!-- Tabler Icons webfont: lets us use icons inline via
+         <i class="ti ti-server"></i> for each resource type. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.2.0/dist/tabler-icons.min.css">
+
+    <!-- App stylesheet (loaded last so it can override Leaflet defaults) -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1 class="app-title">Cloud resilience visualizer</h1>
+        <div class="app-status" id="status">Loading topology...</div>
+    </header>
+
+    <main id="map" class="topology-map"></main>
+
+    <!-- Leaflet library (provides global L) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- App logic: fetch topology.json, lay out nodes, render shapes -->
+    <script src="js/topology.js"></script>
+</body>
+</html>
