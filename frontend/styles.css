@@ -322,3 +322,122 @@ body {
     font-size: 12px;
     line-height: 1.5;
 }
+
+/* ---- Finding cards (rendered inside the details panel) ---- */
+
+.finding-card {
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0 4px 4px 0;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.finding-card-critical { border-left-color: #E84A5F; }
+.finding-card-high     { border-left-color: #E8854A; }
+.finding-card-medium   { border-left-color: #D4A84A; }
+.finding-card-low      { border-left-color: #6B8DAB; }
+
+.finding-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.finding-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #E1E7F0;
+    flex: 1;
+}
+
+.finding-severity {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    line-height: 1.4;
+}
+
+.finding-severity-critical {
+    background: rgba(232, 74, 95, 0.15);
+    color: #FFB3BB;
+    border: 1px solid rgba(232, 74, 95, 0.4);
+}
+
+.finding-severity-high {
+    background: rgba(232, 133, 74, 0.15);
+    color: #F5C29A;
+    border: 1px solid rgba(232, 133, 74, 0.4);
+}
+
+.finding-severity-medium {
+    background: rgba(212, 168, 74, 0.15);
+    color: #F5DDA5;
+    border: 1px solid rgba(212, 168, 74, 0.4);
+}
+
+.finding-severity-low {
+    background: rgba(107, 141, 171, 0.15);
+    color: #B8CDDB;
+    border: 1px solid rgba(107, 141, 171, 0.4);
+}
+
+.finding-description {
+    font-size: 12px;
+    color: #C2C9D6;
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+
+.finding-section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8FA3C7;
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+
+.finding-remediation {
+    font-size: 12px;
+    color: #C2C9D6;
+    line-height: 1.5;
+}
+
+.framework-group {
+    margin-bottom: 8px;
+}
+
+.framework-name {
+    font-size: 10px;
+    font-weight: 500;
+    color: #8FA3C7;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.framework-ref {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    gap: 12px;
+    font-size: 11px;
+}
+
+.framework-ref-id {
+    color: #E1E7F0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    flex-shrink: 0;
+}
+
+.framework-ref-label {
+    color: #8FA3C7;
+    text-align: right;
+}

@@ -1,29 +1,24 @@
 /* ============================================================
    Cloud Resilience Visualizer — topology rendering
-   
-   What this file does:
-   1. Fetches the topology.json that the backend normalizer wrote.
-   2. Computes (x, y) coordinates for every node based on parent-child
-      containment — VPC contains subnets, subnets contain instances.
-   3. Renders the shapes and labels on a Leaflet map configured with
-      L.CRS.Simple, which treats the canvas as a flat XY grid rather
-      than a geographic map.
-   
-   Coordinate convention:
-   We work in screen coordinates internally (x grows rightward, y grows
-   downward). Leaflet's CRS.Simple uses latLng with y growing upward,
-   so we flip y when converting to Leaflet's bounds/points.
+
+   Phase 2 update: the click panel now shows real findings
+   produced by the backend scanner (severity, description,
+   remediation, framework references), instead of the hardcoded
+   Phase 1 "Issues" text.
    ============================================================ */
 
 
 // Layout constants — sizes and gaps for each shape type, in screen pixels.
 const LAYOUT = {
-    vpc:           { startX: 80,  startY: 100, width: 620, padding: 50 },
-    subnet:        { height: 200, gap: 30 },
-    igw:           { width: 130,  height: 36, gap: 12 },     // sits above the VPC
-    resource:      { width: 150,  height: 60, gap: 24 },     // EC2 / RDS markers
-    bucket:        { width: 230,  height: 70, gap: 30, leftPad: 80 },
+    vpc:      { startX: 80, startY: 100, width: 620, padding: 50 },
+    subnet:   { height: 200, gap: 30 },
+    igw:      { width: 130, height: 36, gap: 12 },
+    resource: { width: 150, height: 60, gap: 24 },
+    bucket:   { width: 230, height: 70, gap: 30, leftPad: 80 },
 };
+
+// Module-level state, populated at init.
+let FINDINGS = [];
 
 
 // ---- Entry point ----
@@ -31,8 +26,19 @@ const LAYOUT = {
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
+    document.getElementById("details-close").addEventListener("click", hideDetails);
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") hideDetails();
+    });
+
     try {
-        const topology = await fetchTopology();
+        // Fetch topology and findings in parallel — they're independent.
+        const [topology, findings] = await Promise.all([
+            fetchTopology(),
+            fetchFindings(),
+        ]);
+        FINDINGS = findings;
+
         const map = createMap();
         renderTopology(map, topology);
         updateStatus(topology);
@@ -46,8 +52,6 @@ async function init() {
 // ---- Data loading ----
 
 async function fetchTopology() {
-    // topology.json sits next to index.html (copied there by the
-    // normalizer's __main__ block). Fetched as a sibling file.
     const response = await fetch("./topology.json");
     if (!response.ok) {
         throw new Error("Fetch failed: HTTP " + response.status);
@@ -55,13 +59,28 @@ async function fetchTopology() {
     return await response.json();
 }
 
+async function fetchFindings() {
+    // Graceful degradation: if findings.json isn't there (e.g. user
+    // hasn't run the updated normalizer yet), proceed with empty
+    // findings rather than breaking the whole page.
+    try {
+        const response = await fetch("./findings.json");
+        if (!response.ok) {
+            console.warn("findings.json not available, proceeding without findings");
+            return [];
+        }
+        const data = await response.json();
+        return data.findings || [];
+    } catch (err) {
+        console.warn("Could not fetch findings.json:", err);
+        return [];
+    }
+}
+
 
 // ---- Map initialisation ----
 
 function createMap() {
-    // L.CRS.Simple turns Leaflet from a geographic map into a flat XY
-    // canvas. We disable zoom controls and attribution because they
-    // belong to the world of geographic tiles.
     return L.map("map", {
         crs: L.CRS.Simple,
         minZoom: -2,
@@ -79,14 +98,12 @@ function computeLayout(topology) {
     const layouts = {};
     const byParent = groupByParent(topology.nodes);
 
-    // VPCs anchor everything. With one VPC, this loop runs once.
     let cursorX = LAYOUT.vpc.startX;
     for (const vpc of topology.nodes.filter(n => n.type === "vpc")) {
         const vpcLayout = layoutVpcAndChildren(vpc, byParent, layouts, cursorX);
         cursorX += vpcLayout.width + 60;
     }
 
-    // IGWs render above their parent VPC, centred on its top edge.
     for (const igw of topology.nodes.filter(n => n.type === "internet_gateway")) {
         const parent = layouts[igw.parent_id];
         if (!parent) continue;
@@ -98,7 +115,6 @@ function computeLayout(topology) {
         };
     }
 
-    // S3 buckets are global — placed to the right of all VPCs.
     const rightEdge = rightmostEdge(layouts);
     let bucketY = LAYOUT.vpc.startY;
     for (const bucket of topology.nodes.filter(n => n.type === "s3_bucket")) {
@@ -116,11 +132,7 @@ function computeLayout(topology) {
 
 function layoutVpcAndChildren(vpc, byParent, layouts, x) {
     const subnets = (byParent[vpc.id] || []).filter(n => n.type === "subnet");
-
-    // Lay out subnets stacked vertically inside the VPC. Public on top
-    // (where the internet-facing tier lives), private below.
     const orderedSubnets = subnets.slice().sort((a, b) => {
-        // public first, then private, then anything else alphabetically by id
         if (a.properties.tier === "public") return -1;
         if (b.properties.tier === "public") return 1;
         return a.id.localeCompare(b.id);
@@ -142,7 +154,6 @@ function layoutVpcAndChildren(vpc, byParent, layouts, x) {
         subnetY += LAYOUT.subnet.height + LAYOUT.subnet.gap;
     }
 
-    // VPC height grows to enclose all subnets plus padding above and below.
     const totalSubnetHeight = orderedSubnets.length * LAYOUT.subnet.height
                               + Math.max(0, orderedSubnets.length - 1) * LAYOUT.subnet.gap;
     const vpcHeight = vpcInnerPaddingTop + totalSubnetHeight + LAYOUT.vpc.padding;
@@ -153,7 +164,6 @@ function layoutVpcAndChildren(vpc, byParent, layouts, x) {
         width: LAYOUT.vpc.width,
         height: vpcHeight,
     };
-
     return layouts[vpc.id];
 }
 
@@ -187,28 +197,31 @@ function layoutResourcesInSubnet(subnet, byParent, layouts) {
 function renderTopology(map, topology) {
     const layouts = computeLayout(topology);
 
-    // Render order matters for z-stacking: containers first so smaller
-    // shapes appear on top. Leaflet renders SVG paths in DOM order.
     const renderOrder = ["vpc", "subnet", "internet_gateway", "ec2_instance", "rds_instance", "s3_bucket"];
     for (const type of renderOrder) {
         for (const node of topology.nodes.filter(n => n.type === type)) {
-            renderNode(map, node, layouts[node.id]);
+            renderNode(map, node, layouts[node.id], layouts);
         }
     }
 
     fitMapToContent(map, layouts);
 }
 
-function renderNode(map, node, layout) {
+function renderNode(map, node, layout, allLayouts) {
     if (!layout) return;
 
-    // Draw the shape itself as an SVG rectangle on the map.
-    L.rectangle(boundsFromScreen(layout), {
+    const rect = L.rectangle(boundsFromScreen(layout), {
         className: nodeClassName(node),
-        interactive: false,
+        interactive: true,
     }).addTo(map);
 
-    // Draw the text/icon label on top.
+    rect.on("click", () => showDetails(node));
+
+    if (node.type === "internet_gateway" && node.parent_id) {
+        const parent = allLayouts[node.parent_id];
+        if (parent) drawIgwConnector(map, layout, parent);
+    }
+
     L.marker(centreFromScreen(node, layout), {
         icon: L.divIcon({
             className: "node-label " + labelClassName(node),
@@ -221,12 +234,24 @@ function renderNode(map, node, layout) {
     }).addTo(map);
 }
 
+function drawIgwConnector(map, igwLayout, vpcLayout) {
+    const fromX = igwLayout.x + igwLayout.width / 2;
+    const fromY = igwLayout.y + igwLayout.height;
+    const toX   = vpcLayout.x + vpcLayout.width / 2;
+    const toY   = vpcLayout.y;
+
+    L.polyline(
+        [[-fromY, fromX], [-toY, toX]],
+        { className: "topo-connector", interactive: false }
+    ).addTo(map);
+}
+
 function nodeClassName(node) {
     let cls = "topo-node node-" + node.type;
     if (node.type === "subnet") {
         cls += " node-subnet-" + (node.properties.tier === "public" ? "public" : "private");
     }
-    if (isMisconfigured(node)) {
+    if (hasFindings(node)) {
         cls += " node-misconfigured";
     }
     return cls;
@@ -234,7 +259,7 @@ function nodeClassName(node) {
 
 function labelClassName(node) {
     if (node.type === "vpc" || node.type === "subnet") return "label-container";
-    if (isMisconfigured(node)) return "label-resource label-misconfig";
+    if (hasFindings(node)) return "label-resource label-misconfig";
     return "label-resource";
 }
 
@@ -265,21 +290,24 @@ function iconForType(node) {
         case "internet_gateway": return "ti-world";
         case "ec2_instance":     return "ti-server";
         case "rds_instance":     return "ti-database";
-        case "s3_bucket":        return isMisconfigured(node) ? "ti-alert-triangle" : "ti-bucket";
+        case "s3_bucket":        return hasFindings(node) ? "ti-alert-triangle" : "ti-bucket";
         default:                 return null;
     }
 }
 
 
-// ---- Helpers ----
+// ---- Findings lookup helpers ----
 
-function isMisconfigured(node) {
-    if (node.type !== "s3_bucket") return false;
-    const p = node.properties;
-    return p.is_public_via_acl
-        || !p.public_access_block_fully_enabled
-        || !p.encryption_enabled;
+function findingsForResource(resourceId) {
+    return FINDINGS.filter(f => f.resource_id === resourceId);
 }
+
+function hasFindings(node) {
+    return findingsForResource(node.id).length > 0;
+}
+
+
+// ---- Layout math helpers ----
 
 function groupByParent(nodes) {
     const map = {};
@@ -299,16 +327,12 @@ function rightmostEdge(layouts) {
     return max;
 }
 
-// Convert screen-coord layout {x, y, width, height} into Leaflet
-// SW/NE bounds. Y is flipped because L.CRS.Simple has y growing up.
 function boundsFromScreen(layout) {
     const sw = [-layout.y - layout.height, layout.x];
     const ne = [-layout.y,                 layout.x + layout.width];
     return [sw, ne];
 }
 
-// Centre point for label markers. Containers get a label near their
-// top edge; resources get one centred on the rectangle.
 function centreFromScreen(node, layout) {
     if (node.type === "vpc" || node.type === "subnet") {
         return [-(layout.y + 14), layout.x + layout.width / 2];
@@ -334,9 +358,168 @@ function fitMapToContent(map, layouts) {
 
 function updateStatus(topology) {
     const total = topology.nodes.length;
-    const misconfigs = topology.nodes.filter(isMisconfigured).length;
-    const findingText = misconfigs === 0
+    const findingCount = FINDINGS.length;
+    const findingText = findingCount === 0
         ? "no findings"
-        : `${misconfigs} misconfiguration${misconfigs === 1 ? "" : "s"}`;
+        : `${findingCount} finding${findingCount === 1 ? "" : "s"}`;
     document.getElementById("status").textContent = `${total} resources · ${findingText}`;
+}
+
+
+// ---- Details panel ----
+
+function showDetails(node) {
+    const panel   = document.getElementById("details-panel");
+    const content = document.getElementById("details-content");
+    content.innerHTML = buildDetailsHtml(node);
+    panel.classList.add("details-open");
+    panel.setAttribute("aria-hidden", "false");
+}
+
+function hideDetails() {
+    const panel = document.getElementById("details-panel");
+    panel.classList.remove("details-open");
+    panel.setAttribute("aria-hidden", "true");
+}
+
+function buildDetailsHtml(node) {
+    const parts = [];
+
+    parts.push(`<div class="details-header">`);
+    parts.push(`<h2 class="details-name">${escapeHtml(node.name)}</h2>`);
+    parts.push(`<div class="details-type">${escapeHtml(humanType(node))}</div>`);
+    parts.push(`</div>`);
+
+    parts.push(`<div class="details-section-title">Properties</div>`);
+    parts.push(buildPropertiesHtml(node));
+
+    // Real findings from the backend scanner, populated at init.
+    // If the node has any findings, render one card per finding.
+    const findings = findingsForResource(node.id);
+    if (findings.length > 0) {
+        parts.push(`<div class="details-section-title">Findings (${findings.length})</div>`);
+        parts.push(buildFindingsHtml(findings));
+    }
+
+    return parts.join("");
+}
+
+function buildPropertiesHtml(node) {
+    const props = node.properties || {};
+    const rows  = [propertyRow("Resource ID", node.id, false)];
+
+    for (const key in props) {
+        const value = props[key];
+        const isBad = isBadProperty(key, value);
+        rows.push(propertyRow(humanKey(key), formatValue(value), isBad));
+    }
+    return rows.join("");
+}
+
+function propertyRow(key, value, isBad) {
+    const cls = isBad ? "value value-bad" : "value";
+    return `<div class="details-property">`
+         + `<span class="key">${escapeHtml(key)}</span>`
+         + `<span class="${cls}">${escapeHtml(value)}</span>`
+         + `</div>`;
+}
+
+
+// ---- Findings rendering ----
+
+function buildFindingsHtml(findings) {
+    return findings.map(renderFindingCard).join("");
+}
+
+function renderFindingCard(finding) {
+    const grouped = groupFrameworkRefs(finding.framework_references);
+    return `
+        <div class="finding-card finding-card-${escapeHtml(finding.severity)}">
+            <div class="finding-header">
+                <div class="finding-title">${escapeHtml(finding.title)}</div>
+                <span class="finding-severity finding-severity-${escapeHtml(finding.severity)}">${escapeHtml(finding.severity)}</span>
+            </div>
+            <div class="finding-description">${escapeHtml(finding.description)}</div>
+            <div class="finding-section-title">Remediation</div>
+            <div class="finding-remediation">${escapeHtml(finding.remediation)}</div>
+            <div class="finding-section-title">Framework references</div>
+            <div class="finding-frameworks">${renderFrameworkRefs(grouped)}</div>
+        </div>
+    `;
+}
+
+function groupFrameworkRefs(refs) {
+    const groups = {};
+    for (const r of refs) {
+        if (!groups[r.framework]) groups[r.framework] = [];
+        groups[r.framework].push(r);
+    }
+    return groups;
+}
+
+function renderFrameworkRefs(groups) {
+    const frameworkOrder = ["nis2", "ncsc_caf", "mitre_attack", "cyber_essentials"];
+    const frameworkLabels = {
+        nis2: "NIS2",
+        ncsc_caf: "NCSC CAF",
+        mitre_attack: "MITRE ATT&CK",
+        cyber_essentials: "Cyber Essentials",
+    };
+    const parts = [];
+    for (const key of frameworkOrder) {
+        if (!groups[key]) continue;
+        parts.push(`<div class="framework-group">`);
+        parts.push(`<div class="framework-name">${frameworkLabels[key]}</div>`);
+        for (const ref of groups[key]) {
+            parts.push(`<div class="framework-ref">`
+                + `<span class="framework-ref-id">${escapeHtml(ref.reference_id)}</span>`
+                + `<span class="framework-ref-label">${escapeHtml(ref.label)}</span>`
+                + `</div>`);
+        }
+        parts.push(`</div>`);
+    }
+    return parts.join("");
+}
+
+
+// ---- Display formatting helpers ----
+
+function humanType(node) {
+    switch (node.type) {
+        case "vpc":              return "Virtual Private Cloud";
+        case "subnet":           return `${node.properties.tier === "public" ? "Public" : "Private"} subnet`;
+        case "internet_gateway": return "Internet Gateway";
+        case "ec2_instance":     return "EC2 Instance";
+        case "rds_instance":     return "RDS Instance";
+        case "s3_bucket":        return "S3 Bucket";
+        default:                 return node.type;
+    }
+}
+
+function humanKey(key) {
+    return key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatValue(value) {
+    if (value === null || value === undefined) return "—";
+    if (Array.isArray(value)) return value.length === 0 ? "(none)" : value.join(", ");
+    if (typeof value === "boolean") return value ? "true" : "false";
+    return String(value);
+}
+
+function isBadProperty(key, value) {
+    if (key === "is_public_via_acl" && value === true) return true;
+    if (key === "public_access_block_fully_enabled" && value === false) return true;
+    if (key === "encryption_enabled" && value === false) return true;
+    if (key === "publicly_accessible" && value === true) return true;
+    return false;
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }
