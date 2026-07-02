@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "framework": "cyber_essentials",
+    "framework_full_name": "UK Cyber Essentials",
+    "description": "Mapping of finding types to the five Cyber Essentials control themes. Cyber Essentials is the UK government's baseline cyber security certification, required by many public-sector contracts. The scheme has five technical control themes: Firewalls, Secure Configuration, User Access Control, Malware Protection, and Security Update Management.",
+    "source_url": "https://www.ncsc.gov.uk/cyberessentials/overview"
+  },
+
+  "S3_PUBLIC_VIA_ACL": [
+    {
+      "framework": "cyber_essentials",
+      "reference_id": "user_access_control",
+      "label": "User Access Control"
+    },
+    {
+      "framework": "cyber_essentials",
+      "reference_id": "secure_configuration",
+      "label": "Secure Configuration"
+    }
+  ],
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
+    {
+      "framework": "cyber_essentials",
+      "reference_id": "secure_configuration",
+      "label": "Secure Configuration"
+    }
+  ],
+
+  "S3_ENCRYPTION_DISABLED": [
+    {
+      "framework": "cyber_essentials",
+      "reference_id": "secure_configuration",
+      "label": "Secure Configuration"
+    }
+  ]
+}

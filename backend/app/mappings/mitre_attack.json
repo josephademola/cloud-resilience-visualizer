@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "framework": "mitre_attack",
+    "framework_full_name": "MITRE ATT&CK Enterprise (Cloud IaaS sub-matrix)",
+    "description": "Mapping of finding types to MITRE ATT&CK techniques an attacker could use to exploit them. This is a threat framework, not a compliance framework — references show which attacker techniques the misconfiguration enables. Techniques from the Cloud IaaS platform sub-matrix.",
+    "source_url": "https://attack.mitre.org/matrices/enterprise/cloud/iaas/"
+  },
+
+  "S3_PUBLIC_VIA_ACL": [
+    {
+      "framework": "mitre_attack",
+      "reference_id": "T1530",
+      "label": "Data from Cloud Storage (Collection tactic)"
+    }
+  ],
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
+    {
+      "framework": "mitre_attack",
+      "reference_id": "T1078.004",
+      "label": "Valid Accounts: Cloud Accounts (Defense Evasion tactic)"
+    }
+  ],
+
+  "S3_ENCRYPTION_DISABLED": [
+    {
+      "framework": "mitre_attack",
+      "reference_id": "T1530",
+      "label": "Data from Cloud Storage (Collection tactic)"
+    }
+  ]
+}

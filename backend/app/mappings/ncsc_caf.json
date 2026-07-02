@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "framework": "ncsc_caf",
+    "framework_full_name": "NCSC Cyber Assessment Framework v4.0",
+    "description": "Mapping of finding types to Cyber Assessment Framework (CAF) outcomes. CAF is the UK National Cyber Security Centre's outcomes-based framework used by regulators. Objective B (Protecting Against Cyber Attack) is where most cloud misconfigurations land.",
+    "source_url": "https://www.ncsc.gov.uk/collection/cyber-assessment-framework"
+  },
+
+  "S3_PUBLIC_VIA_ACL": [
+    {
+      "framework": "ncsc_caf",
+      "reference_id": "B2.a",
+      "label": "Identity verification, authentication and authorisation"
+    },
+    {
+      "framework": "ncsc_caf",
+      "reference_id": "B3.a",
+      "label": "Understanding data"
+    }
+  ],
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
+    {
+      "framework": "ncsc_caf",
+      "reference_id": "B4.a",
+      "label": "Secure by design"
+    }
+  ],
+
+  "S3_ENCRYPTION_DISABLED": [
+    {
+      "framework": "ncsc_caf",
+      "reference_id": "B3.c",
+      "label": "Stored data"
+    }
+  ]
+}
