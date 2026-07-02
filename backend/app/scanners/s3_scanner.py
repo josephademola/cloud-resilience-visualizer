@@ -28,6 +28,13 @@ Design notes:
 - Idempotent by design. Scanning the same topology twice produces
   identical findings in identical order. This matters for
   compliance work — auditors need deterministic output.
+
+  - Missing-property semantics differ by rule type:
+    * Detection signals (e.g. is_public_via_acl): missing -> no
+      finding. We don't invent detected problems out of missing data.
+    * Protection signals (e.g. encryption_enabled): missing -> fail
+      closed. If we can't confirm protection is on, flag it. Matches
+      how production CSPM tools behave.
 """
 
 from __future__ import annotations
