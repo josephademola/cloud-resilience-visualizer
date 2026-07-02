@@ -1,0 +1,108 @@
+{
+  "metadata": {
+    "schema_version": "1.0",
+    "finding_count": 3
+  },
+  "findings": [
+    {
+      "finding_type_id": "S3_PUBLIC_VIA_ACL",
+      "title": "Bucket publicly readable via ACL",
+      "severity": "critical",
+      "resource_id": "cloudres-fintech-uploads",
+      "description": "A grant to the AllUsers group in the bucket ACL means anyone on the internet can read objects in this bucket. This is one of the most common causes of accidental data leaks from AWS environments.",
+      "remediation": "Remove the AllUsers grant via the AWS Console (S3 -> bucket -> Permissions -> Access Control List) or by running 'aws s3api put-bucket-acl' with a policy that omits the AllUsers grantee. Verify by re-running 'aws s3api get-bucket-acl' and confirming no AllUsers entry.",
+      "framework_references": [
+        {
+          "framework": "nis2",
+          "reference_id": "Article 21(2)(i)",
+          "label": "Access control policies and asset management"
+        },
+        {
+          "framework": "ncsc_caf",
+          "reference_id": "B2.a",
+          "label": "Identity verification, authentication and authorisation"
+        },
+        {
+          "framework": "ncsc_caf",
+          "reference_id": "B3.a",
+          "label": "Understanding data"
+        },
+        {
+          "framework": "mitre_attack",
+          "reference_id": "T1530",
+          "label": "Data from Cloud Storage (Collection tactic)"
+        },
+        {
+          "framework": "cyber_essentials",
+          "reference_id": "user_access_control",
+          "label": "User Access Control"
+        },
+        {
+          "framework": "cyber_essentials",
+          "reference_id": "secure_configuration",
+          "label": "Secure Configuration"
+        }
+      ]
+    },
+    {
+      "finding_type_id": "S3_PUBLIC_ACCESS_BLOCK_DISABLED",
+      "title": "Public Access Block not fully enabled",
+      "severity": "medium",
+      "resource_id": "cloudres-fintech-uploads",
+      "description": "Public Access Block is the safety net that overrides accidentally-public bucket ACLs and policies. One or more of the four flags (BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets) is not enabled, weakening the account's ability to prevent future accidental exposures.",
+      "remediation": "Enable all four Public Access Block flags on the bucket via the AWS Console (S3 -> bucket -> Permissions -> Block public access) or by running 'aws s3api put-public-access-block' with all four flags set to true.",
+      "framework_references": [
+        {
+          "framework": "nis2",
+          "reference_id": "Article 21(2)(e)",
+          "label": "Security in the acquisition, development and maintenance of network and information systems"
+        },
+        {
+          "framework": "ncsc_caf",
+          "reference_id": "B4.a",
+          "label": "Secure by design"
+        },
+        {
+          "framework": "mitre_attack",
+          "reference_id": "T1078.004",
+          "label": "Valid Accounts: Cloud Accounts (Defense Evasion tactic)"
+        },
+        {
+          "framework": "cyber_essentials",
+          "reference_id": "secure_configuration",
+          "label": "Secure Configuration"
+        }
+      ]
+    },
+    {
+      "finding_type_id": "S3_ENCRYPTION_DISABLED",
+      "title": "Server-side encryption not configured",
+      "severity": "high",
+      "resource_id": "cloudres-fintech-uploads",
+      "description": "Objects in this bucket are stored unencrypted at rest. AWS provides free default encryption (AES256), so an unencrypted bucket typically indicates either a misconfiguration or an outdated bucket that predates the encryption default becoming automatic.",
+      "remediation": "Configure default encryption on the bucket via the AWS Console (S3 -> bucket -> Properties -> Default encryption) or by running 'aws s3api put-bucket-encryption'. Use AES256 for the simplest case, or SSE-KMS with a customer-managed key for compliance-sensitive data.",
+      "framework_references": [
+        {
+          "framework": "nis2",
+          "reference_id": "Article 21(2)(h)",
+          "label": "Policies and procedures regarding the use of cryptography and encryption"
+        },
+        {
+          "framework": "ncsc_caf",
+          "reference_id": "B3.c",
+          "label": "Stored data"
+        },
+        {
+          "framework": "mitre_attack",
+          "reference_id": "T1530",
+          "label": "Data from Cloud Storage (Collection tactic)"
+        },
+        {
+          "framework": "cyber_essentials",
+          "reference_id": "secure_configuration",
+          "label": "Secure Configuration"
+        }
+      ]
+    }
+  ]
+}
