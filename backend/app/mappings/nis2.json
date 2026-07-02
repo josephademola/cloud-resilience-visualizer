@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "framework": "nis2",
+    "framework_full_name": "EU NIS2 Directive (2022/2555)",
+    "description": "Mapping of finding types to Article 21(2) risk-management measures in the EU NIS2 Directive. References are the relevant sub-paragraphs of Article 21(2), which lists the minimum cybersecurity risk-management measures required of essential and important entities.",
+    "source_url": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
+  },
+
+  "S3_PUBLIC_VIA_ACL": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(i)",
+      "label": "Access control policies and asset management"
+    }
+  ],
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(e)",
+      "label": "Security in the acquisition, development and maintenance of network and information systems"
+    }
+  ],
+
+  "S3_ENCRYPTION_DISABLED": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(h)",
+      "label": "Policies and procedures regarding the use of cryptography and encryption"
+    }
+  ]
+}
