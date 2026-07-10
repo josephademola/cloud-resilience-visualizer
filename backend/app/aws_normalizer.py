@@ -35,13 +35,12 @@ DESIGN NOTES
 """
 
 from __future__ import annotations
-from app.scanners.s3_scanner import scan_s3_buckets
 import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from app.models.finding import finding_to_dict
+
 
 # Module-level logger. Using __name__ means the logger inherits the
 # module's dotted path ("app.aws_normalizer"). Calling code can
@@ -622,42 +621,3 @@ if __name__ == "__main__":
         f"Stats:   {topology['metadata']['node_count']} nodes, "
         f"{topology['metadata']['security_group_count']} security groups"
     )
-
-    # Also write a copy to the frontend folder so the visualisation
-    # can fetch it without crossing into the backend tree. Keeps the
-    # normalizer as the single source of truth: edit the mock, rerun
-    # this command, both copies update.
-    frontend_dir = Path(__file__).parent.parent.parent / "frontend"
-    if frontend_dir.exists():
-        frontend_file = frontend_dir / "topology.json"
-        with open(frontend_file, "w", encoding="utf-8") as f:
-            json.dump(topology, f, indent=2)
-        print(f"Copied:  {frontend_file}")
-
-
-    # Phase 2: scan the topology for misconfigurations and write the
-    # findings alongside the topology. Same two-place write pattern:
-    # backend/app/data for source-of-truth, frontend/ for the UI to
-    # fetch. Serialised as plain dicts so the JSON is self-contained
-    # (no reliance on Python-specific enum encoding).
-    findings = scan_s3_buckets(topology)
-    findings_output = {
-        "metadata": {
-            "schema_version": "1.0",
-            "finding_count": len(findings),
-        },
-        "findings": [finding_to_dict(f) for f in findings],
-    }
-    
-
-    findings_file = data_dir / "findings.json"
-    with open(findings_file, "w", encoding="utf-8") as f:
-        json.dump(findings_output, f, indent=2)
-    print(f"Wrote:   {findings_file}")
-    print(f"Stats:   {len(findings)} findings")
-
-    if frontend_dir.exists():
-        frontend_findings = frontend_dir / "findings.json"
-        with open(frontend_findings, "w", encoding="utf-8") as f:
-            json.dump(findings_output, f, indent=2)
-        print(f"Copied:  {frontend_findings}")
