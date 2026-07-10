@@ -108,3 +108,31 @@ class Finding:
     framework_references: tuple[FrameworkReference, ...] = field(
         default_factory=tuple
     )
+
+def finding_to_dict(finding: Finding) -> dict:
+    """
+    Serialise a Finding (and its nested FrameworkReference tuple) to
+    a plain JSON-compatible dict. Used by both the CLI runner in
+    aws_normalizer.__main__ (writing findings.json) and the API
+    endpoint (responding to HTTP GET /api/findings).
+
+    Kept as a module-level function rather than a Finding method so
+    the dataclass stays purely a data container — no coupling to
+    serialisation concerns inside the class itself.
+    """
+    return {
+        "finding_type_id": finding.finding_type_id,
+        "title": finding.title,
+        "severity": finding.severity.value,
+        "resource_id": finding.resource_id,
+        "description": finding.description,
+        "remediation": finding.remediation,
+        "framework_references": [
+            {
+                "framework": r.framework,
+                "reference_id": r.reference_id,
+                "label": r.label,
+            }
+            for r in finding.framework_references
+        ],
+    }

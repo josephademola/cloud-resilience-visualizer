@@ -41,6 +41,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from app.models.finding import finding_to_dict
 
 # Module-level logger. Using __name__ means the logger inherits the
 # module's dotted path ("app.aws_normalizer"). Calling code can
@@ -645,26 +646,9 @@ if __name__ == "__main__":
             "schema_version": "1.0",
             "finding_count": len(findings),
         },
-        "findings": [
-            {
-                "finding_type_id": f.finding_type_id,
-                "title": f.title,
-                "severity": f.severity.value,
-                "resource_id": f.resource_id,
-                "description": f.description,
-                "remediation": f.remediation,
-                "framework_references": [
-                    {
-                        "framework": r.framework,
-                        "reference_id": r.reference_id,
-                        "label": r.label,
-                    }
-                    for r in f.framework_references
-                ],
-            }
-            for f in findings
-        ],
+        "findings": [finding_to_dict(f) for f in findings],
     }
+    
 
     findings_file = data_dir / "findings.json"
     with open(findings_file, "w", encoding="utf-8") as f:
