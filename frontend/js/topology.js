@@ -17,6 +17,10 @@ const LAYOUT = {
     bucket:   { width: 230, height: 70, gap: 30, leftPad: 80 },
 };
 
+// Backend API base URL. Change this when deploying to a real host —
+// for now it's the local FastAPI dev server on port 8000.
+const API_BASE = "http://localhost:8000";
+
 // Module-level state, populated at init.
 let FINDINGS = [];
 
@@ -44,7 +48,8 @@ async function init() {
         updateStatus(topology);
     } catch (err) {
         console.error("Failed to render topology:", err);
-        document.getElementById("status").textContent = "Error loading topology — see console";
+        document.getElementById("status").textContent =
+            "Cannot reach API — is the backend server running on port 8000?";
     }
 }
 
@@ -52,31 +57,30 @@ async function init() {
 // ---- Data loading ----
 
 async function fetchTopology() {
-    const response = await fetch("./topology.json");
+    const response = await fetch(`${API_BASE}/api/topology`);
     if (!response.ok) {
-        throw new Error("Fetch failed: HTTP " + response.status);
+        throw new Error("Topology fetch failed: HTTP " + response.status);
     }
     return await response.json();
 }
 
 async function fetchFindings() {
-    // Graceful degradation: if findings.json isn't there (e.g. user
-    // hasn't run the updated normalizer yet), proceed with empty
-    // findings rather than breaking the whole page.
+    // Findings fetch is graceful: if the endpoint is temporarily
+    // unavailable we proceed with an empty list rather than break
+    // the whole page. Topology is required; findings are optional.
     try {
-        const response = await fetch("./findings.json");
+        const response = await fetch(`${API_BASE}/api/findings`);
         if (!response.ok) {
-            console.warn("findings.json not available, proceeding without findings");
+            console.warn("Findings endpoint returned", response.status);
             return [];
         }
         const data = await response.json();
         return data.findings || [];
     } catch (err) {
-        console.warn("Could not fetch findings.json:", err);
+        console.warn("Could not fetch findings:", err);
         return [];
     }
 }
-
 
 // ---- Map initialisation ----
 
