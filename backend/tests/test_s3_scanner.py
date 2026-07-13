@@ -78,7 +78,7 @@ class TestCheckPublicViaAcl:
         assert isinstance(finding, Finding)
         assert finding.severity == Severity.CRITICAL
         assert finding.resource_id == "mycompany-leak"
-        assert finding.title == "Bucket publicly readable via ACL"
+        assert finding.title == "Bucket publicly readable via legacy ACL"
         # Framework references must have been stitched in — an empty
         # list here would indicate the loader is broken or the
         # mapping file lost this finding type.
@@ -121,7 +121,7 @@ class TestCheckPublicAccessBlock:
         )
         assert finding.severity == Severity.MEDIUM
         assert finding.resource_id == "weak-safety-net"
-        assert finding.title == "Public Access Block not fully enabled"
+        assert finding.title == "S3 Public Access Block not fully enabled"
         assert len(finding.framework_references) > 0
 
 
