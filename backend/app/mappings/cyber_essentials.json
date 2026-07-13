@@ -3,35 +3,25 @@
     "framework": "cyber_essentials",
     "framework_full_name": "UK Cyber Essentials",
     "description": "Mapping of finding types to the five Cyber Essentials control themes. Cyber Essentials is the UK government's baseline cyber security certification, required by many public-sector contracts. The scheme has five technical control themes: Firewalls, Secure Configuration, User Access Control, Malware Protection, and Security Update Management.",
-    "source_url": "https://www.ncsc.gov.uk/cyberessentials/overview"
+    "source_url": "https://www.ncsc.gov.uk/cyberessentials/overview",
+    "mapping_rationale": "Cyber Essentials themes are broad. Cloud misconfigurations typically touch Secure Configuration (the default and most-used theme for cloud) and User Access Control (when the misconfiguration affects who can access data). Mappings below reflect the primary theme(s) each finding directly compromises.",
+    "audit_notes": {
+      "S3_PUBLIC_VIA_ACL": "Two themes. User Access Control is primary — an AllUsers grant is a direct failure of access control. Secure Configuration is secondary — the bucket was configured insecurely at creation or through subsequent changes.",
+      "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Secure Configuration only. PAB is a bucket-level configuration setting; the theme covers exactly this case.",
+      "S3_ENCRYPTION_DISABLED": "Secure Configuration only. Encryption at rest is a default AWS bucket configuration; a bucket without it has been configured (or left configured) insecurely."
+    }
   },
 
   "S3_PUBLIC_VIA_ACL": [
-    {
-      "framework": "cyber_essentials",
-      "reference_id": "user_access_control",
-      "label": "User Access Control"
-    },
-    {
-      "framework": "cyber_essentials",
-      "reference_id": "secure_configuration",
-      "label": "Secure Configuration"
-    }
+    {"framework": "cyber_essentials", "reference_id": "user_access_control", "label": "User Access Control"},
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ],
 
   "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
-    {
-      "framework": "cyber_essentials",
-      "reference_id": "secure_configuration",
-      "label": "Secure Configuration"
-    }
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ],
 
   "S3_ENCRYPTION_DISABLED": [
-    {
-      "framework": "cyber_essentials",
-      "reference_id": "secure_configuration",
-      "label": "Secure Configuration"
-    }
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ]
 }

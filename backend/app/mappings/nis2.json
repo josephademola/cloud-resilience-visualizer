@@ -3,7 +3,13 @@
     "framework": "nis2",
     "framework_full_name": "EU NIS2 Directive (2022/2555)",
     "description": "Mapping of finding types to Article 21(2) risk-management measures in the EU NIS2 Directive. References are the relevant sub-paragraphs of Article 21(2), which lists the minimum cybersecurity risk-management measures required of essential and important entities.",
-    "source_url": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
+    "source_url": "https://eur-lex.europa.eu/eli/dir/2022/2555/oj",
+    "mapping_rationale": "Article 21(2) is the operative provision for risk-management measures. Each finding maps to one or more of its sub-paragraphs (a) through (j). Where a finding legitimately implicates multiple sub-paragraphs, all are listed. This mapping is defensible but interpretive: NIS2 does not prescribe specific technical controls, and a compliance officer or auditor may reasonably arrive at a different mapping. The mapping is documented here to make the reasoning traceable.",
+    "audit_notes": {
+      "S3_PUBLIC_VIA_ACL": "21(2)(i) is the primary requirement — an AllUsers grant is a direct failure of access control policies. This mapping is unambiguous.",
+      "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Two references. 21(2)(e) covers security in ongoing system maintenance — PAB is a configuration choice that lives here. 21(2)(f) covers assessing the effectiveness of measures — PAB is one of the mechanisms by which an organisation ensures its access controls remain effective under future changes.",
+      "S3_ENCRYPTION_DISABLED": "21(2)(h) explicitly names cryptography and encryption. This mapping is unambiguous — NIS2 requires organisations to have policies for encryption use, and absent encryption on stored data is a direct policy gap."
+    }
   },
 
   "S3_PUBLIC_VIA_ACL": [
@@ -19,6 +25,11 @@
       "framework": "nis2",
       "reference_id": "Article 21(2)(e)",
       "label": "Security in the acquisition, development and maintenance of network and information systems"
+    },
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(f)",
+      "label": "Policies and procedures to assess the effectiveness of cybersecurity risk-management measures"
     }
   ],
 

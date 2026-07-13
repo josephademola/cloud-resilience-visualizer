@@ -3,35 +3,25 @@
     "framework": "ncsc_caf",
     "framework_full_name": "NCSC Cyber Assessment Framework v4.0",
     "description": "Mapping of finding types to Cyber Assessment Framework (CAF) outcomes. CAF is the UK National Cyber Security Centre's outcomes-based framework used by regulators. Objective B (Protecting Against Cyber Attack) is where most cloud misconfigurations land.",
-    "source_url": "https://www.ncsc.gov.uk/collection/cyber-assessment-framework"
+    "source_url": "https://www.ncsc.gov.uk/collection/cyber-assessment-framework",
+    "mapping_rationale": "CAF is outcomes-based, not control-based. Each outcome describes a state the organisation should reach; mappings link finding types to the outcome(s) they most directly compromise. Objective B outcomes are chosen for cloud misconfigurations because Objective B covers Protecting Against Cyber Attack, which is where technical misconfigurations sit.",
+    "audit_notes": {
+      "S3_PUBLIC_VIA_ACL": "Two references. B2.a is primary — a bucket readable by AllUsers has bypassed identity verification and authorisation entirely. B3.a is secondary and softer — 'Understanding Data' captures the case where the organisation may not know that the misconfigured bucket contains sensitive data. B3.a is defensible but weaker than B2.a.",
+      "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "B4.a covers 'Secure by design'. PAB is the security-by-default configuration for S3 buckets; leaving it disabled is a design failure. This mapping is clean.",
+      "S3_ENCRYPTION_DISABLED": "B3.c covers 'Stored data' outcomes and explicitly includes encryption at rest as a control. This mapping is unambiguous."
+    }
   },
 
   "S3_PUBLIC_VIA_ACL": [
-    {
-      "framework": "ncsc_caf",
-      "reference_id": "B2.a",
-      "label": "Identity verification, authentication and authorisation"
-    },
-    {
-      "framework": "ncsc_caf",
-      "reference_id": "B3.a",
-      "label": "Understanding data"
-    }
+    {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"},
+    {"framework": "ncsc_caf", "reference_id": "B3.a", "label": "Understanding data"}
   ],
 
   "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
-    {
-      "framework": "ncsc_caf",
-      "reference_id": "B4.a",
-      "label": "Secure by design"
-    }
+    {"framework": "ncsc_caf", "reference_id": "B4.a", "label": "Secure by design"}
   ],
 
   "S3_ENCRYPTION_DISABLED": [
-    {
-      "framework": "ncsc_caf",
-      "reference_id": "B3.c",
-      "label": "Stored data"
-    }
+    {"framework": "ncsc_caf", "reference_id": "B3.c", "label": "Stored data"}
   ]
 }

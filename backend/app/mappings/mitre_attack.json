@@ -2,31 +2,25 @@
   "_meta": {
     "framework": "mitre_attack",
     "framework_full_name": "MITRE ATT&CK Enterprise (Cloud IaaS sub-matrix)",
-    "description": "Mapping of finding types to MITRE ATT&CK techniques an attacker could use to exploit them. This is a threat framework, not a compliance framework — references show which attacker techniques the misconfiguration enables. Techniques from the Cloud IaaS platform sub-matrix.",
-    "source_url": "https://attack.mitre.org/matrices/enterprise/cloud/iaas/"
+    "description": "Mapping of finding types to MITRE ATT&CK techniques an attacker could use to exploit them. This is a threat framework, not a compliance framework — references show which attacker techniques the misconfiguration enables. Techniques are drawn from the Cloud IaaS platform sub-matrix.",
+    "source_url": "https://attack.mitre.org/matrices/enterprise/cloud/iaas/",
+    "mapping_rationale": "MITRE ATT&CK catalogues attacker behaviour. Not every misconfiguration cleanly maps to a specific technique — some are defensive control weaknesses that don't directly enable an attacker action, and forcing a mapping in those cases produces misleading noise. Mappings below prioritise honesty over completeness.",
+    "audit_notes": {
+      "S3_PUBLIC_VIA_ACL": "T1530 (Data from Cloud Storage) is a direct match. An attacker downloading objects from a publicly-readable bucket is exactly what this technique describes.",
+      "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Corrected from an earlier draft that mapped this to T1078.004 (Valid Accounts: Cloud Accounts). That mapping was wrong — T1078.004 is about compromised credentials, and PAB being off doesn't enable credential-based attacks. T1580 (Cloud Infrastructure Discovery) is a weaker but more honest fit: an attacker in reconnaissance can discover misconfigured buckets more easily when PAB is off. Mapping defensive control weaknesses to attacker techniques is inherently forced; documented here rather than papered over.",
+      "S3_ENCRYPTION_DISABLED": "T1530 covers this by extension — data extracted from cloud storage is more valuable and usable if not encrypted at rest. This is a secondary consequence rather than a primary enablement, but it is defensible."
+    }
   },
 
   "S3_PUBLIC_VIA_ACL": [
-    {
-      "framework": "mitre_attack",
-      "reference_id": "T1530",
-      "label": "Data from Cloud Storage (Collection tactic)"
-    }
+    {"framework": "mitre_attack", "reference_id": "T1530", "label": "Data from Cloud Storage (Collection tactic)"}
   ],
 
   "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
-    {
-      "framework": "mitre_attack",
-      "reference_id": "T1078.004",
-      "label": "Valid Accounts: Cloud Accounts (Defense Evasion tactic)"
-    }
+    {"framework": "mitre_attack", "reference_id": "T1580", "label": "Cloud Infrastructure Discovery (Discovery tactic)"}
   ],
 
   "S3_ENCRYPTION_DISABLED": [
-    {
-      "framework": "mitre_attack",
-      "reference_id": "T1530",
-      "label": "Data from Cloud Storage (Collection tactic)"
-    }
+    {"framework": "mitre_attack", "reference_id": "T1530", "label": "Data from Cloud Storage (Collection tactic)"}
   ]
 }
