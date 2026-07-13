@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "description": "Human-readable content for each finding type. Kept separate from scanner logic so security engineers or technical writers can update titles, descriptions, and remediation guidance without touching Python code. Content is loaded by app.scanners.content_loader and used by the scanner rules to construct Finding objects.",
+    "field_notes": {
+      "title": "Short heading, sentence case, under 60 characters.",
+      "severity": "One of low, medium, high, critical. Must match app.models.finding.Severity.",
+      "description": "Plain-English explanation of WHY the misconfiguration matters. Should be defensible to an auditor and include real-world context where possible.",
+      "remediation": "Action-focused fix guidance. Include both AWS Console click-path AND AWS CLI command, so both audiences can use it. Use placeholder <name> where the specific bucket name would go."
+    }
+  },
+
+  "S3_PUBLIC_VIA_ACL": {
+    "title": "Bucket publicly readable via legacy ACL",
+    "severity": "critical",
+    "description": "The bucket ACL grants the AllUsers group read permission, exposing every object to anyone on the internet without authentication. This is the single most common cause of accidental S3 data leaks; historical incidents at Verizon, Accenture, and Booz Allen Hamilton all traced back to this misconfiguration. Because ACLs predate bucket policies and IAM, they are easy to leave in place unnoticed on older buckets.",
+    "remediation": "Remove the AllUsers grant. In the AWS Console: S3 -> the bucket -> Permissions tab -> Access Control List -> Edit -> uncheck all 'Everyone (public access)' boxes -> Save. From the AWS CLI: `aws s3api put-bucket-acl --bucket <name> --acl private`. Verify with `aws s3api get-bucket-acl --bucket <name>` and confirm no Grantee with URI 'http://acs.amazonaws.com/groups/global/AllUsers' appears in the output."
+  },
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": {
+    "title": "S3 Public Access Block not fully enabled",
+    "severity": "medium",
+    "description": "AWS Public Access Block is the account-and-bucket-level safety net that overrides accidentally-public ACLs and bucket policies before they can expose data. One or more of the four flags (BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets) is disabled, meaning a future ACL or policy mistake would not be caught automatically. This does not mean the bucket is currently public, but it does mean the safety net protecting future changes has a hole in it.",
+    "remediation": "Enable all four Public Access Block flags. In the AWS Console: S3 -> the bucket -> Permissions tab -> Block public access -> Edit -> check 'Block all public access' -> Save. From the AWS CLI: `aws s3api put-public-access-block --bucket <name> --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true`. Buckets that legitimately serve public content should do so via CloudFront with an Origin Access Identity, not by leaving the bucket world-readable."
+  },
+
+  "S3_ENCRYPTION_DISABLED": {
+    "title": "Server-side encryption not configured",
+    "severity": "high",
+    "description": "Objects in this bucket are stored unencrypted at rest. AWS enables default AES256 encryption automatically on all new buckets created after January 2023, so an unencrypted bucket typically indicates either an older bucket that predates the automatic default, or an explicit misconfiguration. Regulated data such as customer PII, financial records, and health records must be encrypted at rest under UK GDPR, PCI DSS, and HIPAA. Even for non-regulated data, encryption at rest is a baseline expectation of the ICO's Data Protection by Design principle.",
+    "remediation": "Enable server-side encryption on the bucket. In the AWS Console: S3 -> the bucket -> Properties tab -> Default encryption -> Edit -> choose 'Server-side encryption with Amazon S3 managed keys (SSE-S3)' for AES256, or 'Server-side encryption with AWS KMS keys (SSE-KMS)' for compliance-sensitive data -> Save. From the AWS CLI: `aws s3api put-bucket-encryption --bucket <name> --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"AES256\"}}]}'`. New objects uploaded after this change will be encrypted automatically; existing objects need to be copied over themselves (aws s3 cp) to acquire the new encryption."
+  }
+}
