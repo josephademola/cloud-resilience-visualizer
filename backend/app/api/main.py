@@ -36,6 +36,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.aws_normalizer import normalize
 from app.models.finding import finding_to_dict
 from app.scanners.s3_scanner import scan_s3_buckets
+from app.compliance import build_compliance_view
 
 
 app = FastAPI(
@@ -58,6 +59,8 @@ app.add_middleware(
     allow_origins=[
         "http://127.0.0.1:5500",
         "http://localhost:5500",
+        "http://127.0.0.1:5501",
+        "http://localhost:5501",
     ],
     allow_methods=["GET"],
     allow_headers=["*"],
@@ -96,3 +99,11 @@ def get_findings() -> dict:
         },
         "findings": [finding_to_dict(f) for f in findings],
     }
+
+@app.get("/api/compliance")
+def get_compliance() -> dict:
+    """Return compliance view — findings grouped by framework requirement."""
+    raw = _load_mock_aws_data()
+    topology = normalize(raw)
+    findings = scan_s3_buckets(topology)
+    return build_compliance_view(findings)

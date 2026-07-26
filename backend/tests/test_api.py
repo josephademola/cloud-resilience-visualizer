@@ -116,3 +116,33 @@ class TestErrorHandling:
         # paths — different signal from 404, which we want to preserve.
         response = client.post("/api/topology")
         assert response.status_code == 405
+
+# --- GET /api/compliance ---------------------------------------------
+class TestComplianceEndpoint:
+
+    def test_returns_200_with_json_content_type(self):
+        response = client.get("/api/compliance")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("application/json")
+
+    def test_response_has_four_frameworks_in_expected_order(self):
+        # Locks in the display contract at the HTTP layer. Same
+        # order the aggregator produces should reach the frontend
+        # unchanged.
+        response = client.get("/api/compliance")
+        data = response.json()
+        framework_names = [fw["framework"] for fw in data["frameworks"]]
+        assert framework_names == [
+            "nis2",
+            "ncsc_caf",
+            "mitre_attack",
+            "cyber_essentials",
+        ]
+
+    def test_response_reflects_scanner_findings(self):
+        # End-to-end: the mock's 3 findings must show up in the
+        # compliance view. Total_findings should be 3 regardless of
+        # how they're distributed across frameworks.
+        response = client.get("/api/compliance")
+        data = response.json()
+        assert data["metadata"]["total_findings"] == 3
