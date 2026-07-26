@@ -37,6 +37,9 @@ from app.aws_normalizer import normalize
 from app.models.finding import finding_to_dict
 from app.scanners.s3_scanner import scan_s3_buckets
 from app.compliance import build_compliance_view
+from fastapi.responses import Response
+
+from app.reports.pdf_report import build_pdf_report
 
 
 app = FastAPI(
@@ -107,3 +110,25 @@ def get_compliance() -> dict:
     topology = normalize(raw)
     findings = scan_s3_buckets(topology)
     return build_compliance_view(findings)
+
+@app.get("/api/report")
+def get_report() -> Response:
+    """
+    Generate and return the PDF audit report.
+
+    Returns raw PDF bytes with Content-Disposition set to attachment,
+    which tells the browser to download rather than display inline.
+    """
+    raw = _load_mock_aws_data()
+    topology = normalize(raw)
+    findings = scan_s3_buckets(topology)
+    compliance = build_compliance_view(findings)
+    pdf_bytes = build_pdf_report(topology, findings, compliance)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="cloud-resilience-report.pdf"',
+        },
+    )

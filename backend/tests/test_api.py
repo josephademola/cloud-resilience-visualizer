@@ -146,3 +146,34 @@ class TestComplianceEndpoint:
         response = client.get("/api/compliance")
         data = response.json()
         assert data["metadata"]["total_findings"] == 3
+
+# --- GET /api/report -------------------------------------------------
+class TestReportEndpoint:
+
+    def test_returns_200_with_pdf_content_type(self):
+        response = client.get("/api/report")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+
+    def test_has_attachment_disposition_header(self):
+        # Content-Disposition: attachment tells the browser to
+        # download rather than render inline. Filename is what the
+        # user sees when the download dialog opens.
+        response = client.get("/api/report")
+        disposition = response.headers.get("content-disposition", "")
+        assert "attachment" in disposition
+        assert "cloud-resilience-report.pdf" in disposition
+
+    def test_body_starts_with_pdf_magic_bytes(self):
+        # Every valid PDF starts with the four-byte signature "%PDF".
+        # If we're returning something else (an error page,
+        # accidentally-JSON, etc.), this catches it without needing
+        # a full PDF parser in the test.
+        response = client.get("/api/report")
+        assert response.content[:4] == b"%PDF"
+
+    def test_body_is_non_trivial_size(self):
+        # Sanity check: a real PDF for our mock is around 10KB. If we
+        # somehow return an empty file or just a PDF header, this fails.
+        response = client.get("/api/report")
+        assert len(response.content) > 2000
