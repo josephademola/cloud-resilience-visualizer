@@ -53,9 +53,24 @@ async function fetchCompliance() {
 
 function renderComplianceDashboard(container, data) {
     const parts = [];
+    parts.push(renderDownloadBar());
     parts.push(renderScoreCards(data.frameworks));
     parts.push(renderFrameworkSections(data.frameworks));
     container.innerHTML = parts.join("");
+}
+
+function renderDownloadBar() {
+    // The `download` attribute + Content-Disposition header on the
+    // backend response makes the browser download rather than display
+    // the PDF inline. No JS click handler needed.
+    return `
+        <div class="download-bar">
+            <a href="${API_BASE}/api/report" class="download-btn" download>
+                <i class="ti ti-download"></i>
+                Download PDF report
+            </a>
+        </div>
+    `;
 }
 
 

@@ -638,3 +638,37 @@ body {
     padding: 12px 14px;
     font-style: italic;
 }
+
+/* ---- Download bar (compliance dashboard) ---- */
+
+.download-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #E1E7F0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 120ms ease-out, border-color 120ms ease-out;
+}
+
+.download-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #E1E7F0;
+}
+
+.download-btn .ti {
+    font-size: 15px;
+}
