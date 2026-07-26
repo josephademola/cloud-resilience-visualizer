@@ -17,17 +17,39 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header class="app-header">
+   <header class="app-header">
         <h1 class="app-title">Cloud resilience visualizer</h1>
+        <nav class="app-nav">
+            <button class="nav-btn nav-btn-active" data-view="topology">Topology</button>
+            <button class="nav-btn" data-view="compliance">Compliance</button>
+        </nav>
         <div class="app-status" id="status">Loading topology...</div>
     </header>
 
-    <main id="map" class="topology-map"></main>
+    <section id="topology-view" class="view view-active">
+        <div id="map" class="topology-map"></div>
+    </section>
+    <section id="compliance-view" class="view">
+        <div id="compliance-dashboard" class="compliance-dashboard"></div>
+    </section>
+
+    <!-- Details panel: hidden by default, slides in from the right
+         when a node is clicked. Populated by topology.js. -->
+    <aside id="details-panel" class="details-panel" aria-hidden="true">
+        <button id="details-close" class="details-close" aria-label="Close details">&times;</button>
+        <div id="details-content"></div>
+    </aside><!-- Details panel: hidden by default, slides in from the right
+         when a node is clicked. Populated by topology.js. -->
+    <aside id="details-panel" class="details-panel" aria-hidden="true">
+        <button id="details-close" class="details-close" aria-label="Close details">&times;</button>
+        <div id="details-content"></div>
+    </aside>
 
     <!-- Leaflet library (provides global L) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!-- App logic: fetch topology.json, lay out nodes, render shapes -->
     <script src="js/topology.js"></script>
+    <script src="js/compliance.js"></script>
 </body>
 </html>

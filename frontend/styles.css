@@ -29,12 +29,44 @@ body {
 
 .app-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 24px;
     padding: 14px 24px;
     background: #14203A;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
+}
+
+.app-title {
+    flex-shrink: 0;
+}
+
+.app-nav {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+}
+
+.nav-btn {
+    background: transparent;
+    border: 0;
+    color: #8FA3C7;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 120ms ease-out, color 120ms ease-out;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #E1E7F0;
+}
+
+.nav-btn-active {
+    background: rgba(255, 255, 255, 0.08);
+    color: #E1E7F0;
 }
 
 .app-title {
@@ -440,4 +472,169 @@ body {
 .framework-ref-label {
     color: #8FA3C7;
     text-align: right;
+}
+
+
+/* ---- View switching ---- */
+
+.view {
+    flex: 1;
+    display: none;
+    overflow: auto;
+}
+
+.view-active {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ---- Compliance dashboard container ---- */
+
+.compliance-dashboard {
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 28px 24px 40px;
+}
+
+.compliance-loading,
+.compliance-error {
+    text-align: center;
+    padding: 40px;
+    color: #8FA3C7;
+    font-size: 14px;
+}
+
+.compliance-error {
+    color: #FFB3BB;
+}
+
+
+/* ---- Score cards row ---- */
+
+.score-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.score-card {
+    background: #14203A;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 16px 18px;
+}
+
+.score-framework {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8FA3C7;
+    margin-bottom: 6px;
+}
+
+.score-number {
+    font-size: 28px;
+    font-weight: 500;
+    color: #E1E7F0;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.score-number-failing {
+    color: #E84A5F;
+}
+
+.score-label {
+    font-size: 11px;
+    color: #8FA3C7;
+}
+
+
+/* ---- Framework detail sections ---- */
+
+.framework-section {
+    margin-bottom: 24px;
+}
+
+.framework-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.framework-section-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #E1E7F0;
+}
+
+.framework-section-count {
+    font-size: 12px;
+    color: #8FA3C7;
+}
+
+.requirement-row {
+    background: #14203A;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+}
+
+.requirement-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.requirement-label {
+    flex: 1;
+    font-size: 13px;
+    color: #E1E7F0;
+}
+
+.requirement-finding-count {
+    font-size: 11px;
+    color: #8FA3C7;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.requirement-findings {
+    padding-left: 12px;
+    border-left: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+.requirement-finding {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+}
+
+.requirement-finding-resource {
+    color: #8FA3C7;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.requirement-finding-title {
+    color: #C2C9D6;
+    flex: 1;
+}
+
+.requirement-empty {
+    font-size: 12px;
+    color: #8FA3C7;
+    padding: 12px 14px;
+    font-style: italic;
 }

@@ -35,6 +35,12 @@ async function init() {
         if (e.key === "Escape") hideDetails();
     });
 
+    // Wire the nav buttons so clicks switch between topology and
+    // compliance views. Handler defined below in switchView().
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.addEventListener("click", () => switchView(btn.dataset.view));
+    });
+
     try {
         // Fetch topology and findings in parallel — they're independent.
         const [topology, findings] = await Promise.all([
@@ -50,6 +56,27 @@ async function init() {
         console.error("Failed to render topology:", err);
         document.getElementById("status").textContent =
             "Cannot reach API — is the backend server running on port 8000?";
+    }
+}
+
+function switchView(viewName) {
+    // Update which nav button looks active.
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.classList.toggle("nav-btn-active", btn.dataset.view === viewName);
+    });
+
+    // Show the requested view, hide the others.
+    document.querySelectorAll(".view").forEach(view => {
+        view.classList.toggle("view-active", view.id === viewName + "-view");
+    });
+
+    // The details panel is only relevant to topology — hide it when
+    // switching away.
+    if (viewName === "compliance") {
+        hideDetails();
+        // activateComplianceView is defined in compliance.js, loaded
+        // after this file. Lazy-fetches compliance data on first switch.
+        activateComplianceView();
     }
 }
 
