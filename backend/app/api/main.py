@@ -40,6 +40,7 @@ from app.compliance import build_compliance_view
 from fastapi.responses import Response
 
 from app.reports.pdf_report import build_pdf_report
+import os
 
 
 app = FastAPI(
@@ -76,23 +77,31 @@ app.add_middleware(
 _MOCK_PATH = Path(__file__).parent.parent / "data" / "mock_aws.json"
 
 
-def _load_mock_aws_data() -> dict:
-    """Read the mock AWS data from disk. Extracted so tests can mock it."""
+def _load_aws_data() -> dict:
+    """
+    Load AWS data from the configured source.
+
+    USE_LIVE_AWS=true -> real AWS via boto3
+    otherwise         -> mock_aws.json
+    """
+    if os.environ.get("USE_LIVE_AWS") == "true":
+        from app.aws_client import fetch_aws_data
+        return fetch_aws_data()
+
     with open(_MOCK_PATH, encoding="utf-8") as fh:
         return json.load(fh)
-
 
 @app.get("/api/topology")
 def get_topology() -> dict:
     """Return the normalised AWS topology."""
-    raw = _load_mock_aws_data()
+    raw = _load_aws_data()
     return normalize(raw)
 
 
 @app.get("/api/findings")
 def get_findings() -> dict:
     """Return security findings from the scanner."""
-    raw = _load_mock_aws_data()
+    raw = _load_aws_data()
     topology = normalize(raw)
     findings = scan_s3_buckets(topology)
     return {
@@ -106,7 +115,7 @@ def get_findings() -> dict:
 @app.get("/api/compliance")
 def get_compliance() -> dict:
     """Return compliance view — findings grouped by framework requirement."""
-    raw = _load_mock_aws_data()
+    raw = _load_aws_data()
     topology = normalize(raw)
     findings = scan_s3_buckets(topology)
     return build_compliance_view(findings)
@@ -119,7 +128,7 @@ def get_report() -> Response:
     Returns raw PDF bytes with Content-Disposition set to attachment,
     which tells the browser to download rather than display inline.
     """
-    raw = _load_mock_aws_data()
+    raw = _load_aws_data()
     topology = normalize(raw)
     findings = scan_s3_buckets(topology)
     compliance = build_compliance_view(findings)

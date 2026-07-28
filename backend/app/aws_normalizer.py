@@ -595,23 +595,24 @@ def normalize_from_file(input_path: str | Path) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    # CLI runner: read mock_aws.json from the data folder beside this
-    # module, normalize it, and write topology.json to the same folder.
-    # Run with: python -m app.aws_normalizer (from the backend folder)
-
-    # Configure logging so warnings from the helpers are visible when
-    # running interactively.
-    logging.basicConfig(
-        level=logging.WARNING,
-        format="%(levelname)s %(name)s: %(message)s",
-    )
+    import os
 
     data_dir = Path(__file__).parent / "data"
-    input_file = data_dir / "mock_aws.json"
     output_file = data_dir / "topology.json"
 
-    print(f"Reading: {input_file}")
-    topology = normalize_from_file(input_file)
+    # Data source is controlled by USE_LIVE_AWS env var. Default is
+    # mock (safe) — you have to explicitly opt in to hit real AWS.
+    if os.environ.get("USE_LIVE_AWS") == "true":
+        print("Source:  live AWS (USE_LIVE_AWS=true)")
+        from app.aws_client import fetch_aws_data
+        aws_data = fetch_aws_data()
+    else:
+        mock_file = data_dir / "mock_aws.json"
+        print(f"Source:  {mock_file}")
+        with open(mock_file, "r", encoding="utf-8") as f:
+            aws_data = json.load(f)
+
+    topology = normalize(aws_data)
 
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(topology, f, indent=2)
