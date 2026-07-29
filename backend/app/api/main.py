@@ -41,6 +41,7 @@ from fastapi.responses import Response
 
 from app.reports.pdf_report import build_pdf_report
 import os
+from app.evidence.builder import build_evidence_record
 
 
 app = FastAPI(
@@ -140,4 +141,41 @@ def get_report() -> Response:
         headers={
             "Content-Disposition": 'attachment; filename="cloud-resilience-report.pdf"',
         },
+    )
+
+@app.get("/api/evidence")
+def get_evidence() -> dict:
+    """
+    Return an audit evidence record for the most recent scan.
+
+    The record contains a SHA-256 hash of the input topology (so
+    auditors can verify the scan ran against unmodified data), a
+    summary of findings by severity, tool version, timestamp, and
+    an integrity hash covering the full record. Any post-hoc
+    modification of the record would produce a different hash.
+    """
+    import os
+    raw = _load_aws_data()
+    topology = normalize(raw)
+    findings = scan_s3_buckets(topology)
+
+    # In live mode, fetch the real IAM identity so the record
+    # shows which account and user ran the scan.
+    if os.environ.get("USE_LIVE_AWS") == "true":
+        try:
+            import boto3
+            sts = boto3.client("sts")
+            iam_identity = sts.get_caller_identity()["Arn"]
+        except Exception:
+            iam_identity = "unknown"
+        data_source = "live"
+    else:
+        iam_identity = "mock-mode"
+        data_source = "mock"
+
+    return build_evidence_record(
+        topology,
+        findings,
+        iam_identity=iam_identity,
+        data_source=data_source,
     )
