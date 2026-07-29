@@ -114,14 +114,19 @@ class TestFetchAwsData:
         json.dumps(data)
 
     def test_empty_account_returns_empty_lists(self, moto_aws):
-        # A fresh account has zero resources. Every service response
-        # must still be structurally valid (empty list, not missing
-        # key, not None). The normaliser assumes the keys exist.
+        # A fresh moto account mirrors real AWS: it has a default VPC
+        # per region but no custom resources. The important invariant
+        # is that the response structure is valid (lists, not None or
+        # missing keys) — not that every list is empty.
         data = fetch_aws_data()
-        assert data["ec2"]["describe_vpcs"]["Vpcs"] == []
-        assert data["ec2"]["describe_subnets"]["Subnets"] == []
+        # Structure is valid — lists present, not None
+        assert isinstance(data["ec2"]["describe_vpcs"]["Vpcs"], list)
+        assert isinstance(data["ec2"]["describe_subnets"]["Subnets"], list)
+        assert isinstance(data["s3"]["list_buckets"]["Buckets"], list)
+        assert isinstance(data["s3"]["bucket_details"], dict)
+        assert isinstance(data["rds"]["describe_db_instances"]["DBInstances"], list)
+        # No custom resources beyond the default VPC/subnets
         assert data["s3"]["list_buckets"]["Buckets"] == []
-        assert data["s3"]["bucket_details"] == {}
         assert data["rds"]["describe_db_instances"]["DBInstances"] == []
 
     def test_created_vpc_appears_in_output(self, moto_aws):
