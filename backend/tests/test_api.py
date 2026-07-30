@@ -6,39 +6,48 @@ in-process — no server start required, no port binding, no real
 network. What TestClient sees is identical to what a real HTTP
 client would see, so these tests exercise the full stack (HTTP layer
 -> normaliser -> scanner -> mapping loader) end-to-end.
-
-If any layer regresses, at least one of these tests fails. They're
-the tripwire that catches API-shape breakage before the frontend
-does.
 """
 
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.main import app
 
-# One TestClient shared across tests. TestClient is safe for
-# in-process use and creating one per test is unnecessary overhead.
-client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def set_test_api_key(monkeypatch):
+    """
+    Set the API_KEY env var to the known dev default for all tests.
+    autouse=True means this applies to every test automatically.
+    """
+    monkeypatch.setenv("API_KEY", "dev-only-insecure-key")
+
+
+@pytest.fixture
+def client():
+    """
+    Authenticated test client. Sends the correct API key header on
+    every request. Tests that need to test auth failure create their
+    own TestClient inline.
+    """
+    return TestClient(app, headers={"X-API-Key": "dev-only-insecure-key"})
 
 
 # --- GET /api/topology -----------------------------------------------
 class TestTopologyEndpoint:
 
-    def test_returns_200_with_json_content_type(self):
+    def test_returns_200_with_json_content_type(self, client):
         response = client.get("/api/topology")
         assert response.status_code == 200
-        # startswith() is more robust than exact equality: some
-        # setups add "; charset=utf-8" to the content-type.
         assert response.headers["content-type"].startswith("application/json")
 
-    def test_response_has_expected_top_level_shape(self):
+    def test_response_has_expected_top_level_shape(self, client):
         response = client.get("/api/topology")
         data = response.json()
         assert set(data.keys()) == {"metadata", "nodes", "security_groups"}
 
-    def test_response_has_nine_nodes_and_three_security_groups(self):
-        # Same counts locked in by the normaliser integration test.
-        # A regression in the normaliser would cascade to this test.
+    def test_response_has_nine_nodes_and_three_security_groups(self, client):
         response = client.get("/api/topology")
         data = response.json()
         assert len(data["nodes"]) == 9
@@ -46,10 +55,7 @@ class TestTopologyEndpoint:
         assert data["metadata"]["node_count"] == 9
         assert data["metadata"]["security_group_count"] == 3
 
-    def test_response_includes_both_s3_buckets(self):
-        # Specific data spot-check: both bucket IDs are present.
-        # Catches accidents where the mock or normaliser drops a
-        # bucket that later tests assume is there.
+    def test_response_includes_both_s3_buckets(self, client):
         response = client.get("/api/topology")
         data = response.json()
         s3_ids = {n["id"] for n in data["nodes"] if n["type"] == "s3_bucket"}
@@ -59,22 +65,18 @@ class TestTopologyEndpoint:
 # --- GET /api/findings -----------------------------------------------
 class TestFindingsEndpoint:
 
-    def test_returns_200_with_json_content_type(self):
+    def test_returns_200_with_json_content_type(self, client):
         response = client.get("/api/findings")
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/json")
 
-    def test_response_has_expected_shape_with_metadata_and_findings(self):
+    def test_response_has_expected_shape_with_metadata_and_findings(self, client):
         response = client.get("/api/findings")
         data = response.json()
         assert set(data.keys()) == {"metadata", "findings"}
         assert data["metadata"]["schema_version"] == "1.0"
 
-    def test_response_has_three_findings_all_for_misconfigured_bucket(self):
-        # Locks in the scanner integration behaviour at the HTTP layer:
-        # the mock has exactly one misconfigured bucket with three
-        # issues, so the endpoint must return three findings all
-        # referencing that bucket.
+    def test_response_has_three_findings_all_for_misconfigured_bucket(self, client):
         response = client.get("/api/findings")
         data = response.json()
         assert len(data["findings"]) == 3
@@ -82,11 +84,7 @@ class TestFindingsEndpoint:
         resource_ids = {f["resource_id"] for f in data["findings"]}
         assert resource_ids == {"cloudres-fintech-uploads"}
 
-    def test_findings_have_framework_references_from_all_four_frameworks(self):
-        # End-to-end proof that the mapping loader is wired in through
-        # the API layer. If a mapping file dropped an entry or the
-        # loader stopped combining across files, this test catches it
-        # here rather than downstream in the browser.
+    def test_findings_have_framework_references_from_all_four_frameworks(self, client):
         response = client.get("/api/findings")
         data = response.json()
         expected = {"nis2", "ncsc_caf", "mitre_attack", "cyber_essentials"}
@@ -103,32 +101,24 @@ class TestFindingsEndpoint:
 # --- Error handling --------------------------------------------------
 class TestErrorHandling:
 
-    def test_unknown_endpoint_returns_404(self):
-        # FastAPI returns 404 for unmatched routes automatically.
-        # Locking this in prevents accidentally adding a catch-all
-        # route that would swallow typos.
+    def test_unknown_endpoint_returns_404(self, client):
         response = client.get("/api/does-not-exist")
         assert response.status_code == 404
 
-    def test_post_to_get_endpoint_returns_405_method_not_allowed(self):
-        # We only expose these endpoints as GET. FastAPI returns 405
-        # (Method Not Allowed) for wrong-method requests to known
-        # paths — different signal from 404, which we want to preserve.
+    def test_post_to_get_endpoint_returns_405_method_not_allowed(self, client):
         response = client.post("/api/topology")
         assert response.status_code == 405
+
 
 # --- GET /api/compliance ---------------------------------------------
 class TestComplianceEndpoint:
 
-    def test_returns_200_with_json_content_type(self):
+    def test_returns_200_with_json_content_type(self, client):
         response = client.get("/api/compliance")
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/json")
 
-    def test_response_has_four_frameworks_in_expected_order(self):
-        # Locks in the display contract at the HTTP layer. Same
-        # order the aggregator produces should reach the frontend
-        # unchanged.
+    def test_response_has_four_frameworks_in_expected_order(self, client):
         response = client.get("/api/compliance")
         data = response.json()
         framework_names = [fw["framework"] for fw in data["frameworks"]]
@@ -139,41 +129,86 @@ class TestComplianceEndpoint:
             "cyber_essentials",
         ]
 
-    def test_response_reflects_scanner_findings(self):
-        # End-to-end: the mock's 3 findings must show up in the
-        # compliance view. Total_findings should be 3 regardless of
-        # how they're distributed across frameworks.
+    def test_response_reflects_scanner_findings(self, client):
         response = client.get("/api/compliance")
         data = response.json()
         assert data["metadata"]["total_findings"] == 3
 
+
 # --- GET /api/report -------------------------------------------------
 class TestReportEndpoint:
 
-    def test_returns_200_with_pdf_content_type(self):
+    def test_returns_200_with_pdf_content_type(self, client):
         response = client.get("/api/report")
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/pdf"
 
-    def test_has_attachment_disposition_header(self):
-        # Content-Disposition: attachment tells the browser to
-        # download rather than render inline. Filename is what the
-        # user sees when the download dialog opens.
+    def test_has_attachment_disposition_header(self, client):
         response = client.get("/api/report")
         disposition = response.headers.get("content-disposition", "")
         assert "attachment" in disposition
         assert "cloud-resilience-report.pdf" in disposition
 
-    def test_body_starts_with_pdf_magic_bytes(self):
-        # Every valid PDF starts with the four-byte signature "%PDF".
-        # If we're returning something else (an error page,
-        # accidentally-JSON, etc.), this catches it without needing
-        # a full PDF parser in the test.
+    def test_body_starts_with_pdf_magic_bytes(self, client):
         response = client.get("/api/report")
         assert response.content[:4] == b"%PDF"
 
-    def test_body_is_non_trivial_size(self):
-        # Sanity check: a real PDF for our mock is around 10KB. If we
-        # somehow return an empty file or just a PDF header, this fails.
+    def test_body_is_non_trivial_size(self, client):
         response = client.get("/api/report")
         assert len(response.content) > 2000
+
+
+# --- GET /api/evidence -----------------------------------------------
+class TestEvidenceEndpoint:
+
+    def test_returns_200_with_json_content_type(self, client):
+        response = client.get("/api/evidence")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("application/json")
+
+    def test_response_has_required_fields(self, client):
+        response = client.get("/api/evidence")
+        data = response.json()
+        required = {
+            "schema_version", "tool_version", "generated_at",
+            "data_source", "iam_identity", "scope",
+            "findings_summary", "input_hash", "integrity_hash",
+        }
+        assert required.issubset(set(data.keys()))
+
+    def test_hashes_start_with_sha256_prefix(self, client):
+        response = client.get("/api/evidence")
+        data = response.json()
+        assert data["input_hash"].startswith("sha256:")
+        assert data["integrity_hash"].startswith("sha256:")
+
+
+# --- GET /api/health -------------------------------------------------
+class TestHealthEndpoint:
+
+    def test_health_returns_200_without_api_key(self):
+        bare_client = TestClient(app)
+        response = bare_client.get("/api/health")
+        assert response.status_code == 200
+        assert response.json()["status"] == "ok"
+
+
+# --- Authentication --------------------------------------------------
+class TestAuthentication:
+
+    def test_protected_endpoint_returns_403_with_wrong_key(self):
+        bad_client = TestClient(app, headers={"X-API-Key": "totally-wrong-key"})
+        response = bad_client.get("/api/topology")
+        assert response.status_code == 403
+
+    def test_protected_endpoint_returns_422_with_no_key(self):
+        no_key_client = TestClient(app, headers={})
+        response = no_key_client.get("/api/topology")
+        assert response.status_code == 422
+
+    def test_protected_endpoint_returns_200_with_correct_key(self):
+        authed_client = TestClient(
+            app, headers={"X-API-Key": "dev-only-insecure-key"}
+        )
+        response = authed_client.get("/api/topology")
+        assert response.status_code == 200

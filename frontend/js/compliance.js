@@ -43,7 +43,9 @@ async function activateComplianceView() {
 
 
 async function fetchCompliance() {
-    const response = await fetch(COMPLIANCE_API_URL);
+    const response = await fetch(COMPLIANCE_API_URL, {
+        headers: { "X-API-Key": API_KEY },
+    });
     if (!response.ok) {
         throw new Error("Compliance fetch failed: HTTP " + response.status);
     }

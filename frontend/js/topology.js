@@ -21,6 +21,11 @@ const LAYOUT = {
 // for now it's the local FastAPI dev server on port 8000.
 const API_BASE = "http://localhost:8000";
 
+// API key for the backend. In development this is the insecure
+// default. In production (Phase 8), this value would come from
+// a build-time environment variable or a config endpoint.
+const API_KEY = "dev-only-insecure-key";
+
 // Module-level state, populated at init.
 let FINDINGS = [];
 
@@ -84,7 +89,9 @@ function switchView(viewName) {
 // ---- Data loading ----
 
 async function fetchTopology() {
-    const response = await fetch(`${API_BASE}/api/topology`);
+    const response = await fetch(`${API_BASE}/api/topology`, {
+        headers: { "X-API-Key": API_KEY },
+    });
     if (!response.ok) {
         throw new Error("Topology fetch failed: HTTP " + response.status);
     }
@@ -96,7 +103,9 @@ async function fetchFindings() {
     // unavailable we proceed with an empty list rather than break
     // the whole page. Topology is required; findings are optional.
     try {
-        const response = await fetch(`${API_BASE}/api/findings`);
+        const response = await fetch(`${API_BASE}/api/findings`, {
+            headers: { "X-API-Key": API_KEY },
+        });
         if (!response.ok) {
             console.warn("Findings endpoint returned", response.status);
             return [];

@@ -30,7 +30,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.aws_normalizer import normalize
@@ -42,6 +42,7 @@ from fastapi.responses import Response
 from app.reports.pdf_report import build_pdf_report
 import os
 from app.evidence.builder import build_evidence_record
+from app.api.auth import require_api_key
 
 
 app = FastAPI(
@@ -53,6 +54,15 @@ app = FastAPI(
     ),
     version="0.1.0",
 )
+
+@app.get("/api/health")
+def health_check() -> dict:
+    """
+    Liveness check — no auth required.
+    Load balancers and monitoring tools use this to verify the
+    server is up without needing an API key.
+    """
+    return {"status": "ok", "version": "0.1.0"}
 
 # CORS middleware: browsers block cross-origin fetch requests by
 # default (frontend on :5500 -> backend on :8000 counts as
@@ -92,14 +102,14 @@ def _load_aws_data() -> dict:
     with open(_MOCK_PATH, encoding="utf-8") as fh:
         return json.load(fh)
 
-@app.get("/api/topology")
+@app.get("/api/topology", dependencies=[Depends(require_api_key)])
 def get_topology() -> dict:
     """Return the normalised AWS topology."""
     raw = _load_aws_data()
     return normalize(raw)
 
 
-@app.get("/api/findings")
+@app.get("/api/findings", dependencies=[Depends(require_api_key)])
 def get_findings() -> dict:
     """Return security findings from the scanner."""
     raw = _load_aws_data()
@@ -113,7 +123,7 @@ def get_findings() -> dict:
         "findings": [finding_to_dict(f) for f in findings],
     }
 
-@app.get("/api/compliance")
+@app.get("/api/compliance", dependencies=[Depends(require_api_key)])
 def get_compliance() -> dict:
     """Return compliance view — findings grouped by framework requirement."""
     raw = _load_aws_data()
@@ -121,7 +131,7 @@ def get_compliance() -> dict:
     findings = scan_s3_buckets(topology)
     return build_compliance_view(findings)
 
-@app.get("/api/report")
+@app.get("/api/report", dependencies=[Depends(require_api_key)])
 def get_report() -> Response:
     """
     Generate and return the PDF audit report.
@@ -143,7 +153,7 @@ def get_report() -> Response:
         },
     )
 
-@app.get("/api/evidence")
+@app.get("/api/evidence", dependencies=[Depends(require_api_key)])
 def get_evidence() -> dict:
     """
     Return an audit evidence record for the most recent scan.
