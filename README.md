@@ -1,5 +1,7 @@
 # Cloud Resilience Visualizer
 
+![CI](https://github.com/josephademola/cloud-resilience-visualizer/actions/workflows/ci.yml/badge.svg)
+
 A Cloud Security Posture Management (CSPM) tool that scans AWS environments for misconfigurations, maps findings to four compliance frameworks, and produces audit-grade evidence records and PDF reports.
 
 Built as a portfolio project targeting UK GRC Engineer and Cloud Security roles. Demonstrates compliance automation, infrastructure scanning, and audit-trail production — the core competencies of GRC engineering.

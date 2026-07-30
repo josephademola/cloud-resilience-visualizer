@@ -1,0 +1,44 @@
+# Cloud Resilience Visualizer — CI pipeline
+#
+# Runs on every push to main and on every pull request.
+# Installs dependencies, runs the full test suite, and reports
+# pass/fail as a commit status check on GitHub.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run test suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          cd backend
+          python -m pytest -v --tb=short
+
+      - name: Confirm test count
+        run: |
+          cd backend
+          python -m pytest --co -q | tail -1
