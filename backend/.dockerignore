@@ -1,0 +1,19 @@
+# Virtual environment — Docker installs its own
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+
+# Test files — not needed in production image
+tests/
+pytest.ini
+.pytest_cache
+
+# Development files
+.env
+*.env
+
+# Git
+.git
+.gitignore

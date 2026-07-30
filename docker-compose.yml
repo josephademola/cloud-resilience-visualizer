@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Default to mock data. Override with USE_LIVE_AWS=true for real AWS.
+      - USE_LIVE_AWS=${USE_LIVE_AWS:-false}
+      # Set a real key in production. Dev default used if not set.
+      - API_KEY=${API_KEY:-dev-only-insecure-key}
+    volumes:
+      # Mount backend code so changes reflect without rebuilding.
+      # Remove this volume in production for a clean immutable image.
+      - ./backend:/app
