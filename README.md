@@ -22,13 +22,36 @@ When first run against a real AWS account, the tool discovered three misconfigur
 
 ## Architecture
 
-```
-AWS account (boto3)          Python backend (FastAPI)          Vanilla JS frontend
-──────────────────     ───────────────────────────────────     ─────────────────────
-EC2 · RDS · S3    →   Normaliser → Scanner → Compliance   →   Topology view
-VPC · IAM              ↓               ↓           ↓           Compliance dashboard
-                       Evidence     Mappings    PDF report      Download PDF
-                       builder      (4 files)   (reportlab)
+```mermaid
+flowchart LR
+    subgraph AWS ["AWS account"]
+        A1[EC2 · RDS · S3\nVPC · IAM]
+    end
+
+    subgraph Backend ["Python backend — FastAPI"]
+        B1[Normaliser\ntopology graph]
+        B2[Scanner\nS3 rules]
+        B3[Compliance\naggregator]
+        B4[Evidence builder\nSHA-256 hashing]
+        B5[PDF report\nreportlab]
+        B6[Mappings\nNIS2 · CAF · ATT&CK · CE]
+    end
+
+    subgraph Frontend ["Vanilla JS frontend"]
+        C1[Topology view]
+        C2[Compliance dashboard]
+        C3[PDF download]
+    end
+
+    A1 -->|boto3 / mock JSON| B1
+    B1 --> B2
+    B2 --> B3
+    B2 --> B6
+    B1 --> B4
+    B3 --> B5
+    B3 -->|REST API| C2
+    B1 -->|REST API| C1
+    B5 -->|REST API| C3
 ```
 
 Key design decisions:
