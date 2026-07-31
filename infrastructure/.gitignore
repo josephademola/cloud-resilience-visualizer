@@ -1,0 +1,13 @@
+# Terraform state files — contain sensitive info (resource IDs, etc.)
+# and should never be committed. On a real team you'd store state in
+# an S3 backend; for solo dev, local state is fine.
+*.tfstate
+*.tfstate.*
+
+# Downloaded providers (large, easily re-downloaded)
+.terraform/
+.terraform.lock.hcl
+
+# Terraform crash logs
+crash.log
+crash.*.log

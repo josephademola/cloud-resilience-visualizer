@@ -42,7 +42,7 @@ desktop.ini
 # === Logs and runtime artifacts ===
 *.log
 logs/
-reports/
+
 
 # === Environment files (secrets) ===
 # Never commit real .env files. .env.example is the committed template.
