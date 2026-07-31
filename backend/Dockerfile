@@ -22,4 +22,4 @@ EXPOSE 8000
 
 # Start the server. 0.0.0.0 means "accept connections from outside
 # the container" — without this, the app is unreachable.
-CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
