@@ -65,3 +65,4 @@ npm-debug.log
 *.bak
 *.tmp
 local_*/
+*.exe
