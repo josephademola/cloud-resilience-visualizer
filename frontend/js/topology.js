@@ -59,8 +59,9 @@ async function init() {
         updateStatus(topology);
     } catch (err) {
         console.error("Failed to render topology:", err);
-        document.getElementById("status").textContent =
-            "Cannot reach API — is the backend server running on port 8000?";
+        const statusEl = document.getElementById("status");
+        statusEl.textContent = "Cannot reach API — is the backend server running on port 8000?";
+        statusEl.classList.add("status-error");
     }
 }
 
@@ -402,7 +403,9 @@ function updateStatus(topology) {
     const findingText = findingCount === 0
         ? "no findings"
         : `${findingCount} finding${findingCount === 1 ? "" : "s"}`;
-    document.getElementById("status").textContent = `${total} resources · ${findingText}`;
+    const statusEl = document.getElementById("status");
+    statusEl.textContent = `${total} resources · ${findingText}`;
+    statusEl.classList.add("status-loaded");
 }
 
 

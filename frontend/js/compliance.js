@@ -91,7 +91,7 @@ function renderScoreCards(frameworks) {
             ? "score-number score-number-failing"
             : "score-number";
         return `
-            <div class="score-card">
+            <div class="score-card ${fw.failing_count > 0 ? 'score-card-failing' : ''}">
                 <div class="score-framework">${shortNames[fw.framework] || escapeHtml(fw.framework)}</div>
                 <div class="${numberClass}">${fw.failing_count}</div>
                 <div class="score-label">${escapeHtml(fw.unit_label)}</div>
