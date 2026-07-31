@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Resilience Visualizer</title>
+
+    <!-- Inter font from Google Fonts (display=swap for performance) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet stylesheet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <!-- Tabler Icons webfont -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.2.0/dist/tabler-icons.min.css">
+
+    <!-- App stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1 class="app-title">
+            <span class="app-title-icon" aria-hidden="true">
+                <i class="ti ti-shield-check"></i>
+            </span>
+            <span class="app-title-text">Cloud Resilience <span>Visualizer</span></span>
+        </h1>
+
+        <nav class="app-nav" aria-label="Main navigation">
+            <button class="nav-btn nav-btn-active" data-view="topology">Topology</button>
+            <button class="nav-btn" data-view="compliance">Compliance</button>
+        </nav>
+
+        <div class="app-status" id="status" role="status" aria-live="polite">
+            Loading...
+        </div>
+    </header>
+
+    <section id="topology-view" class="view view-active" aria-label="Topology view">
+        <div id="map" class="topology-map"></div>
+    </section>
+
+    <section id="compliance-view" class="view" aria-label="Compliance view">
+        <div id="compliance-dashboard" class="compliance-dashboard"></div>
+    </section>
+
+    <!-- Details panel: slides in from the right on node click -->
+    <aside id="details-panel" class="details-panel" aria-hidden="true" aria-label="Resource details">
+        <button id="details-close" class="details-close" aria-label="Close details">&times;</button>
+        <div id="details-content"></div>
+    </aside>
+
+    <!-- Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- App logic -->
+    <script src="js/topology.js"></script>
+    <script src="js/compliance.js"></script>
+</body>
+</html>
