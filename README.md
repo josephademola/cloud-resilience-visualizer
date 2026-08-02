@@ -194,11 +194,21 @@ terraform destroy  # tears everything down when done
 
 ---
 
-## What comes next
+## Deployment
 
-Phase 8: Docker containerisation, GitHub Actions CI/CD pipeline, public deployment with HTTPS.
+The tool is fully deployed and publicly accessible:
 
-Planned extensions:
+- **Frontend:** [josephademola.github.io/cloud-resilience-visualizer](https://josephademola.github.io/cloud-resilience-visualizer)
+- **Backend API:** [cloud-resilience-visualizer.onrender.com](https://cloud-resilience-visualizer.onrender.com)
+- **API docs:** [cloud-resilience-visualizer.onrender.com/docs](https://cloud-resilience-visualizer.onrender.com/docs)
+
+Backend is containerised with Docker and deployed on Render. Frontend is served via GitHub Pages. CI/CD via GitHub Actions runs the full test suite on every push to main.
+
+> **Note:** The free tier on Render spins down after 15 minutes of inactivity. First request after a cold start takes approximately 30 seconds. The `/api/health` endpoint can be used to wake the service before a demo.
+
+## Planned extensions
+
 - Azure support alongside existing AWS integration for multi-cloud coverage
 - Additional scanner rules covering EC2 security groups, RDS encryption, and IAM baseline checks
 - Terraform static analysis for shift-left compliance checking before deployment
+- ISO 27001 and DORA framework mappings for broader UK financial services coverage
