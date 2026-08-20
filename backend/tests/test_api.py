@@ -76,15 +76,15 @@ class TestFindingsEndpoint:
         assert set(data.keys()) == {"metadata", "findings"}
         assert data["metadata"]["schema_version"] == "1.0"
 
-    def test_response_has_thirteen_findings_across_four_resources(self, client):
+    def test_response_has_fourteen_findings_across_four_resources(self, client):
         # Seven S3 findings on the misconfigured uploads bucket, two
-        # KMS findings on the same doomed customer-managed key, three
-        # account-level IAM findings, and one IAM user finding (old
-        # access key) — the first time findings span four resources.
+        # KMS findings on the same doomed customer-managed key, four
+        # account-level findings (3 IAM + CloudTrail disabled), and
+        # one IAM user finding (old access key).
         response = client.get("/api/findings")
         data = response.json()
-        assert len(data["findings"]) == 13
-        assert data["metadata"]["finding_count"] == 13
+        assert len(data["findings"]) == 14
+        assert data["metadata"]["finding_count"] == 14
         resource_ids = {f["resource_id"] for f in data["findings"]}
         assert resource_ids == {
             "cloudres-fintech-uploads",
@@ -141,7 +141,7 @@ class TestComplianceEndpoint:
     def test_response_reflects_scanner_findings(self, client):
         response = client.get("/api/compliance")
         data = response.json()
-        assert data["metadata"]["total_findings"] == 13
+        assert data["metadata"]["total_findings"] == 14
 
 
 # --- GET /api/report -------------------------------------------------

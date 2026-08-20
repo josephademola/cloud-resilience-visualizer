@@ -38,6 +38,7 @@ from app.models.finding import Finding, finding_to_dict
 from app.scanners.s3_scanner import scan_s3_buckets
 from app.scanners.kms_scanner import scan_kms_keys
 from app.scanners.iam_scanner import scan_iam
+from app.scanners.account_scanner import scan_account
 from app.compliance import build_compliance_view
 from fastapi.responses import Response
 
@@ -115,7 +116,12 @@ def _scan_all(topology: dict) -> list[Finding]:
     topology is safe — order here is scanner-registration order, not
     resource order, and determines nothing about correctness.
     """
-    return scan_s3_buckets(topology) + scan_kms_keys(topology) + scan_iam(topology)
+    return (
+        scan_s3_buckets(topology)
+        + scan_kms_keys(topology)
+        + scan_iam(topology)
+        + scan_account(topology)
+    )
 
 @app.get("/api/topology", dependencies=[Depends(require_api_key)])
 def get_topology() -> dict:

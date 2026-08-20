@@ -371,17 +371,22 @@ def _normalize_rds_instances(rds_data: dict[str, Any],) -> list[TopologyNode]:
     return nodes
 
 
-def _normalize_account(iam_data: dict[str, Any]) -> list[TopologyNode]:
+def _normalize_account(
+    iam_data: dict[str, Any],
+    cloudtrail_data: dict[str, Any] | None = None,
+) -> list[TopologyNode]:
     """
-    Transform get_account_summary + account_id into a single
-    'account' topology node.
+    Transform account-wide facts from multiple AWS services into a
+    single 'account' topology node.
 
     Unlike every other _normalize_* function, this doesn't produce
     one node per resource — at most one node, representing the whole
-    AWS account. Findings like root access keys or account-wide MFA
-    aren't tied to any specific bucket, key, or instance; they're
-    facts about the account as a whole, so they need an account-level
-    node to attach to.
+    AWS account. Findings like root access keys, account-wide MFA, or
+    CloudTrail coverage aren't tied to any specific bucket, key, or
+    instance; they're facts about the account as a whole, so they
+    need an account-level node to attach to. Same shape as the S3
+    normaliser folding 7 different per-bucket API calls into one
+    node — multiple AWS services, one conceptual resource.
     """
     account_id = iam_data.get("account_id")
     if not account_id:
@@ -397,6 +402,14 @@ def _normalize_account(iam_data: dict[str, Any]) -> list[TopologyNode]:
             "MinimumPasswordLength"
         )
 
+    cloudtrail_data = cloudtrail_data or {}
+    trails = cloudtrail_data.get("describe_trails", {}).get("trailList", [])
+    trail_statuses = cloudtrail_data.get("trail_status", {})
+    cloudtrail_logging_enabled = any(
+        trail_statuses.get(trail.get("Name"), {}).get("IsLogging", False)
+        for trail in trails
+    )
+
     return [{
         "id": account_id,
         "type": "account",
@@ -408,6 +421,7 @@ def _normalize_account(iam_data: dict[str, Any]) -> list[TopologyNode]:
             ) > 0,
             "account_mfa_enabled": summary.get("AccountMFAEnabled", 0) > 0,
             "password_policy_min_length": min_length,
+            "cloudtrail_logging_enabled": cloudtrail_logging_enabled,
         },
     }]
 
@@ -755,9 +769,9 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
 
     Args:
         aws_data: A dict matching the structure of mock_aws.json.
-            Top-level keys are 'ec2', 's3', 'rds', 'kms', and 'iam'.
-            Missing branches are treated as empty (no resources of
-            that service exist).
+            Top-level keys are 'ec2', 's3', 'rds', 'kms', 'iam', and
+            'cloudtrail'. Missing branches are treated as empty (no
+            resources of that service exist).
 
     Returns:
         A dict with three keys:
@@ -770,6 +784,7 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     rds_data = aws_data.get("rds", {})
     kms_data = aws_data.get("kms", {})
     iam_data = aws_data.get("iam", {})
+    cloudtrail_data = aws_data.get("cloudtrail", {})
 
     # Combine every per-resource normalizer's output into one flat
     # node list. Order is chosen for human readability when reading
@@ -788,7 +803,7 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     nodes.extend(_normalize_s3_buckets(s3_data))
     nodes.extend(_normalize_kms_keys(kms_data))
     nodes.extend(_normalize_iam_users(iam_data))
-    nodes.extend(_normalize_account(iam_data))
+    nodes.extend(_normalize_account(iam_data, cloudtrail_data))
 
     security_groups = _normalize_security_groups(ec2_data)
 

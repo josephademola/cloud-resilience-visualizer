@@ -471,5 +471,11 @@
         }
       }
     }
+  },
+  "cloudtrail": {
+    "describe_trails": {
+      "trailList": []
+    },
+    "trail_status": {}
   }
 }

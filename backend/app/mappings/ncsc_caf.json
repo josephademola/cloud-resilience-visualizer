@@ -18,7 +18,8 @@
       "IAM_ROOT_ACCESS_KEYS_ACTIVE": "B2.a reused from S3_PUBLIC_VIA_ACL's primary reference. Active root keys are an identity/authentication control gap at the account level rather than the bucket level, but the same CAF outcome — unrestricted, unverified access — applies.",
       "IAM_ACCOUNT_MFA_NOT_ENABLED": "B2.a again, third use of this outcome in the file. MFA absence is as textbook an identity-verification-and-authentication gap as CAF describes; no other outcome fits better.",
       "IAM_PASSWORD_POLICY_WEAK": "B2.a again, fourth use. Still the correct outcome, not just the convenient one: a weak or missing password policy is exactly the same 'identity verification and authentication' gap as the previous three findings, applied to the password mechanism specifically rather than MFA or key management.",
-      "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "B2.a, fifth use. Credential lifecycle management — rotating a credential before it becomes a long-lived liability — is part of authentication management just as much as the credential's existence or strength is."
+      "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "B2.a, fifth use. Credential lifecycle management — rotating a credential before it becomes a long-lived liability — is part of authentication management just as much as the credential's existence or strength is.",
+      "ACCOUNT_CLOUDTRAIL_DISABLED": "C1.a reused from S3_LOGGING_DISABLED, and the stronger case: CloudTrail is the account-wide monitoring capability C1.a describes, not one bucket's slice of it."
     }
   },
 
@@ -73,5 +74,9 @@
 
   "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": [
     {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
+  ],
+
+  "ACCOUNT_CLOUDTRAIL_DISABLED": [
+    {"framework": "ncsc_caf", "reference_id": "C1.a", "label": "Monitoring Coverage"}
   ]
 }
