@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-20T16:22:19.724419+00:00",
+    "generated_at": "2026-08-20T16:40:08.949386+00:00",
     "node_count": 10,
     "security_group_count": 3
   },
@@ -138,7 +138,7 @@
       "name": "cloudres-fintech-app-key",
       "parent_id": null,
       "properties": {
-        "key_state": "Enabled",
+        "key_state": "PendingDeletion",
         "key_rotation_enabled": false
       }
     }
