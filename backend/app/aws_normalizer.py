@@ -390,6 +390,13 @@ def _normalize_account(iam_data: dict[str, Any]) -> list[TopologyNode]:
 
     summary = iam_data.get("get_account_summary", {}).get("SummaryMap", {})
 
+    password_policy = iam_data.get("get_account_password_policy", {})
+    min_length = None
+    if "_error" not in password_policy:
+        min_length = password_policy.get("PasswordPolicy", {}).get(
+            "MinimumPasswordLength"
+        )
+
     return [{
         "id": account_id,
         "type": "account",
@@ -400,6 +407,7 @@ def _normalize_account(iam_data: dict[str, Any]) -> list[TopologyNode]:
                 "AccountAccessKeysPresent", 0
             ) > 0,
             "account_mfa_enabled": summary.get("AccountMFAEnabled", 0) > 0,
+            "password_policy_min_length": min_length,
         },
     }]
 

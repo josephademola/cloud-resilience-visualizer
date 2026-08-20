@@ -445,6 +445,9 @@
         "AccountAccessKeysPresent": 1,
         "AccountMFAEnabled": 0
       }
+    },
+    "get_account_password_policy": {
+      "_error": "NoSuchEntityException"
     }
   }
 }

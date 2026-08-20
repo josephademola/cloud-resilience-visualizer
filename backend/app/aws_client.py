@@ -84,6 +84,9 @@ def fetch_aws_data() -> dict[str, Any]:
         "iam": {
             "account_id": sts.get_caller_identity()["Account"],
             "get_account_summary": _strip_metadata(iam.get_account_summary()),
+            "get_account_password_policy": _safe_call(
+                iam.get_account_password_policy
+            ),
         },
     }
 
@@ -166,6 +169,23 @@ def _safe_kms_call(method, key_id: str) -> dict:
     """
     try:
         response = method(KeyId=key_id)
+        return _strip_metadata(response)
+    except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code", "UnknownError")
+        return {"_error": error_code}
+
+
+def _safe_call(method) -> dict:
+    """
+    Call an account-wide method that takes no resource-identifying
+    argument (e.g. get_account_password_policy). On success, return
+    the response minus boto3 metadata. On failure — expected in a
+    healthy account that simply never configured the thing being
+    asked about, e.g. NoSuchEntityException for no password policy —
+    return an '_error' marker.
+    """
+    try:
+        response = method()
         return _strip_metadata(response)
     except ClientError as e:
         error_code = e.response.get("Error", {}).get("Code", "UnknownError")

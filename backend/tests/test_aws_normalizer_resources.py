@@ -818,7 +818,7 @@ class TestNormalizeKmsKeys:
 # --- _normalize_account --------------------------------------------------
 class TestNormalizeAccount:
 
-    def test_returns_account_node_with_both_iam_flags(self):
+    def test_returns_account_node_with_all_three_iam_properties(self):
         iam_data = {
             "account_id": "123456789012",
             "get_account_summary": {
@@ -826,6 +826,9 @@ class TestNormalizeAccount:
                     "AccountAccessKeysPresent": 1,
                     "AccountMFAEnabled": 0,
                 }
+            },
+            "get_account_password_policy": {
+                "PasswordPolicy": {"MinimumPasswordLength": 8}
             },
         }
         assert _normalize_account(iam_data) == [
@@ -837,9 +840,23 @@ class TestNormalizeAccount:
                 "properties": {
                     "root_access_keys_present": True,
                     "account_mfa_enabled": False,
+                    "password_policy_min_length": 8,
                 },
             }
         ]
+
+    def test_password_policy_min_length_is_none_when_no_policy_configured(self):
+        # Real boto3 raises NoSuchEntityException; our mock convention
+        # represents that as an '_error' marker, same as the S3
+        # encryption/lifecycle/policy calls.
+        iam_data = {
+            "account_id": "123456789012",
+            "get_account_password_policy": {
+                "_error": "NoSuchEntityException"
+            },
+        }
+        nodes = _normalize_account(iam_data)
+        assert nodes[0]["properties"]["password_policy_min_length"] is None
 
     def test_returns_account_node_with_root_keys_absent_and_mfa_enabled(self):
         iam_data = {
@@ -860,6 +877,7 @@ class TestNormalizeAccount:
         nodes = _normalize_account(iam_data)
         assert nodes[0]["properties"]["root_access_keys_present"] is False
         assert nodes[0]["properties"]["account_mfa_enabled"] is False
+        assert nodes[0]["properties"]["password_policy_min_length"] is None
 
     def test_returns_empty_list_when_account_id_missing(self):
         assert _normalize_account({}) == []
