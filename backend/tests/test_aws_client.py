@@ -59,7 +59,7 @@ class TestFetchAwsData:
         # Top-level keys must match mock_aws.json exactly so the
         # normaliser downstream can process either data source.
         data = fetch_aws_data()
-        assert set(data.keys()) == {"ec2", "rds", "s3"}
+        assert set(data.keys()) == {"ec2", "rds", "s3", "kms"}
 
     def test_ec2_section_has_all_expected_service_keys(self, moto_aws):
         # The normaliser calls specific keys under "ec2" — miss any
@@ -79,6 +79,62 @@ class TestFetchAwsData:
         assert "list_buckets" in data["s3"]
         assert "bucket_details" in data["s3"]
 
+    def test_kms_section_has_list_and_details(self, moto_aws):
+        data = fetch_aws_data()
+        assert "list_keys" in data["kms"]
+        assert "key_details" in data["kms"]
+
+    def test_bucket_details_has_all_seven_s3_calls(self, moto_aws):
+        # The normaliser reads all seven per-bucket calls (one per
+        # S3 scanner rule). Miss any and that rule silently sees
+        # "not configured" for every bucket, regardless of reality.
+        s3 = boto3.client("s3", region_name="eu-west-2")
+        s3.create_bucket(
+            Bucket="test-bucket-shape",
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        data = fetch_aws_data()
+        assert set(data["s3"]["bucket_details"]["test-bucket-shape"].keys()) == {
+            "get_bucket_acl",
+            "get_public_access_block",
+            "get_bucket_encryption",
+            "get_bucket_versioning",
+            "get_bucket_logging",
+            "get_bucket_lifecycle_configuration",
+            "get_bucket_policy",
+        }
+
+    def test_key_details_entry_exists_for_every_key(self, moto_aws):
+        # Same invariant as bucket_details: every key in list_keys
+        # must have a corresponding key_details entry, or that key
+        # silently never gets scanned.
+        kms = boto3.client("kms", region_name="eu-west-2")
+        created = kms.create_key(Description="test-key")
+        key_id = created["KeyMetadata"]["KeyId"]
+
+        data = fetch_aws_data()
+        listed_key_ids = {k["KeyId"] for k in data["kms"]["list_keys"]["Keys"]}
+        detail_key_ids = set(data["kms"]["key_details"].keys())
+        assert key_id in listed_key_ids
+        assert listed_key_ids == detail_key_ids
+
+    def test_key_details_has_both_kms_calls(self, moto_aws):
+        kms = boto3.client("kms", region_name="eu-west-2")
+        created = kms.create_key(Description="test-key")
+        key_id = created["KeyMetadata"]["KeyId"]
+
+        data = fetch_aws_data()
+        assert set(data["kms"]["key_details"][key_id].keys()) == {
+            "describe_key",
+            "get_key_rotation_status",
+        }
+        # Confirm the shape the normaliser actually reads is present.
+        assert "KeyMetadata" in data["kms"]["key_details"][key_id]["describe_key"]
+        assert (
+            data["kms"]["key_details"][key_id]["describe_key"]["KeyMetadata"]["KeyManager"]
+            == "CUSTOMER"
+        )
+
     def test_response_metadata_is_stripped_from_every_response(self, moto_aws):
         # boto3 wraps responses with ResponseMetadata (request IDs,
         # HTTP status, retry counts). Not part of the data model —
@@ -93,6 +149,7 @@ class TestFetchAwsData:
                 f"rds.{service_key} still has ResponseMetadata"
             )
         assert "ResponseMetadata" not in data["s3"]["list_buckets"]
+        assert "ResponseMetadata" not in data["kms"]["list_keys"]
 
     def test_output_is_fully_json_serialisable(self, moto_aws):
         # This is the acceptance test for the datetime fix. boto3
@@ -125,6 +182,8 @@ class TestFetchAwsData:
         assert isinstance(data["s3"]["list_buckets"]["Buckets"], list)
         assert isinstance(data["s3"]["bucket_details"], dict)
         assert isinstance(data["rds"]["describe_db_instances"]["DBInstances"], list)
+        assert isinstance(data["kms"]["list_keys"]["Keys"], list)
+        assert isinstance(data["kms"]["key_details"], dict)
         # No custom resources beyond the default VPC/subnets
         assert data["s3"]["list_buckets"]["Buckets"] == []
         assert data["rds"]["describe_db_instances"]["DBInstances"] == []
