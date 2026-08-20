@@ -24,24 +24,35 @@ FINDINGS = scan_account(TOPOLOGY)
 
 class TestAccountScannerEndToEnd:
 
-    def test_produces_one_finding_against_missing_cloudtrail(self):
-        # The mock has no CloudTrail trail configured at all.
-        assert len(FINDINGS) == 1
-        assert FINDINGS[0].finding_type_id == "ACCOUNT_CLOUDTRAIL_DISABLED"
-        assert FINDINGS[0].severity.value == "critical"
-        assert FINDINGS[0].resource_id == "123456789012"
+    def test_produces_two_findings_against_misconfigured_account(self):
+        # The mock has no CloudTrail trail configured and no
+        # account-level S3 Public Access Block configured.
+        assert len(FINDINGS) == 2
+        finding_type_ids = [f.finding_type_id for f in FINDINGS]
+        assert finding_type_ids == [
+            "ACCOUNT_CLOUDTRAIL_DISABLED",
+            "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED",
+        ]
+        assert all(f.resource_id == "123456789012" for f in FINDINGS)
+        severities = {f.finding_type_id: f.severity.value for f in FINDINGS}
+        assert severities["ACCOUNT_CLOUDTRAIL_DISABLED"] == "critical"
+        assert severities["ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED"] == "high"
 
-    def test_finding_maps_to_all_four_frameworks(self):
+    def test_all_findings_map_to_all_four_frameworks(self):
         expected_frameworks = {
             "nis2",
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
         }
-        frameworks_present = {
-            r.framework for r in FINDINGS[0].framework_references
-        }
-        assert frameworks_present == expected_frameworks
+        for finding in FINDINGS:
+            frameworks_present = {
+                r.framework for r in finding.framework_references
+            }
+            assert frameworks_present == expected_frameworks, (
+                f"{finding.finding_type_id} missing frameworks: "
+                f"{expected_frameworks - frameworks_present}"
+            )
 
     def test_findings_are_deterministic(self):
         second_run = scan_account(TOPOLOGY)

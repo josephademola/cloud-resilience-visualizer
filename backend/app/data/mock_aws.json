@@ -477,5 +477,10 @@
       "trailList": []
     },
     "trail_status": {}
+  },
+  "s3control": {
+    "get_public_access_block": {
+      "_error": "NoSuchPublicAccessBlockConfigurationException"
+    }
   }
 }

@@ -19,7 +19,8 @@
       "IAM_ACCOUNT_MFA_NOT_ENABLED": "21(2)(j) explicitly names multi-factor authentication. First use of this sub-paragraph in the file — no other finding maps to it, since this is the only one that is specifically an MFA gap rather than a broader access-control or cryptography issue.",
       "IAM_PASSWORD_POLICY_WEAK": "21(2)(g) covers basic cyber hygiene practices and training. A minimum password length policy is about as textbook a basic-cyber-hygiene control as exists — first use of this sub-paragraph in the file.",
       "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "21(2)(i) reused. An unrotated access key is exactly the kind of credential asset this sub-paragraph's 'asset management' language covers — it's a standing credential that hasn't been through any lifecycle management process.",
-      "ACCOUNT_CLOUDTRAIL_DISABLED": "21(2)(b) reused from S3_LOGGING_DISABLED, and a stronger case than that one: CloudTrail is the account-wide audit log incident handling depends on, not just one bucket's access logs. If anything this is the cleanest possible match for this sub-paragraph in the whole file."
+      "ACCOUNT_CLOUDTRAIL_DISABLED": "21(2)(b) reused from S3_LOGGING_DISABLED, and a stronger case than that one: CloudTrail is the account-wide audit log incident handling depends on, not just one bucket's access logs. If anything this is the cleanest possible match for this sub-paragraph in the whole file.",
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Same two references as S3_PUBLIC_ACCESS_BLOCK_DISABLED, reused deliberately rather than independently reasoned: this is the same control at account scope instead of bucket scope, not a different finding that happens to look similar."
     }
   },
 
@@ -137,6 +138,19 @@
       "framework": "nis2",
       "reference_id": "Article 21(2)(b)",
       "label": "Incident handling"
+    }
+  ],
+
+  "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(e)",
+      "label": "Security in the acquisition, development and maintenance of network and information systems"
+    },
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(f)",
+      "label": "Policies and procedures to assess the effectiveness of cybersecurity risk-management measures"
     }
   ]
 }
