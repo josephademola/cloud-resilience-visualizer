@@ -23,6 +23,7 @@ from app.aws_normalizer import (
     _normalize_rds_instances,
     _normalize_s3_buckets,
     _normalize_kms_keys,
+    _normalize_account,
     _normalize_security_groups,
 )
 
@@ -812,6 +813,45 @@ class TestNormalizeKmsKeys:
 
     def test_returns_empty_list_when_no_keys(self):
         assert _normalize_kms_keys({}) == []
+
+
+# --- _normalize_account --------------------------------------------------
+class TestNormalizeAccount:
+
+    def test_returns_account_node_with_root_keys_present(self):
+        iam_data = {
+            "account_id": "123456789012",
+            "get_account_summary": {
+                "SummaryMap": {"AccountAccessKeysPresent": 1}
+            },
+        }
+        assert _normalize_account(iam_data) == [
+            {
+                "id": "123456789012",
+                "type": "account",
+                "name": "AWS Account 123456789012",
+                "parent_id": None,
+                "properties": {"root_access_keys_present": True},
+            }
+        ]
+
+    def test_returns_account_node_with_root_keys_absent(self):
+        iam_data = {
+            "account_id": "123456789012",
+            "get_account_summary": {
+                "SummaryMap": {"AccountAccessKeysPresent": 0}
+            },
+        }
+        nodes = _normalize_account(iam_data)
+        assert nodes[0]["properties"]["root_access_keys_present"] is False
+
+    def test_defaults_root_keys_to_false_when_summary_missing(self):
+        iam_data = {"account_id": "123456789012"}
+        nodes = _normalize_account(iam_data)
+        assert nodes[0]["properties"]["root_access_keys_present"] is False
+
+    def test_returns_empty_list_when_account_id_missing(self):
+        assert _normalize_account({}) == []
 
 
 # --- _normalize_security_groups --------------------------------------

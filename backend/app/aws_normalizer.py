@@ -371,6 +371,38 @@ def _normalize_rds_instances(rds_data: dict[str, Any],) -> list[TopologyNode]:
     return nodes
 
 
+def _normalize_account(iam_data: dict[str, Any]) -> list[TopologyNode]:
+    """
+    Transform get_account_summary + account_id into a single
+    'account' topology node.
+
+    Unlike every other _normalize_* function, this doesn't produce
+    one node per resource — at most one node, representing the whole
+    AWS account. Findings like root access keys or account-wide MFA
+    aren't tied to any specific bucket, key, or instance; they're
+    facts about the account as a whole, so they need an account-level
+    node to attach to.
+    """
+    account_id = iam_data.get("account_id")
+    if not account_id:
+        logger.warning("Skipping account node: missing account_id")
+        return []
+
+    summary = iam_data.get("get_account_summary", {}).get("SummaryMap", {})
+
+    return [{
+        "id": account_id,
+        "type": "account",
+        "name": f"AWS Account {account_id}",
+        "parent_id": None,
+        "properties": {
+            "root_access_keys_present": summary.get(
+                "AccountAccessKeysPresent", 0
+            ) > 0,
+        },
+    }]
+
+
 def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
     """
     Transform list_keys + key_details into topology nodes.
@@ -660,9 +692,9 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
 
     Args:
         aws_data: A dict matching the structure of mock_aws.json.
-            Top-level keys are 'ec2', 's3', 'rds', and 'kms'. Missing
-            branches are treated as empty (no resources of that
-            service exist).
+            Top-level keys are 'ec2', 's3', 'rds', 'kms', and 'iam'.
+            Missing branches are treated as empty (no resources of
+            that service exist).
 
     Returns:
         A dict with three keys:
@@ -674,14 +706,16 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     s3_data = aws_data.get("s3", {})
     rds_data = aws_data.get("rds", {})
     kms_data = aws_data.get("kms", {})
+    iam_data = aws_data.get("iam", {})
 
     # Combine every per-resource normalizer's output into one flat
     # node list. Order is chosen for human readability when reading
     # the resulting topology.json: top-level containers (VPCs) first,
     # then everything that nests inside them, then global services
-    # (S3, KMS) last. The frontend doesn't depend on this order — it
-    # rebuilds the hierarchy from parent_id — but it makes the file
-    # easier for humans to scan.
+    # (S3, KMS) and finally the account-level node, which isn't
+    # scoped to any resource at all. The frontend doesn't depend on
+    # this order — it rebuilds the hierarchy from parent_id — but it
+    # makes the file easier for humans to scan.
     nodes: list[TopologyNode] = []
     nodes.extend(_normalize_vpcs(ec2_data))
     nodes.extend(_normalize_subnets(ec2_data))
@@ -690,6 +724,7 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     nodes.extend(_normalize_rds_instances(rds_data))
     nodes.extend(_normalize_s3_buckets(s3_data))
     nodes.extend(_normalize_kms_keys(kms_data))
+    nodes.extend(_normalize_account(iam_data))
 
     security_groups = _normalize_security_groups(ec2_data)
 
