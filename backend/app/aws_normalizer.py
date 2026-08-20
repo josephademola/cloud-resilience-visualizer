@@ -371,6 +371,54 @@ def _normalize_rds_instances(rds_data: dict[str, Any],) -> list[TopologyNode]:
     return nodes
 
 
+def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
+    """
+    Transform list_keys + key_details into topology nodes.
+
+    KMS is a global service, not VPC-scoped — every key gets
+    parent_id = None and renders at the topology's top level, same
+    as S3 buckets.
+
+    Only customer-managed keys (KeyManager == "CUSTOMER") become
+    topology nodes. AWS-managed keys (e.g. aws/s3) rotate
+    automatically and the account owner has no control over that
+    setting; including them would let the rotation-disabled rule
+    flag a control nobody can actually act on. See
+    docs/design_decisions.md #9.
+    """
+    nodes: list[TopologyNode] = []
+
+    key_list = kms_data.get("list_keys", {}).get("Keys", [])
+    key_details = kms_data.get("key_details", {})
+
+    for key in key_list:
+        key_id = key.get("KeyId")
+        if not key_id:
+            logger.warning("Skipping KMS key with missing KeyId")
+            continue
+
+        details = key_details.get(key_id, {})
+        metadata = details.get("describe_key", {}).get("KeyMetadata", {})
+
+        if metadata.get("KeyManager") != "CUSTOMER":
+            continue
+
+        rotation = details.get("get_key_rotation_status", {})
+
+        nodes.append({
+            "id": key_id,
+            "type": "kms_key",
+            "name": metadata.get("Description") or key_id,
+            "parent_id": None,  # KMS is global, not in any VPC
+            "properties": {
+                "key_state": metadata.get("KeyState"),
+                "key_rotation_enabled": rotation.get("KeyRotationEnabled", False),
+            },
+        })
+
+    return nodes
+
+
 # AWS's well-known URI representing "anyone on the internet."
 # A Grantee with this URI in a bucket's ACL means the bucket is open
 # to the world via ACL — the canonical S3 public-exposure signature.
@@ -612,7 +660,7 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
 
     Args:
         aws_data: A dict matching the structure of mock_aws.json.
-            Top-level keys are 'ec2', 's3', and 'rds'. Missing
+            Top-level keys are 'ec2', 's3', 'rds', and 'kms'. Missing
             branches are treated as empty (no resources of that
             service exist).
 
@@ -625,12 +673,13 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     ec2_data = aws_data.get("ec2", {})
     s3_data = aws_data.get("s3", {})
     rds_data = aws_data.get("rds", {})
+    kms_data = aws_data.get("kms", {})
 
     # Combine every per-resource normalizer's output into one flat
     # node list. Order is chosen for human readability when reading
     # the resulting topology.json: top-level containers (VPCs) first,
     # then everything that nests inside them, then global services
-    # (S3) last. The frontend doesn't depend on this order — it
+    # (S3, KMS) last. The frontend doesn't depend on this order — it
     # rebuilds the hierarchy from parent_id — but it makes the file
     # easier for humans to scan.
     nodes: list[TopologyNode] = []
@@ -640,6 +689,7 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     nodes.extend(_normalize_ec2_instances(ec2_data))
     nodes.extend(_normalize_rds_instances(rds_data))
     nodes.extend(_normalize_s3_buckets(s3_data))
+    nodes.extend(_normalize_kms_keys(kms_data))
 
     security_groups = _normalize_security_groups(ec2_data)
 

@@ -12,7 +12,8 @@
       "S3_VERSIONING_DISABLED": "No technique directly matches — disabling versioning is not an attacker action, it's the absence of a recovery mechanism. Mapped to T1485 (Data Destruction) as a weaker, honest fit, following the same reasoning as the PAB mapping above: this misconfiguration doesn't enable a destructive attack, but it removes the safety net that would otherwise let the organisation undo one.",
       "S3_LOGGING_DISABLED": "T1562.008 (Disable or Modify Cloud Logs) is an imperfect fit and documented as such: the technique describes an attacker actively turning logging off, whereas this finding is logging having never been turned on. Both produce the identical outcome an investigator cares about, an activity blind spot on this bucket, so the technique is mapped here as the closest honest match rather than left unmapped.",
       "S3_LIFECYCLE_MISSING": "T1530 covers this by extension, same reasoning as S3_ENCRYPTION_DISABLED: unbounded retention means more objects are sitting in the bucket for an attacker to collect if they do gain access. A secondary consequence, not a primary enablement, but defensible on the same grounds as the encryption mapping.",
-      "S3_TLS_NOT_ENFORCED": "T1557 (Adversary-in-the-Middle) is not part of the Cloud IaaS sub-matrix this file otherwise draws from — it's a general network technique. Included anyway as the closest honest fit: an attacker positioned on the network path can read plaintext S3 requests when TLS is not enforced. Noted as a departure from the sub-matrix scope rather than presented as if it belonged there."
+      "S3_TLS_NOT_ENFORCED": "T1557 (Adversary-in-the-Middle) is not part of the Cloud IaaS sub-matrix this file otherwise draws from — it's a general network technique. Included anyway as the closest honest fit: an attacker positioned on the network path can read plaintext S3 requests when TLS is not enforced. Noted as a departure from the sub-matrix scope rather than presented as if it belonged there.",
+      "KMS_KEY_ROTATION_DISABLED": "T1530 by extension, same reasoning as the S3 encryption findings: a key that never rotates means a single compromise of the key material exposes everything ever encrypted under it, for as long as that data exists. Secondary consequence, not a primary enablement."
     }
   },
 
@@ -42,5 +43,9 @@
 
   "S3_TLS_NOT_ENFORCED": [
     {"framework": "mitre_attack", "reference_id": "T1557", "label": "Adversary-in-the-Middle (Collection tactic)"}
+  ],
+
+  "KMS_KEY_ROTATION_DISABLED": [
+    {"framework": "mitre_attack", "reference_id": "T1530", "label": "Data from Cloud Storage (Collection tactic)"}
   ]
 }

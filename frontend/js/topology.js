@@ -158,8 +158,14 @@ function computeLayout(topology) {
 
     const rightEdge = rightmostEdge(layouts);
     let bucketY = LAYOUT.vpc.startY;
-    for (const bucket of topology.nodes.filter(n => n.type === "s3_bucket")) {
-        layouts[bucket.id] = {
+    // S3 buckets and KMS keys are both global, non-VPC-scoped
+    // resources, so they share the same right-hand column — the
+    // cursor simply continues downward across both types.
+    const globalResources = topology.nodes.filter(
+        n => n.type === "s3_bucket" || n.type === "kms_key"
+    );
+    for (const resource of globalResources) {
+        layouts[resource.id] = {
             x: rightEdge + LAYOUT.bucket.leftPad,
             y: bucketY,
             width: LAYOUT.bucket.width,
@@ -238,7 +244,7 @@ function layoutResourcesInSubnet(subnet, byParent, layouts) {
 function renderTopology(map, topology) {
     const layouts = computeLayout(topology);
 
-    const renderOrder = ["vpc", "subnet", "internet_gateway", "ec2_instance", "rds_instance", "s3_bucket"];
+    const renderOrder = ["vpc", "subnet", "internet_gateway", "ec2_instance", "rds_instance", "s3_bucket", "kms_key"];
     for (const type of renderOrder) {
         for (const node of topology.nodes.filter(n => n.type === type)) {
             renderNode(map, node, layouts[node.id], layouts);
@@ -321,6 +327,8 @@ function nodeLabelHtml(node) {
             return `${iconHtml}<span>${node.name} · ${node.properties.engine}</span>`;
         case "s3_bucket":
             return `${iconHtml}<span>${node.name}</span>`;
+        case "kms_key":
+            return `${iconHtml}<span>${node.name}</span>`;
         default:
             return node.name;
     }
@@ -332,6 +340,7 @@ function iconForType(node) {
         case "ec2_instance":     return "ti-server";
         case "rds_instance":     return "ti-database";
         case "s3_bucket":        return hasFindings(node) ? "ti-alert-triangle" : "ti-bucket";
+        case "kms_key":          return hasFindings(node) ? "ti-alert-triangle" : "ti-key";
         default:                 return null;
     }
 }
@@ -535,6 +544,7 @@ function humanType(node) {
         case "ec2_instance":     return "EC2 Instance";
         case "rds_instance":     return "RDS Instance";
         case "s3_bucket":        return "S3 Bucket";
+        case "kms_key":          return "KMS Key";
         default:                 return node.type;
     }
 }
@@ -554,6 +564,11 @@ function isBadProperty(key, value) {
     if (key === "is_public_via_acl" && value === true) return true;
     if (key === "public_access_block_fully_enabled" && value === false) return true;
     if (key === "encryption_enabled" && value === false) return true;
+    if (key === "versioning_enabled" && value === false) return true;
+    if (key === "logging_enabled" && value === false) return true;
+    if (key === "lifecycle_configured" && value === false) return true;
+    if (key === "tls_enforced" && value === false) return true;
+    if (key === "key_rotation_enabled" && value === false) return true;
     if (key === "publicly_accessible" && value === true) return true;
     return false;
 }

@@ -22,6 +22,7 @@ from app.aws_normalizer import (
     _normalize_ec2_instances,
     _normalize_rds_instances,
     _normalize_s3_buckets,
+    _normalize_kms_keys,
     _normalize_security_groups,
 )
 
@@ -711,6 +712,106 @@ class TestNormalizeS3Buckets:
 
     def test_returns_empty_list_when_no_buckets(self):
         assert _normalize_s3_buckets({}) == []
+
+
+# --- _normalize_kms_keys -----------------------------------------------
+class TestNormalizeKmsKeys:
+
+    def test_returns_customer_managed_key_with_rotation_status(self):
+        kms_data = {
+            "list_keys": {"Keys": [{"KeyId": "key-1"}]},
+            "key_details": {
+                "key-1": {
+                    "describe_key": {
+                        "KeyMetadata": {
+                            "KeyId": "key-1",
+                            "Description": "app-key",
+                            "KeyState": "Enabled",
+                            "KeyManager": "CUSTOMER",
+                        }
+                    },
+                    "get_key_rotation_status": {"KeyRotationEnabled": False},
+                }
+            },
+        }
+        nodes = _normalize_kms_keys(kms_data)
+        assert nodes == [
+            {
+                "id": "key-1",
+                "type": "kms_key",
+                "name": "app-key",
+                "parent_id": None,
+                "properties": {
+                    "key_state": "Enabled",
+                    "key_rotation_enabled": False,
+                },
+            }
+        ]
+
+    def test_excludes_aws_managed_keys(self):
+        # AWS-managed keys rotate automatically with no owner control
+        # over the setting — they must never become topology nodes.
+        # See docs/design_decisions.md #9.
+        kms_data = {
+            "list_keys": {"Keys": [{"KeyId": "aws/s3"}]},
+            "key_details": {
+                "aws/s3": {
+                    "describe_key": {
+                        "KeyMetadata": {
+                            "KeyId": "aws/s3",
+                            "KeyState": "Enabled",
+                            "KeyManager": "AWS",
+                        }
+                    },
+                    "get_key_rotation_status": {"KeyRotationEnabled": True},
+                }
+            },
+        }
+        assert _normalize_kms_keys(kms_data) == []
+
+    def test_defaults_safely_when_key_details_missing(self):
+        # A key appears in list_keys but has no entry in key_details.
+        # Missing KeyManager is not "CUSTOMER", so it's excluded —
+        # fail-closed on inclusion, not on the rotation property.
+        kms_data = {
+            "list_keys": {"Keys": [{"KeyId": "no-details-key"}]},
+            "key_details": {},
+        }
+        assert _normalize_kms_keys(kms_data) == []
+
+    def test_defaults_rotation_to_false_when_status_missing(self):
+        kms_data = {
+            "list_keys": {"Keys": [{"KeyId": "key-1"}]},
+            "key_details": {
+                "key-1": {
+                    "describe_key": {
+                        "KeyMetadata": {
+                            "KeyId": "key-1",
+                            "KeyManager": "CUSTOMER",
+                        }
+                    },
+                },
+            },
+        }
+        nodes = _normalize_kms_keys(kms_data)
+        assert nodes[0]["properties"]["key_rotation_enabled"] is False
+
+    def test_skips_key_with_missing_key_id(self):
+        kms_data = {
+            "list_keys": {"Keys": [{}, {"KeyId": "ok-key"}]},
+            "key_details": {
+                "ok-key": {
+                    "describe_key": {
+                        "KeyMetadata": {"KeyManager": "CUSTOMER"}
+                    },
+                },
+            },
+        }
+        nodes = _normalize_kms_keys(kms_data)
+        assert [n["id"] for n in nodes] == ["ok-key"]
+
+    def test_returns_empty_list_when_no_keys(self):
+        assert _normalize_kms_keys({}) == []
 
 
 # --- _normalize_security_groups --------------------------------------
