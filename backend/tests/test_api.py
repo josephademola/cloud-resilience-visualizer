@@ -61,6 +61,31 @@ class TestTopologyEndpoint:
         s3_ids = {n["id"] for n in data["nodes"] if n["type"] == "s3_bucket"}
         assert s3_ids == {"cloudres-fintech-logs", "cloudres-fintech-uploads"}
 
+    def test_project_tag_scopes_to_only_the_tagged_bucket(self, client):
+        # Phase 9a Feature 1. The mock tags cloudres-fintech-uploads
+        # as Project=ConfidentialClient and cloudres-fintech-logs as
+        # Project=CloudResilienceVisualizer.
+        response = client.get("/api/topology?project_tag=Project=ConfidentialClient")
+        data = response.json()
+        s3_ids = {n["id"] for n in data["nodes"] if n["type"] == "s3_bucket"}
+        assert s3_ids == {"cloudres-fintech-uploads"}
+
+    def test_project_tag_still_includes_account_node(self, client):
+        response = client.get("/api/topology?project_tag=Project=ConfidentialClient")
+        data = response.json()
+        account_ids = {n["id"] for n in data["nodes"] if n["type"] == "account"}
+        assert account_ids == {"123456789012"}
+
+    def test_unmatched_project_tag_excludes_all_taggable_resources(self, client):
+        response = client.get(
+            "/api/topology?project_tag=Project=NoSuchProject"
+        )
+        data = response.json()
+        node_types = {n["type"] for n in data["nodes"]}
+        assert "s3_bucket" not in node_types
+        assert "kms_key" not in node_types
+        assert "iam_user" not in node_types
+
 
 # --- GET /api/findings -----------------------------------------------
 class TestFindingsEndpoint:
@@ -94,6 +119,17 @@ class TestFindingsEndpoint:
             "123456789012",
             "cloudres-fintech-legacy-svc-account",
         }
+
+    def test_project_tag_scopes_findings_to_tagged_resources_plus_account(self, client):
+        # Phase 9a Feature 1. Scoped to ConfidentialClient: the 7 S3
+        # findings on the tagged uploads bucket, plus the 5
+        # account-wide findings (always included), minus the 2 KMS
+        # and 1 IAM user findings (neither resource is tagged).
+        response = client.get("/api/findings?project_tag=Project=ConfidentialClient")
+        data = response.json()
+        assert len(data["findings"]) == 12
+        resource_ids = {f["resource_id"] for f in data["findings"]}
+        assert resource_ids == {"cloudres-fintech-uploads", "123456789012"}
 
     def test_findings_have_framework_references_from_all_four_frameworks(self, client):
         response = client.get("/api/findings")

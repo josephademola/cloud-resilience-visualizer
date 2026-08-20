@@ -43,7 +43,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 
-def fetch_aws_data() -> dict[str, Any]:
+def fetch_aws_data(project_tag: str | None = None) -> dict[str, Any]:
     """
     Query the configured AWS account and return the environment in
     exactly the shape of mock_aws.json.
@@ -52,6 +52,16 @@ def fetch_aws_data() -> dict[str, Any]:
     credentials, network failure, IAM permission denied). Per-bucket
     S3 errors are caught individually and represented via '_error'
     markers in the response.
+
+    Args:
+        project_tag: Optional "Key=Value" tag filter (Phase 9a
+            Feature 1, e.g. "Project=ConfidentialClient"). When given, the
+            Resource Groups Tagging API is queried for matching
+            resources and the result is included under
+            "resourcegroupstaggingapi" for aws_normalizer.
+            filter_topology_by_tag() to use. When omitted, that key
+            is left out entirely — no reason to make the extra API
+            call on every unscoped scan.
     """
     ec2 = boto3.client("ec2")
     rds = boto3.client("rds")
@@ -64,7 +74,7 @@ def fetch_aws_data() -> dict[str, Any]:
 
     account_id = sts.get_caller_identity()["Account"]
 
-    return {
+    data: dict[str, Any] = {
         "ec2": {
             "describe_vpcs": _strip_metadata(ec2.describe_vpcs()),
             "describe_subnets": _strip_metadata(ec2.describe_subnets()),
@@ -106,6 +116,19 @@ def fetch_aws_data() -> dict[str, Any]:
             ),
         },
     }
+
+    if project_tag:
+        tag_key, _, tag_value = project_tag.partition("=")
+        tagging = boto3.client("resourcegroupstaggingapi")
+        data["resourcegroupstaggingapi"] = {
+            "get_resources": _strip_metadata(
+                tagging.get_resources(
+                    TagFilters=[{"Key": tag_key, "Values": [tag_value]}]
+                )
+            ),
+        }
+
+    return data
 
 
 def _fetch_bucket_details(s3) -> dict[str, dict]:

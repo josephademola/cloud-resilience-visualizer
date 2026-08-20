@@ -15,10 +15,16 @@ The mock_aws.json is loaded once at module-import time and shared
 across every test. The tests treat it as read-only.
 """
 
+import json
 from datetime import datetime
 from pathlib import Path
 
-from app.aws_normalizer import normalize_from_file
+from app.aws_normalizer import (
+    normalize_from_file,
+    normalize,
+    get_tagged_resource_arns,
+    filter_topology_by_tag,
+)
 
 
 # Path to the mock data, computed relative to this test file so the
@@ -31,6 +37,9 @@ _MOCK_PATH = (
 # none mutate it. The whole load takes < 0.01s, so the simplicity of
 # a module-level constant beats introducing a pytest fixture here.
 TOPOLOGY = normalize_from_file(_MOCK_PATH)
+
+with open(_MOCK_PATH, encoding="utf-8") as _fh:
+    RAW_AWS_DATA = json.load(_fh)
 
 
 def _nodes_of_type(node_type: str) -> list[dict]:
@@ -143,6 +152,7 @@ class TestNormalizeEndToEnd:
         assert props["logging_enabled"] is True
         assert props["lifecycle_configured"] is True
         assert props["tls_enforced"] is True
+        assert props["arn"] == "arn:aws:s3:::cloudres-fintech-logs"
 
     def test_misconfigured_uploads_bucket_has_all_seven_flags_set(self):
         # The 'cloudres-fintech-uploads' bucket is the deliberate
@@ -168,6 +178,7 @@ class TestNormalizeEndToEnd:
         assert props["logging_enabled"] is False
         assert props["lifecycle_configured"] is False
         assert props["tls_enforced"] is False
+        assert props["arn"] == "arn:aws:s3:::cloudres-fintech-uploads"
 
     def test_customer_managed_kms_key_has_both_kms_misconfigs(self):
         # The mock's customer-managed key is the deliberate KMS
@@ -177,6 +188,10 @@ class TestNormalizeEndToEnd:
         assert len(keys) == 1
         assert keys[0]["properties"]["key_rotation_enabled"] is False
         assert keys[0]["properties"]["key_state"] == "PendingDeletion"
+        assert keys[0]["properties"]["arn"] == (
+            "arn:aws:kms:eu-west-2:123456789012:key/"
+            "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
+        )
 
     def test_aws_managed_key_is_excluded_from_topology(self):
         # The mock also lists an AWS-managed key (aws/s3). It must
@@ -210,6 +225,9 @@ class TestNormalizeEndToEnd:
         keys = users[0]["properties"]["access_keys"]
         assert len(keys) == 1
         assert keys[0]["status"] == "Active"
+        assert users[0]["properties"]["arn"] == (
+            "arn:aws:iam::123456789012:user/cloudres-fintech-legacy-svc-account"
+        )
 
     def test_three_security_groups_belong_to_vpc(self):
         # The mock has three chained SGs (web -> app -> db). Each
@@ -225,3 +243,53 @@ class TestNormalizeEndToEnd:
         # design by making SGs renderable as topology shapes.
         node_types = {n["type"] for n in TOPOLOGY["nodes"]}
         assert "security_group" not in node_types
+
+
+class TestTagBasedFiltering:
+    """
+    Phase 9a Feature 1 end-to-end: the mock tags 'cloudres-fintech-
+    uploads' as Project=ConfidentialClient and 'cloudres-fintech-logs' as
+    Project=CloudResilienceVisualizer. Scoping to Project=ConfidentialClient
+    should keep the uploads bucket, drop the logs bucket, drop the
+    KMS key and IAM user (neither is tagged at all), and keep the
+    account node regardless.
+    """
+
+    def test_scoping_to_confidential_keeps_only_the_tagged_bucket(self):
+        tagged_arns = get_tagged_resource_arns(
+            RAW_AWS_DATA, "Project", "ConfidentialClient"
+        )
+        scoped = filter_topology_by_tag(TOPOLOGY, tagged_arns)
+
+        bucket_ids = {n["id"] for n in scoped["nodes"] if n["type"] == "s3_bucket"}
+        assert bucket_ids == {"cloudres-fintech-uploads"}
+
+    def test_scoping_to_confidential_drops_untagged_kms_and_iam_resources(self):
+        tagged_arns = get_tagged_resource_arns(
+            RAW_AWS_DATA, "Project", "ConfidentialClient"
+        )
+        scoped = filter_topology_by_tag(TOPOLOGY, tagged_arns)
+
+        scoped_types = {n["type"] for n in scoped["nodes"]}
+        assert "kms_key" not in scoped_types
+        assert "iam_user" not in scoped_types
+
+    def test_scoping_to_confidential_still_keeps_the_account_node(self):
+        tagged_arns = get_tagged_resource_arns(
+            RAW_AWS_DATA, "Project", "ConfidentialClient"
+        )
+        scoped = filter_topology_by_tag(TOPOLOGY, tagged_arns)
+
+        assert any(n["type"] == "account" for n in scoped["nodes"])
+
+    def test_scoping_to_an_untagged_project_keeps_only_the_account_node(self):
+        tagged_arns = get_tagged_resource_arns(
+            RAW_AWS_DATA, "Project", "SomeProjectThatDoesNotExist"
+        )
+        scoped = filter_topology_by_tag(TOPOLOGY, tagged_arns)
+
+        scoped_types = {n["type"] for n in scoped["nodes"]}
+        assert scoped_types == {
+            "vpc", "subnet", "internet_gateway", "ec2_instance",
+            "rds_instance", "account",
+        }

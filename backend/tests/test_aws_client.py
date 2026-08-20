@@ -63,6 +63,31 @@ class TestFetchAwsData:
             "ec2", "rds", "s3", "kms", "iam", "cloudtrail", "s3control",
         }
 
+    def test_omits_tagging_section_when_no_project_tag_given(self, moto_aws):
+        # No reason to make the extra API call on every unscoped
+        # scan (Phase 9a Feature 1).
+        data = fetch_aws_data()
+        assert "resourcegroupstaggingapi" not in data
+
+    def test_includes_tagging_section_when_project_tag_given(self, moto_aws):
+        s3 = boto3.client("s3", region_name="eu-west-2")
+        s3.create_bucket(
+            Bucket="tagged-bucket",
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3.put_bucket_tagging(
+            Bucket="tagged-bucket",
+            Tagging={"TagSet": [{"Key": "Project", "Value": "ConfidentialClient"}]},
+        )
+
+        data = fetch_aws_data(project_tag="Project=ConfidentialClient")
+        assert "resourcegroupstaggingapi" in data
+        mappings = data["resourcegroupstaggingapi"]["get_resources"][
+            "ResourceTagMappingList"
+        ]
+        tagged_arns = {m["ResourceARN"] for m in mappings}
+        assert "arn:aws:s3:::tagged-bucket" in tagged_arns
+
     def test_ec2_section_has_all_expected_service_keys(self, moto_aws):
         # The normaliser calls specific keys under "ec2" — miss any
         # and the topology loses a resource type. Locking this in.
