@@ -468,6 +468,39 @@ def _is_bucket_lifecycle_configured(lifecycle_response: dict[str, Any]) -> bool:
     return len(rules) > 0
 
 
+def _is_tls_enforced(policy_response: dict[str, Any]) -> bool:
+    """
+    Return True if the bucket policy denies non-TLS (plain HTTP) access.
+
+    Real boto3 get_bucket_policy() raises NoSuchBucketPolicy when no
+    policy is attached (mock: {"_error": "NoSuchBucketPolicy"}). When
+    a policy exists, boto3 returns it as a JSON-encoded string under
+    "Policy" -- it is not parsed for you. A bucket enforces TLS when
+    at least one Deny statement's Condition matches
+    Bool.aws:SecureTransport == "false".
+    """
+    if "_error" in policy_response:
+        return False
+    policy_json = policy_response.get("Policy")
+    if not policy_json:
+        return False
+    try:
+        policy = json.loads(policy_json)
+    except (json.JSONDecodeError, TypeError):
+        return False
+    for statement in policy.get("Statement", []):
+        if statement.get("Effect") != "Deny":
+            continue
+        secure_transport = (
+            statement.get("Condition", {})
+            .get("Bool", {})
+            .get("aws:SecureTransport")
+        )
+        if secure_transport in ("false", False):
+            return True
+    return False
+
+
 def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
     """
     Transform S3 list_buckets + bucket_details into topology nodes.
@@ -501,6 +534,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
         versioning = details.get("get_bucket_versioning", {})
         logging_config = details.get("get_bucket_logging", {})
         lifecycle = details.get("get_bucket_lifecycle_configuration", {})
+        policy = details.get("get_bucket_policy", {})
 
         nodes.append({
             "id": name,
@@ -515,6 +549,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
                 "versioning_enabled": _is_bucket_versioning_enabled(versioning),
                 "logging_enabled": _is_bucket_logging_enabled(logging_config),
                 "lifecycle_configured": _is_bucket_lifecycle_configured(lifecycle),
+                "tls_enforced": _is_tls_enforced(policy),
             },
         })
 

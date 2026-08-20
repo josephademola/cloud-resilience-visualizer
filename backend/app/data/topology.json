@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-20T13:52:50.215785+00:00",
+    "generated_at": "2026-08-20T14:13:12.376865+00:00",
     "node_count": 9,
     "security_group_count": 3
   },
@@ -112,7 +112,8 @@
         "encryption_enabled": true,
         "versioning_enabled": true,
         "logging_enabled": true,
-        "lifecycle_configured": true
+        "lifecycle_configured": true,
+        "tls_enforced": true
       }
     },
     {
@@ -127,7 +128,8 @@
         "encryption_enabled": false,
         "versioning_enabled": false,
         "logging_enabled": false,
-        "lifecycle_configured": false
+        "lifecycle_configured": false,
+        "tls_enforced": false
       }
     }
   ],

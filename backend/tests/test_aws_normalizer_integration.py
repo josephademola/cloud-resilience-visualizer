@@ -122,7 +122,7 @@ class TestNormalizeEndToEnd:
 
     def test_secure_logs_bucket_has_all_safe_flags(self):
         # The 'cloudres-fintech-logs' bucket in the mock is the
-        # deliberately well-configured bucket. All six S3 booleans
+        # deliberately well-configured bucket. All seven S3 booleans
         # should reflect the safe state.
         logs = next(
             (n for n in _nodes_of_type("s3_bucket")
@@ -137,16 +137,18 @@ class TestNormalizeEndToEnd:
         assert props["versioning_enabled"] is True
         assert props["logging_enabled"] is True
         assert props["lifecycle_configured"] is True
+        assert props["tls_enforced"] is True
 
-    def test_misconfigured_uploads_bucket_has_all_six_flags_set(self):
+    def test_misconfigured_uploads_bucket_has_all_seven_flags_set(self):
         # The 'cloudres-fintech-uploads' bucket is the deliberate
         # misconfig in the mock: AllUsers ACL grant, all four PAB
-        # flags off, no encryption, versioning, logging, or lifecycle
-        # policy ever configured. This is the misconfig that the
-        # scanner flags against all four frameworks (NIS2, NCSC CAF,
-        # MITRE ATT&CK, Cyber Essentials). If this assertion ever
-        # fails, the seed misconfig has been silently lost from the
-        # mock — a portfolio-credibility risk worth catching loudly.
+        # flags off, no encryption, versioning, logging, lifecycle
+        # policy, or bucket policy ever configured. This is the
+        # misconfig that the scanner flags against all four
+        # frameworks (NIS2, NCSC CAF, MITRE ATT&CK, Cyber Essentials).
+        # If this assertion ever fails, the seed misconfig has been
+        # silently lost from the mock — a portfolio-credibility risk
+        # worth catching loudly.
         uploads = next(
             (n for n in _nodes_of_type("s3_bucket")
              if n["id"] == "cloudres-fintech-uploads"),
@@ -160,6 +162,7 @@ class TestNormalizeEndToEnd:
         assert props["versioning_enabled"] is False
         assert props["logging_enabled"] is False
         assert props["lifecycle_configured"] is False
+        assert props["tls_enforced"] is False
 
     def test_three_security_groups_belong_to_vpc(self):
         # The mock has three chained SGs (web -> app -> db). Each

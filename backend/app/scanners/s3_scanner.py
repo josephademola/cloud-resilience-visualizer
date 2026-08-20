@@ -11,6 +11,7 @@ Current rules:
     - Versioning not enabled                   -> MEDIUM
     - Access logging not enabled               -> LOW
     - Lifecycle policy not configured          -> LOW
+    - TLS not enforced by bucket policy        -> MEDIUM
 
 Design notes:
 
@@ -61,6 +62,7 @@ def scan_s3_buckets(topology: dict[str, Any]) -> list[Finding]:
         _check_versioning,
         _check_logging,
         _check_lifecycle,
+        _check_tls_enforced,
     )
 
     for node in topology.get("nodes", []):
@@ -126,6 +128,14 @@ def _check_lifecycle(bucket: dict[str, Any]) -> Finding | None:
     if props.get("lifecycle_configured", False):
         return None
     return _build_finding("S3_LIFECYCLE_MISSING", bucket["id"])
+
+
+def _check_tls_enforced(bucket: dict[str, Any]) -> Finding | None:
+    """Bucket policy must deny non-TLS (HTTP) requests."""
+    props = bucket.get("properties", {})
+    if props.get("tls_enforced", False):
+        return None
+    return _build_finding("S3_TLS_NOT_ENFORCED", bucket["id"])
 
 
 # ---- Shared finding constructor ----

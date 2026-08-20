@@ -595,6 +595,14 @@ class TestNormalizeS3Buckets:
                     "get_bucket_lifecycle_configuration": {
                         "Rules": [{"ID": "expire-old", "Status": "Enabled"}]
                     },
+                    "get_bucket_policy": {
+                        "Policy": (
+                            '{"Version":"2012-10-17","Statement":['
+                            '{"Effect":"Deny","Principal":"*","Action":"s3:*",'
+                            '"Resource":"*","Condition":{"Bool":'
+                            '{"aws:SecureTransport":"false"}}}]}'
+                        )
+                    },
                 },
             },
         }
@@ -613,15 +621,16 @@ class TestNormalizeS3Buckets:
                     "versioning_enabled": True,
                     "logging_enabled": True,
                     "lifecycle_configured": True,
+                    "tls_enforced": True,
                 },
             }
         ]
 
-    def test_returns_misconfigured_bucket_with_all_six_flags_failing(self):
+    def test_returns_misconfigured_bucket_with_all_seven_flags_failing(self):
         # The S3 nightmare bucket: public ACL grant, PAB completely off,
-        # encryption and lifecycle APIs would have raised in real boto3
-        # (our mock represents that as {"_error": "..."}), and
-        # versioning and logging were never configured. All six
+        # encryption, lifecycle, and policy APIs would have raised in
+        # real boto3 (our mock represents that as {"_error": "..."}),
+        # and versioning and logging were never configured. All seven
         # misconfig booleans must reflect the insecure state.
         s3_data = {
             "list_buckets": {"Buckets": [{"Name": "public-uploads"}]},
@@ -652,6 +661,9 @@ class TestNormalizeS3Buckets:
                     "get_bucket_lifecycle_configuration": {
                         "_error": "NoSuchLifecycleConfiguration"
                     },
+                    "get_bucket_policy": {
+                        "_error": "NoSuchBucketPolicy"
+                    },
                 },
             },
         }
@@ -663,6 +675,7 @@ class TestNormalizeS3Buckets:
         assert props["versioning_enabled"] is False
         assert props["logging_enabled"] is False
         assert props["lifecycle_configured"] is False
+        assert props["tls_enforced"] is False
 
     def test_defaults_safely_when_bucket_details_missing(self):
         # A bucket appears in list_buckets but has no entry in
@@ -681,6 +694,7 @@ class TestNormalizeS3Buckets:
         assert props["versioning_enabled"] is False
         assert props["logging_enabled"] is False
         assert props["lifecycle_configured"] is False
+        assert props["tls_enforced"] is False
 
     def test_skips_bucket_with_missing_name(self):
         s3_data = {

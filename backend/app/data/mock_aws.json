@@ -300,6 +300,9 @@
               "Filter": {"Prefix": ""}
             }
           ]
+        },
+        "get_bucket_policy": {
+          "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"DenyInsecureTransport\",\"Effect\":\"Deny\",\"Principal\":\"*\",\"Action\":\"s3:*\",\"Resource\":[\"arn:aws:s3:::cloudres-fintech-logs\",\"arn:aws:s3:::cloudres-fintech-logs/*\"],\"Condition\":{\"Bool\":{\"aws:SecureTransport\":\"false\"}}}]}"
         }
       },
       "cloudres-fintech-uploads": {
@@ -339,6 +342,9 @@
         },
         "get_bucket_lifecycle_configuration": {
           "_error": "NoSuchLifecycleConfiguration"
+        },
+        "get_bucket_policy": {
+          "_error": "NoSuchBucketPolicy"
         }
       }
     }
