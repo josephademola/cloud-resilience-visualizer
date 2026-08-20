@@ -10,6 +10,7 @@ scan_kms_keys walker.
 from app.models.finding import Finding, Severity
 from app.scanners.kms_scanner import (
     _check_key_rotation,
+    _check_pending_deletion,
     scan_kms_keys,
 )
 
@@ -56,6 +57,38 @@ class TestCheckKeyRotation:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_pending_deletion ----------------------------------------------
+class TestCheckPendingDeletion:
+
+    def test_returns_finding_when_state_is_pending_deletion(self):
+        finding = _check_pending_deletion(_kms_key(key_state="PendingDeletion"))
+        assert finding is not None
+        assert finding.finding_type_id == "KMS_KEY_PENDING_DELETION"
+
+    def test_returns_none_when_state_is_enabled(self):
+        finding = _check_pending_deletion(_kms_key(key_state="Enabled"))
+        assert finding is None
+
+    def test_returns_none_when_property_missing(self):
+        # key_state is a *detection* signal, not a protection signal.
+        # Missing data means we didn't detect the dangerous state ->
+        # no finding, same semantic as is_public_via_acl in the S3
+        # scanner. We don't invent a pending deletion out of missing
+        # data.
+        finding = _check_pending_deletion(_kms_key())
+        assert finding is None
+
+    def test_finding_has_critical_severity_and_correct_shape(self):
+        finding = _check_pending_deletion(
+            _kms_key("doomed-key", key_state="PendingDeletion")
+        )
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.CRITICAL
+        assert finding.resource_id == "doomed-key"
+        assert finding.title == "KMS key scheduled for deletion"
+        assert len(finding.framework_references) > 0
+
+
 # --- scan_kms_keys ---------------------------------------------------
 class TestScanKmsKeys:
 
@@ -87,6 +120,29 @@ class TestScanKmsKeys:
             "nodes": [_kms_key("rotated-key", key_rotation_enabled=True)]
         }
         assert scan_kms_keys(topology) == []
+
+    def test_returns_two_findings_for_key_with_both_issues(self):
+        # The flagship case: our mock's customer-managed key, which
+        # both never had rotation enabled and has since been
+        # scheduled for deletion. Both rules fire on the same
+        # resource, mirroring the S3 scanner's stacked-findings
+        # pattern on the uploads bucket.
+        topology = {
+            "nodes": [
+                _kms_key(
+                    "doomed-key",
+                    key_rotation_enabled=False,
+                    key_state="PendingDeletion",
+                )
+            ]
+        }
+        findings = scan_kms_keys(topology)
+        assert len(findings) == 2
+        assert all(f.resource_id == "doomed-key" for f in findings)
+        assert [f.finding_type_id for f in findings] == [
+            "KMS_KEY_ROTATION_DISABLED",
+            "KMS_KEY_PENDING_DELETION",
+        ]
 
     def test_scans_multiple_keys_independently(self):
         topology = {

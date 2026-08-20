@@ -13,7 +13,8 @@
       "S3_LOGGING_DISABLED": "First finding mapped outside Objective B. C1.a (Monitoring Coverage, under Objective C: Detecting Cyber Security Events) is the honest fit — access logging is a detection capability, not a protection one, and CAF's own structure separates the two. Forcing this into an Objective B outcome would have been the more consistent-looking choice but the less accurate one.",
       "S3_LIFECYCLE_MISSING": "B3.a covers 'Understanding data', already used as a secondary reference for S3_PUBLIC_VIA_ACL. A lifecycle policy is fundamentally a statement of what data exists and how long it should be kept — the same outcome CAF is describing. Reused here as the primary reference rather than introduced as a new outcome.",
       "S3_TLS_NOT_ENFORCED": "B3.b covers 'Data in transit protection', a distinct B3 sub-outcome from B3.c (Stored data, used for encryption at rest). CAF separates the two explicitly, so this mapping does too rather than collapsing them the way NIS2's single cryptography clause does.",
-      "KMS_KEY_ROTATION_DISABLED": "B3.c, reused from S3_ENCRYPTION_DISABLED. Key rotation is a control on the mechanism that protects stored data, not the data itself, but the outcome it serves is the same one B3.c describes."
+      "KMS_KEY_ROTATION_DISABLED": "B3.c, reused from S3_ENCRYPTION_DISABLED. Key rotation is a control on the mechanism that protects stored data, not the data itself, but the outcome it serves is the same one B3.c describes.",
+      "KMS_KEY_PENDING_DELETION": "B5.a reused from S3_VERSIONING_DISABLED, not B3.c — this finding is about losing a recovery capability, not about a stored-data control weakening. Same Resilience Preparation outcome as the versioning finding, for the same reason."
     }
   },
 
@@ -48,5 +49,9 @@
 
   "KMS_KEY_ROTATION_DISABLED": [
     {"framework": "ncsc_caf", "reference_id": "B3.c", "label": "Stored data"}
+  ],
+
+  "KMS_KEY_PENDING_DELETION": [
+    {"framework": "ncsc_caf", "reference_id": "B5.a", "label": "Resilience Preparation"}
   ]
 }

@@ -25,26 +25,37 @@ FINDINGS = scan_kms_keys(TOPOLOGY)
 
 class TestKmsScannerEndToEnd:
 
-    def test_produces_one_finding_against_unrotated_customer_key(self):
-        # The mock's customer-managed key has rotation disabled. The
+    def test_produces_two_findings_against_doomed_customer_key(self):
+        # The mock's customer-managed key stacks both KMS misconfigs:
+        # rotation never enabled, and now scheduled for deletion. The
         # AWS-managed key never appears in the topology at all (see
         # the normalizer integration test), so it can't produce a
         # finding either.
-        assert len(FINDINGS) == 1
-        assert FINDINGS[0].finding_type_id == "KMS_KEY_ROTATION_DISABLED"
-        assert FINDINGS[0].severity.value == "high"
+        assert len(FINDINGS) == 2
+        finding_type_ids = [f.finding_type_id for f in FINDINGS]
+        assert finding_type_ids == [
+            "KMS_KEY_ROTATION_DISABLED",
+            "KMS_KEY_PENDING_DELETION",
+        ]
+        severities = {f.finding_type_id: f.severity.value for f in FINDINGS}
+        assert severities["KMS_KEY_ROTATION_DISABLED"] == "high"
+        assert severities["KMS_KEY_PENDING_DELETION"] == "critical"
 
-    def test_finding_maps_to_all_four_frameworks(self):
+    def test_all_findings_map_to_all_four_frameworks(self):
         expected_frameworks = {
             "nis2",
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
         }
-        frameworks_present = {
-            r.framework for r in FINDINGS[0].framework_references
-        }
-        assert frameworks_present == expected_frameworks
+        for finding in FINDINGS:
+            frameworks_present = {
+                r.framework for r in finding.framework_references
+            }
+            assert frameworks_present == expected_frameworks, (
+                f"{finding.finding_type_id} missing frameworks: "
+                f"{expected_frameworks - frameworks_present}"
+            )
 
     def test_findings_are_deterministic(self):
         second_run = scan_kms_keys(TOPOLOGY)

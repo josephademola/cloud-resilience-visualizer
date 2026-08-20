@@ -49,12 +49,16 @@ class TestGetContent:
             assert len(content["description"]) > 50  # not a stub
             assert len(content["remediation"]) > 50  # not a stub
 
-    def test_returns_content_for_kms_key_rotation_disabled(self):
-        content = get_content("KMS_KEY_ROTATION_DISABLED")
-        assert content["title"], "KMS_KEY_ROTATION_DISABLED has empty title"
-        assert content["severity"] in {"low", "medium", "high", "critical"}
-        assert len(content["description"]) > 50  # not a stub
-        assert len(content["remediation"]) > 50  # not a stub
+    def test_returns_content_for_all_kms_finding_types(self):
+        for finding_type_id in [
+            "KMS_KEY_ROTATION_DISABLED",
+            "KMS_KEY_PENDING_DELETION",
+        ]:
+            content = get_content(finding_type_id)
+            assert content["title"], f"{finding_type_id} has empty title"
+            assert content["severity"] in {"low", "medium", "high", "critical"}
+            assert len(content["description"]) > 50  # not a stub
+            assert len(content["remediation"]) > 50  # not a stub
 
     def test_raises_key_error_for_unknown_finding_type(self):
         # Content is a hard requirement — a Finding without a title,

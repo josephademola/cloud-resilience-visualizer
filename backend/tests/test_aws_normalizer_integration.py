@@ -166,12 +166,14 @@ class TestNormalizeEndToEnd:
         assert props["lifecycle_configured"] is False
         assert props["tls_enforced"] is False
 
-    def test_customer_managed_kms_key_has_rotation_disabled(self):
+    def test_customer_managed_kms_key_has_both_kms_misconfigs(self):
         # The mock's customer-managed key is the deliberate KMS
-        # misconfig: rotation never enabled.
+        # misconfig, stacking both issues: rotation never enabled,
+        # and now scheduled for deletion.
         keys = _nodes_of_type("kms_key")
         assert len(keys) == 1
         assert keys[0]["properties"]["key_rotation_enabled"] is False
+        assert keys[0]["properties"]["key_state"] == "PendingDeletion"
 
     def test_aws_managed_key_is_excluded_from_topology(self):
         # The mock also lists an AWS-managed key (aws/s3). It must
