@@ -232,6 +232,23 @@ class TestEvidenceEndpoint:
         assert data["input_hash"].startswith("sha256:")
         assert data["integrity_hash"].startswith("sha256:")
 
+    def test_scope_project_tag_is_none_when_unscoped(self, client):
+        response = client.get("/api/evidence")
+        data = response.json()
+        assert data["scope"]["project_tag"] is None
+
+    def test_project_tag_scopes_evidence_and_labels_the_scope_section(self, client):
+        # Phase 9a Feature 4. Scoping to ShiftCommute changes both
+        # what got scanned (node_count reflects the filtered
+        # topology) and self-documents the scope in the record.
+        response = client.get("/api/evidence?project_tag=Project=ShiftCommute")
+        data = response.json()
+        assert data["scope"]["project_tag"] == "Project=ShiftCommute"
+        unscoped = client.get("/api/topology").json()
+        scoped = client.get("/api/topology?project_tag=Project=ShiftCommute").json()
+        assert data["scope"]["node_count"] == scoped["metadata"]["node_count"]
+        assert data["scope"]["node_count"] < unscoped["metadata"]["node_count"]
+
 
 # --- GET /api/health -------------------------------------------------
 class TestHealthEndpoint:

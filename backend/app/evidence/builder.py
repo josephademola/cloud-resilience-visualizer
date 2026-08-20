@@ -59,6 +59,7 @@ def build_evidence_record(
     *,
     iam_identity: str = "mock-mode",
     data_source: str = "mock",
+    project_tag: str | None = None,
 ) -> dict[str, Any]:
     """
     Produce an audit evidence record for a completed scan.
@@ -69,12 +70,18 @@ def build_evidence_record(
         iam_identity  -- IAM ARN of the identity used to fetch data
                          (pass sts.get_caller_identity()['Arn'] in live mode)
         data_source   -- 'mock' or 'live' — records which data path was used
+        project_tag   -- optional "Key=Value" tag the scan was scoped to
+                         (Phase 9a Feature 4, e.g. "Project=ShiftCommute").
+                         None when the scan covered the whole account.
+                         Recorded in scope, not as a new top-level key,
+                         since it describes what was scanned, the same
+                         thing node_count and resource_types describe.
 
     Returns a plain dict ready for json.dumps or API response.
     """
     generated_at = datetime.now(timezone.utc).isoformat()
 
-    scope = _build_scope(topology)
+    scope = _build_scope(topology, project_tag)
     findings_summary = _build_findings_summary(findings)
 
     # Hash the raw topology as proof of what was scanned.
@@ -97,7 +104,9 @@ def build_evidence_record(
     return record
 
 
-def _build_scope(topology: dict[str, Any]) -> dict[str, Any]:
+def _build_scope(
+    topology: dict[str, Any], project_tag: str | None = None
+) -> dict[str, Any]:
     """Extract scope metadata from the topology."""
     nodes = topology.get("nodes", [])
     resource_types = sorted({n.get("type", "unknown") for n in nodes})
@@ -108,6 +117,7 @@ def _build_scope(topology: dict[str, Any]) -> dict[str, Any]:
         "security_group_count": len(topology.get("security_groups", [])),
         "resource_types": resource_types,
         "region_hint": region,
+        "project_tag": project_tag,
     }
 
 
