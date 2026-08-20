@@ -60,12 +60,16 @@ class TestGetContent:
             assert len(content["description"]) > 50  # not a stub
             assert len(content["remediation"]) > 50  # not a stub
 
-    def test_returns_content_for_iam_root_access_keys_active(self):
-        content = get_content("IAM_ROOT_ACCESS_KEYS_ACTIVE")
-        assert content["title"], "IAM_ROOT_ACCESS_KEYS_ACTIVE has empty title"
-        assert content["severity"] in {"low", "medium", "high", "critical"}
-        assert len(content["description"]) > 50  # not a stub
-        assert len(content["remediation"]) > 50  # not a stub
+    def test_returns_content_for_all_iam_finding_types(self):
+        for finding_type_id in [
+            "IAM_ROOT_ACCESS_KEYS_ACTIVE",
+            "IAM_ACCOUNT_MFA_NOT_ENABLED",
+        ]:
+            content = get_content(finding_type_id)
+            assert content["title"], f"{finding_type_id} has empty title"
+            assert content["severity"] in {"low", "medium", "high", "critical"}
+            assert len(content["description"]) > 50  # not a stub
+            assert len(content["remediation"]) > 50  # not a stub
 
     def test_raises_key_error_for_unknown_finding_type(self):
         # Content is a hard requirement — a Finding without a title,

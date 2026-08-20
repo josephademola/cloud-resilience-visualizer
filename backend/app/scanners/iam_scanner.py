@@ -5,6 +5,7 @@ Produces Finding objects for account-wide IAM misconfigurations.
 
 Current rules:
     - Root user has active access keys         -> CRITICAL
+    - Root user does not have MFA enabled       -> HIGH
 
 Design notes:
 
@@ -23,6 +24,11 @@ Design notes:
   computed upstream in the normaliser from AccountAccessKeysPresent
   (missing -> 0 -> False -> not flagged, since AWS's own API treats
   an absent count as zero keys, not unknown state).
+
+- account_mfa_enabled is a genuine protection signal: missing ->
+  fail closed (flag it), same semantic as encryption_enabled in the
+  S3 scanner. If we can't confirm root has MFA, we don't assume it
+  does.
 """
 
 from __future__ import annotations
@@ -42,6 +48,7 @@ def scan_iam(topology: dict[str, Any]) -> list[Finding]:
 
     rules = (
         _check_root_access_keys,
+        _check_account_mfa,
     )
 
     for node in topology.get("nodes", []):
@@ -65,6 +72,14 @@ def _check_root_access_keys(account: dict[str, Any]) -> Finding | None:
     if not props.get("root_access_keys_present", False):
         return None
     return _build_finding("IAM_ROOT_ACCESS_KEYS_ACTIVE", account["id"])
+
+
+def _check_account_mfa(account: dict[str, Any]) -> Finding | None:
+    """The root user must have MFA enabled."""
+    props = account.get("properties", {})
+    if props.get("account_mfa_enabled", False):
+        return None
+    return _build_finding("IAM_ACCOUNT_MFA_NOT_ENABLED", account["id"])
 
 
 # ---- Shared finding constructor ----

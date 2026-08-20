@@ -9,6 +9,7 @@ there is at most one per topology.
 from app.models.finding import Finding, Severity
 from app.scanners.iam_scanner import (
     _check_root_access_keys,
+    _check_account_mfa,
     scan_iam,
 )
 
@@ -57,6 +58,36 @@ class TestCheckRootAccessKeys:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_account_mfa -----------------------------------------------
+class TestCheckAccountMfa:
+
+    def test_returns_finding_when_mfa_disabled(self):
+        finding = _check_account_mfa(_account(account_mfa_enabled=False))
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_ACCOUNT_MFA_NOT_ENABLED"
+
+    def test_returns_none_when_mfa_enabled(self):
+        finding = _check_account_mfa(_account(account_mfa_enabled=True))
+        assert finding is None
+
+    def test_produces_finding_when_property_missing_fail_closed(self):
+        # MFA status is a genuine protection signal, same fail-closed
+        # semantic as encryption_enabled in the S3 scanner.
+        finding = _check_account_mfa(_account())
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_ACCOUNT_MFA_NOT_ENABLED"
+
+    def test_finding_has_high_severity_and_correct_shape(self):
+        finding = _check_account_mfa(
+            _account("999988887777", account_mfa_enabled=False)
+        )
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.HIGH
+        assert finding.resource_id == "999988887777"
+        assert finding.title == "Root user does not have MFA enabled"
+        assert len(finding.framework_references) > 0
+
+
 # --- scan_iam ----------------------------------------------------------
 class TestScanIam:
 
@@ -84,6 +115,32 @@ class TestScanIam:
 
     def test_returns_zero_findings_for_clean_account(self):
         topology = {
-            "nodes": [_account(root_access_keys_present=False)]
+            "nodes": [
+                _account(
+                    root_access_keys_present=False,
+                    account_mfa_enabled=True,
+                )
+            ]
         }
         assert scan_iam(topology) == []
+
+    def test_returns_two_findings_for_account_with_both_issues(self):
+        # The flagship case: our mock's account, which has both no
+        # MFA and active root keys. Both rules fire on the same
+        # resource, mirroring the S3/KMS stacked-findings pattern.
+        topology = {
+            "nodes": [
+                _account(
+                    "123456789012",
+                    root_access_keys_present=True,
+                    account_mfa_enabled=False,
+                )
+            ]
+        }
+        findings = scan_iam(topology)
+        assert len(findings) == 2
+        assert all(f.resource_id == "123456789012" for f in findings)
+        assert [f.finding_type_id for f in findings] == [
+            "IAM_ROOT_ACCESS_KEYS_ACTIVE",
+            "IAM_ACCOUNT_MFA_NOT_ENABLED",
+        ]
