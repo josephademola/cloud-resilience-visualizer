@@ -14,6 +14,7 @@ from app.aws_normalizer import (
     _is_pab_fully_enabled,
     _is_bucket_encryption_enabled,
     _is_bucket_versioning_enabled,
+    _is_bucket_logging_enabled,
     S3_ALL_USERS_URI,
 )
 
@@ -169,3 +170,21 @@ class TestIsBucketVersioningEnabled:
         # Real boto3 returns an empty dict, not an error, when
         # versioning has never been touched on a bucket.
         assert _is_bucket_versioning_enabled({}) is False
+
+
+# --- _is_bucket_logging_enabled -----------------------------------------
+class TestIsBucketLoggingEnabled:
+
+    def test_returns_true_when_logging_enabled_key_present(self):
+        logging_config = {
+            "LoggingEnabled": {
+                "TargetBucket": "logs-bucket",
+                "TargetPrefix": "access/",
+            }
+        }
+        assert _is_bucket_logging_enabled(logging_config) is True
+
+    def test_returns_false_when_never_configured(self):
+        # Real boto3 returns an empty dict, not an error, when access
+        # logging has never been configured on a bucket.
+        assert _is_bucket_logging_enabled({}) is False

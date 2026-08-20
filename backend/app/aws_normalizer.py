@@ -440,6 +440,18 @@ def _is_bucket_versioning_enabled(versioning_response: dict[str, Any]) -> bool:
     return versioning_response.get("Status") == "Enabled"
 
 
+def _is_bucket_logging_enabled(logging_response: dict[str, Any]) -> bool:
+    """
+    Return True if server access logging is configured for the bucket.
+
+    Real boto3 get_bucket_logging() returns an empty dict when logging
+    has never been configured (not an error, same as versioning). Once
+    configured it returns {"LoggingEnabled": {"TargetBucket": ...,
+    "TargetPrefix": ...}}.
+    """
+    return "LoggingEnabled" in logging_response
+
+
 def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
     """
     Transform S3 list_buckets + bucket_details into topology nodes.
@@ -471,6 +483,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
         pab = details.get("get_public_access_block", {})
         encryption = details.get("get_bucket_encryption", {})
         versioning = details.get("get_bucket_versioning", {})
+        logging_config = details.get("get_bucket_logging", {})
 
         nodes.append({
             "id": name,
@@ -483,6 +496,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
                 "public_access_block_fully_enabled": _is_pab_fully_enabled(pab),
                 "encryption_enabled": _is_bucket_encryption_enabled(encryption),
                 "versioning_enabled": _is_bucket_versioning_enabled(versioning),
+                "logging_enabled": _is_bucket_logging_enabled(logging_config),
             },
         })
 

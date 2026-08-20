@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-20T12:07:16.914381+00:00",
+    "generated_at": "2026-08-20T12:23:46.563976+00:00",
     "node_count": 9,
     "security_group_count": 3
   },
@@ -110,7 +110,8 @@
         "is_public_via_acl": false,
         "public_access_block_fully_enabled": true,
         "encryption_enabled": true,
-        "versioning_enabled": true
+        "versioning_enabled": true,
+        "logging_enabled": true
       }
     },
     {
@@ -123,7 +124,8 @@
         "is_public_via_acl": true,
         "public_access_block_fully_enabled": false,
         "encryption_enabled": false,
-        "versioning_enabled": false
+        "versioning_enabled": false,
+        "logging_enabled": false
       }
     }
   ],
