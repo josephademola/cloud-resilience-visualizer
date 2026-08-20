@@ -452,6 +452,22 @@ def _is_bucket_logging_enabled(logging_response: dict[str, Any]) -> bool:
     return "LoggingEnabled" in logging_response
 
 
+def _is_bucket_lifecycle_configured(lifecycle_response: dict[str, Any]) -> bool:
+    """
+    Return True if the bucket has at least one lifecycle rule.
+
+    Real boto3 get_bucket_lifecycle_configuration() raises
+    NoSuchLifecycleConfiguration when no rules have ever been set,
+    unlike versioning/logging which return an empty dict. Our mock
+    represents that error the same way it represents the equivalent
+    encryption error: {"_error": "NoSuchLifecycleConfiguration"}.
+    """
+    if "_error" in lifecycle_response:
+        return False
+    rules = lifecycle_response.get("Rules", [])
+    return len(rules) > 0
+
+
 def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
     """
     Transform S3 list_buckets + bucket_details into topology nodes.
@@ -484,6 +500,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
         encryption = details.get("get_bucket_encryption", {})
         versioning = details.get("get_bucket_versioning", {})
         logging_config = details.get("get_bucket_logging", {})
+        lifecycle = details.get("get_bucket_lifecycle_configuration", {})
 
         nodes.append({
             "id": name,
@@ -497,6 +514,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
                 "encryption_enabled": _is_bucket_encryption_enabled(encryption),
                 "versioning_enabled": _is_bucket_versioning_enabled(versioning),
                 "logging_enabled": _is_bucket_logging_enabled(logging_config),
+                "lifecycle_configured": _is_bucket_lifecycle_configured(lifecycle),
             },
         })
 

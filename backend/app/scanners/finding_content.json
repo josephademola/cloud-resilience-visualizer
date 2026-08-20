@@ -42,5 +42,12 @@
     "severity": "low",
     "description": "Server access logging has never been configured for this bucket, so there is no record of who requested which object, when, from where, or whether the request succeeded. Without it, investigating a suspected data exposure means answering 'what was accessed and by whom' with no data to draw on. Access logs are also frequently requested as evidence during an audit or incident response, separate from CloudTrail, which logs API management events rather than individual object-level GET/PUT requests.",
     "remediation": "Enable server access logging, pointing at a separate logging bucket (never the bucket itself, to avoid a logging loop). In the AWS Console: S3 -> the bucket -> Properties tab -> Server access logging -> Edit -> Enable -> choose a target bucket and prefix -> Save. From the AWS CLI: `aws s3api put-bucket-logging --bucket <name> --bucket-logging-status '{\"LoggingEnabled\":{\"TargetBucket\":\"<log-bucket>\",\"TargetPrefix\":\"<name>/\"}}'`. The target bucket needs the standard S3 log-delivery ACL grant, which the Console option configures automatically."
+  },
+
+  "S3_LIFECYCLE_MISSING": {
+    "title": "S3 lifecycle policy not configured",
+    "severity": "low",
+    "description": "This bucket has no lifecycle rules, so objects accumulate indefinitely with no automatic expiration, transition to cheaper storage, or cleanup of old versions. Beyond the storage cost of keeping data nobody is using, unbounded retention runs against data minimisation expectations under UK GDPR and increases how much is exposed if the bucket is ever compromised: there is simply more data sitting there to find. A defined retention period is increasingly something regulators and auditors expect to see documented, not assumed.",
+    "remediation": "Add a lifecycle rule appropriate to the data in the bucket. In the AWS Console: S3 -> the bucket -> Management tab -> Lifecycle rules -> Create lifecycle rule -> set an expiration (and, for versioned buckets, a noncurrent version expiration) -> Save. From the AWS CLI: `aws s3api put-bucket-lifecycle-configuration --bucket <name> --lifecycle-configuration '{\"Rules\":[{\"ID\":\"expire-old-objects\",\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"\"},\"Expiration\":{\"Days\":365}}]}'`. Set the expiration window to match the organisation's actual data retention policy rather than an arbitrary default."
   }
 }

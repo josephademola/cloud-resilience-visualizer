@@ -10,6 +10,7 @@ Current rules:
     - Server-side encryption not configured    -> HIGH
     - Versioning not enabled                   -> MEDIUM
     - Access logging not enabled               -> LOW
+    - Lifecycle policy not configured          -> LOW
 
 Design notes:
 
@@ -59,6 +60,7 @@ def scan_s3_buckets(topology: dict[str, Any]) -> list[Finding]:
         _check_encryption,
         _check_versioning,
         _check_logging,
+        _check_lifecycle,
     )
 
     for node in topology.get("nodes", []):
@@ -116,6 +118,14 @@ def _check_logging(bucket: dict[str, Any]) -> Finding | None:
     if props.get("logging_enabled", False):
         return None
     return _build_finding("S3_LOGGING_DISABLED", bucket["id"])
+
+
+def _check_lifecycle(bucket: dict[str, Any]) -> Finding | None:
+    """Bucket must have at least one lifecycle rule configured."""
+    props = bucket.get("properties", {})
+    if props.get("lifecycle_configured", False):
+        return None
+    return _build_finding("S3_LIFECYCLE_MISSING", bucket["id"])
 
 
 # ---- Shared finding constructor ----
