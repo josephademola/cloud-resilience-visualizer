@@ -55,6 +55,8 @@ def fetch_aws_data() -> dict[str, Any]:
     rds = boto3.client("rds")
     s3 = boto3.client("s3")
     kms = boto3.client("kms")
+    iam = boto3.client("iam")
+    sts = boto3.client("sts")
 
     return {
         "ec2": {
@@ -78,6 +80,10 @@ def fetch_aws_data() -> dict[str, Any]:
         "kms": {
             "list_keys": _strip_metadata(kms.list_keys()),
             "key_details": _fetch_kms_key_details(kms),
+        },
+        "iam": {
+            "account_id": sts.get_caller_identity()["Account"],
+            "get_account_summary": _strip_metadata(iam.get_account_summary()),
         },
     }
 

@@ -158,11 +158,13 @@ function computeLayout(topology) {
 
     const rightEdge = rightmostEdge(layouts);
     let bucketY = LAYOUT.vpc.startY;
-    // S3 buckets and KMS keys are both global, non-VPC-scoped
-    // resources, so they share the same right-hand column — the
-    // cursor simply continues downward across both types.
+    // S3 buckets, KMS keys, and the account node are all global,
+    // non-VPC-scoped, so they share the same right-hand column — the
+    // cursor simply continues downward across all three types. The
+    // account node isn't really a "resource" the way a bucket or key
+    // is, but it renders the same way: one more box in this column.
     const globalResources = topology.nodes.filter(
-        n => n.type === "s3_bucket" || n.type === "kms_key"
+        n => n.type === "s3_bucket" || n.type === "kms_key" || n.type === "account"
     );
     for (const resource of globalResources) {
         layouts[resource.id] = {
@@ -244,7 +246,7 @@ function layoutResourcesInSubnet(subnet, byParent, layouts) {
 function renderTopology(map, topology) {
     const layouts = computeLayout(topology);
 
-    const renderOrder = ["vpc", "subnet", "internet_gateway", "ec2_instance", "rds_instance", "s3_bucket", "kms_key"];
+    const renderOrder = ["vpc", "subnet", "internet_gateway", "ec2_instance", "rds_instance", "s3_bucket", "kms_key", "account"];
     for (const type of renderOrder) {
         for (const node of topology.nodes.filter(n => n.type === type)) {
             renderNode(map, node, layouts[node.id], layouts);
@@ -329,6 +331,8 @@ function nodeLabelHtml(node) {
             return `${iconHtml}<span>${node.name}</span>`;
         case "kms_key":
             return `${iconHtml}<span>${node.name}</span>`;
+        case "account":
+            return `${iconHtml}<span>${node.name}</span>`;
         default:
             return node.name;
     }
@@ -341,6 +345,7 @@ function iconForType(node) {
         case "rds_instance":     return "ti-database";
         case "s3_bucket":        return hasFindings(node) ? "ti-alert-triangle" : "ti-bucket";
         case "kms_key":          return hasFindings(node) ? "ti-alert-triangle" : "ti-key";
+        case "account":          return hasFindings(node) ? "ti-alert-triangle" : "ti-shield";
         default:                 return null;
     }
 }
@@ -545,6 +550,7 @@ function humanType(node) {
         case "rds_instance":     return "RDS Instance";
         case "s3_bucket":        return "S3 Bucket";
         case "kms_key":          return "KMS Key";
+        case "account":          return "AWS Account";
         default:                 return node.type;
     }
 }
@@ -570,6 +576,7 @@ function isBadProperty(key, value) {
     if (key === "tls_enforced" && value === false) return true;
     if (key === "key_rotation_enabled" && value === false) return true;
     if (key === "key_state" && value === "PendingDeletion") return true;
+    if (key === "root_access_keys_present" && value === true) return true;
     if (key === "publicly_accessible" && value === true) return true;
     return false;
 }

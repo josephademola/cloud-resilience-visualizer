@@ -59,7 +59,7 @@ class TestFetchAwsData:
         # Top-level keys must match mock_aws.json exactly so the
         # normaliser downstream can process either data source.
         data = fetch_aws_data()
-        assert set(data.keys()) == {"ec2", "rds", "s3", "kms"}
+        assert set(data.keys()) == {"ec2", "rds", "s3", "kms", "iam"}
 
     def test_ec2_section_has_all_expected_service_keys(self, moto_aws):
         # The normaliser calls specific keys under "ec2" — miss any
@@ -83,6 +83,16 @@ class TestFetchAwsData:
         data = fetch_aws_data()
         assert "list_keys" in data["kms"]
         assert "key_details" in data["kms"]
+
+    def test_iam_section_has_account_id_and_summary(self, moto_aws):
+        # The normaliser reads both account_id (for the node's id)
+        # and get_account_summary (for its properties).
+        data = fetch_aws_data()
+        assert "account_id" in data["iam"]
+        assert isinstance(data["iam"]["account_id"], str)
+        assert data["iam"]["account_id"] != ""
+        assert "get_account_summary" in data["iam"]
+        assert "SummaryMap" in data["iam"]["get_account_summary"]
 
     def test_bucket_details_has_all_seven_s3_calls(self, moto_aws):
         # The normaliser reads all seven per-bucket calls (one per
@@ -150,6 +160,7 @@ class TestFetchAwsData:
             )
         assert "ResponseMetadata" not in data["s3"]["list_buckets"]
         assert "ResponseMetadata" not in data["kms"]["list_keys"]
+        assert "ResponseMetadata" not in data["iam"]["get_account_summary"]
 
     def test_output_is_fully_json_serialisable(self, moto_aws):
         # This is the acceptance test for the datetime fix. boto3
@@ -184,6 +195,7 @@ class TestFetchAwsData:
         assert isinstance(data["rds"]["describe_db_instances"]["DBInstances"], list)
         assert isinstance(data["kms"]["list_keys"]["Keys"], list)
         assert isinstance(data["kms"]["key_details"], dict)
+        assert isinstance(data["iam"]["get_account_summary"]["SummaryMap"], dict)
         # No custom resources beyond the default VPC/subnets
         assert data["s3"]["list_buckets"]["Buckets"] == []
         assert data["rds"]["describe_db_instances"]["DBInstances"] == []

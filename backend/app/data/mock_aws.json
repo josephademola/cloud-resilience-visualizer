@@ -437,5 +437,14 @@
         }
       }
     }
+  },
+  "iam": {
+    "account_id": "123456789012",
+    "get_account_summary": {
+      "SummaryMap": {
+        "AccountAccessKeysPresent": 1,
+        "AccountMFAEnabled": 0
+      }
+    }
   }
 }

@@ -1,8 +1,8 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-20T16:40:08.949386+00:00",
-    "node_count": 10,
+    "generated_at": "2026-08-20T17:26:45.555209+00:00",
+    "node_count": 11,
     "security_group_count": 3
   },
   "nodes": [
@@ -140,6 +140,15 @@
       "properties": {
         "key_state": "PendingDeletion",
         "key_rotation_enabled": false
+      }
+    },
+    {
+      "id": "123456789012",
+      "type": "account",
+      "name": "AWS Account 123456789012",
+      "parent_id": null,
+      "properties": {
+        "root_access_keys_present": true
       }
     }
   ],

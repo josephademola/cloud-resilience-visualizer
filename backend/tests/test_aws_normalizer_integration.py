@@ -47,7 +47,7 @@ class TestNormalizeEndToEnd:
         # some malformed string).
         meta = TOPOLOGY["metadata"]
         assert meta["schema_version"] == "1.0"
-        assert meta["node_count"] == 10
+        assert meta["node_count"] == 11
         assert meta["security_group_count"] == 3
         # If this raises ValueError, the timestamp format is broken.
         datetime.fromisoformat(meta["generated_at"])
@@ -56,10 +56,11 @@ class TestNormalizeEndToEnd:
         # The mock environment is fixed: 1 VPC, 2 subnets, 1 IGW,
         # 2 EC2 instances, 1 RDS, 2 S3 buckets, 1 customer-managed KMS
         # key (the mock's second KMS key is AWS-managed and excluded
-        # by the normalizer) = 10 nodes total. Asserting the breakdown
-        # (not just the total) catches the case where two resources
-        # are silently swapped (e.g. an EC2 missing and an extra S3
-        # appearing — total still 10, but the mix is wrong).
+        # by the normalizer), 1 account node = 11 nodes total.
+        # Asserting the breakdown (not just the total) catches the
+        # case where two resources are silently swapped (e.g. an EC2
+        # missing and an extra S3 appearing — total still 11, but the
+        # mix is wrong).
         type_counts: dict[str, int] = {}
         for node in TOPOLOGY["nodes"]:
             type_counts[node["type"]] = type_counts.get(node["type"], 0) + 1
@@ -71,6 +72,7 @@ class TestNormalizeEndToEnd:
             "rds_instance": 1,
             "s3_bucket": 2,
             "kms_key": 1,
+            "account": 1,
         }
 
     def test_all_subnets_have_vpc_as_parent(self):
@@ -183,6 +185,14 @@ class TestNormalizeEndToEnd:
         # removed and this test is no longer proving anything.
         key_ids = {n["id"] for n in _nodes_of_type("kms_key")}
         assert "aws/s3" not in key_ids
+
+    def test_account_node_has_root_access_keys_present(self):
+        # The mock's account-level IAM misconfig: root has active
+        # access keys.
+        accounts = _nodes_of_type("account")
+        assert len(accounts) == 1
+        assert accounts[0]["id"] == "123456789012"
+        assert accounts[0]["properties"]["root_access_keys_present"] is True
 
     def test_three_security_groups_belong_to_vpc(self):
         # The mock has three chained SGs (web -> app -> db). Each
