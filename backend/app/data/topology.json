@@ -1,8 +1,8 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-20T14:13:12.376865+00:00",
-    "node_count": 9,
+    "generated_at": "2026-08-20T16:22:19.724419+00:00",
+    "node_count": 10,
     "security_group_count": 3
   },
   "nodes": [
@@ -130,6 +130,16 @@
         "logging_enabled": false,
         "lifecycle_configured": false,
         "tls_enforced": false
+      }
+    },
+    {
+      "id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+      "type": "kms_key",
+      "name": "cloudres-fintech-app-key",
+      "parent_id": null,
+      "properties": {
+        "key_state": "Enabled",
+        "key_rotation_enabled": false
       }
     }
   ],

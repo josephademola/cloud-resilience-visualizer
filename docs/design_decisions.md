@@ -64,6 +64,13 @@ Alternatives considered | Scanning the whole account on every run and filtering 
 Rationale | A whole-account scan doesn't distinguish between projects sharing an AWS account, and a hardcoded second path would duplicate the scanner/normaliser/compliance pipeline instead of reusing it. Tag-based scoping keeps CRV as a single generic pipeline that can audit any tagged project, ShiftCommute included, without new architecture.
 Date | Decided 2026-08-20 as part of Phase 9a planning. Not yet implemented; tracked as Phase 9a Feature 1.
 
+## 9. KMS rotation scanner scopes to customer-managed keys only
+
+Decision | KMS scanner scopes to customer-managed keys only (`KeyManager == "CUSTOMER"`).
+Alternatives considered | Scan all KMS keys including AWS-managed.
+Rationale | AWS-managed keys rotate automatically; the account owner has no control over that setting. Flagging them would produce false positives that a real auditor would reject. The rule applies only where the control is the owner's responsibility.
+Date | 2026-08-20, part of Phase 9a Feature 3 (kms_scanner.py)
+
 ---
 
 *Note: an earlier draft of this document also listed a decision to

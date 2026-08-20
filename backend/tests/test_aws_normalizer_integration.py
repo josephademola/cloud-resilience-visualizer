@@ -47,18 +47,19 @@ class TestNormalizeEndToEnd:
         # some malformed string).
         meta = TOPOLOGY["metadata"]
         assert meta["schema_version"] == "1.0"
-        assert meta["node_count"] == 9
+        assert meta["node_count"] == 10
         assert meta["security_group_count"] == 3
         # If this raises ValueError, the timestamp format is broken.
         datetime.fromisoformat(meta["generated_at"])
 
     def test_node_type_breakdown_matches_mock(self):
         # The mock environment is fixed: 1 VPC, 2 subnets, 1 IGW,
-        # 2 EC2 instances, 1 RDS, 2 S3 buckets = 9 nodes total.
-        # Asserting the breakdown (not just the total) catches the
-        # case where two resources are silently swapped (e.g. an EC2
-        # missing and an extra S3 appearing — total still 9, but the
-        # mix is wrong).
+        # 2 EC2 instances, 1 RDS, 2 S3 buckets, 1 customer-managed KMS
+        # key (the mock's second KMS key is AWS-managed and excluded
+        # by the normalizer) = 10 nodes total. Asserting the breakdown
+        # (not just the total) catches the case where two resources
+        # are silently swapped (e.g. an EC2 missing and an extra S3
+        # appearing — total still 10, but the mix is wrong).
         type_counts: dict[str, int] = {}
         for node in TOPOLOGY["nodes"]:
             type_counts[node["type"]] = type_counts.get(node["type"], 0) + 1
@@ -69,6 +70,7 @@ class TestNormalizeEndToEnd:
             "ec2_instance": 2,
             "rds_instance": 1,
             "s3_bucket": 2,
+            "kms_key": 1,
         }
 
     def test_all_subnets_have_vpc_as_parent(self):
@@ -163,6 +165,22 @@ class TestNormalizeEndToEnd:
         assert props["logging_enabled"] is False
         assert props["lifecycle_configured"] is False
         assert props["tls_enforced"] is False
+
+    def test_customer_managed_kms_key_has_rotation_disabled(self):
+        # The mock's customer-managed key is the deliberate KMS
+        # misconfig: rotation never enabled.
+        keys = _nodes_of_type("kms_key")
+        assert len(keys) == 1
+        assert keys[0]["properties"]["key_rotation_enabled"] is False
+
+    def test_aws_managed_key_is_excluded_from_topology(self):
+        # The mock also lists an AWS-managed key (aws/s3). It must
+        # never appear as a topology node — see design_decisions.md
+        # #9. If this ever fails, either the normalizer's KeyManager
+        # filter broke, or the mock's AWS-managed key was silently
+        # removed and this test is no longer proving anything.
+        key_ids = {n["id"] for n in _nodes_of_type("kms_key")}
+        assert "aws/s3" not in key_ids
 
     def test_three_security_groups_belong_to_vpc(self):
         # The mock has three chained SGs (web -> app -> db). Each

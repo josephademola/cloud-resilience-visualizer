@@ -34,8 +34,9 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.aws_normalizer import normalize
-from app.models.finding import finding_to_dict
+from app.models.finding import Finding, finding_to_dict
 from app.scanners.s3_scanner import scan_s3_buckets
+from app.scanners.kms_scanner import scan_kms_keys
 from app.compliance import build_compliance_view
 from fastapi.responses import Response
 
@@ -103,6 +104,18 @@ def _load_aws_data() -> dict:
     with open(_MOCK_PATH, encoding="utf-8") as fh:
         return json.load(fh)
 
+
+def _scan_all(topology: dict) -> list[Finding]:
+    """
+    Run every scanner against the topology and combine their findings.
+
+    Each scanner only looks at the node types it knows about (S3
+    buckets, KMS keys, ...), so calling all of them against the same
+    topology is safe — order here is scanner-registration order, not
+    resource order, and determines nothing about correctness.
+    """
+    return scan_s3_buckets(topology) + scan_kms_keys(topology)
+
 @app.get("/api/topology", dependencies=[Depends(require_api_key)])
 def get_topology() -> dict:
     """Return the normalised AWS topology."""
@@ -115,7 +128,7 @@ def get_findings() -> dict:
     """Return security findings from the scanner."""
     raw = _load_aws_data()
     topology = normalize(raw)
-    findings = scan_s3_buckets(topology)
+    findings = _scan_all(topology)
     return {
         "metadata": {
             "schema_version": "1.0",
@@ -129,7 +142,7 @@ def get_compliance() -> dict:
     """Return compliance view — findings grouped by framework requirement."""
     raw = _load_aws_data()
     topology = normalize(raw)
-    findings = scan_s3_buckets(topology)
+    findings = _scan_all(topology)
     return build_compliance_view(findings)
 
 @app.get("/api/report", dependencies=[Depends(require_api_key)])
@@ -142,7 +155,7 @@ def get_report() -> Response:
     """
     raw = _load_aws_data()
     topology = normalize(raw)
-    findings = scan_s3_buckets(topology)
+    findings = _scan_all(topology)
     compliance = build_compliance_view(findings)
     pdf_bytes = build_pdf_report(topology, findings, compliance)
 
@@ -168,7 +181,7 @@ def get_evidence() -> dict:
     import os
     raw = _load_aws_data()
     topology = normalize(raw)
-    findings = scan_s3_buckets(topology)
+    findings = _scan_all(topology)
 
     # In live mode, fetch the real IAM identity so the record
     # shows which account and user ran the scan.

@@ -55,6 +55,7 @@
     --node-igw-stroke:     #D49846;
     --node-resource-stroke:#6B8DAB;
     --node-s3-stroke:      #3A8C6E;
+    --node-kms-stroke:     #8E6BC0;
     --node-misconfig-stroke: #FF3B5C;
     --node-misconfig-glow:   rgba(255, 59, 92, 0.25);
 
@@ -344,8 +345,15 @@ body {
     stroke-width: 1.2;
 }
 
+.node-kms_key {
+    fill: rgba(142, 107, 192, 0.10);
+    stroke: var(--node-kms-stroke);
+    stroke-width: 1.2;
+}
+
 /* Misconfigured — red glow effect */
 .node-s3_bucket.node-misconfigured,
+.node-kms_key.node-misconfigured,
 .topo-node.node-misconfigured {
     fill: rgba(255, 59, 92, 0.10);
     stroke: var(--node-misconfig-stroke);

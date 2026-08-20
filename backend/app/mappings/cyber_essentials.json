@@ -12,7 +12,8 @@
       "S3_VERSIONING_DISABLED": "Secure Configuration only. Cyber Essentials has no dedicated backup or resilience theme, so this is mapped to the same theme as the other S3 findings: versioning is a bucket-level configuration setting, and its absence is a configuration gap rather than a control from a different theme.",
       "S3_LOGGING_DISABLED": "Secure Configuration only, for the same reason as versioning: Cyber Essentials has no monitoring or logging theme in its five-theme baseline, so this is the nearest fit rather than a precise one.",
       "S3_LIFECYCLE_MISSING": "Secure Configuration only. No retention-specific theme exists in the five-theme baseline; a lifecycle policy is a bucket-level configuration setting, so this is the same nearest-fit reasoning as the other two.",
-      "S3_TLS_NOT_ENFORCED": "Secure Configuration only. A bucket policy enforcing TLS is a configuration setting, same as the other S3 findings; Cyber Essentials' baseline does not separate transit encryption into its own theme."
+      "S3_TLS_NOT_ENFORCED": "Secure Configuration only. A bucket policy enforcing TLS is a configuration setting, same as the other S3 findings; Cyber Essentials' baseline does not separate transit encryption into its own theme.",
+      "KMS_KEY_ROTATION_DISABLED": "Secure Configuration only. Key rotation is a configuration setting on the key, same reasoning as every other finding in this file; Cyber Essentials has no cryptography-specific theme."
     }
   },
 
@@ -42,6 +43,10 @@
   ],
 
   "S3_TLS_NOT_ENFORCED": [
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
+  ],
+
+  "KMS_KEY_ROTATION_DISABLED": [
     {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ]
 }

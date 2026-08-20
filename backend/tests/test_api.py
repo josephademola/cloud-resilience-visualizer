@@ -47,12 +47,12 @@ class TestTopologyEndpoint:
         data = response.json()
         assert set(data.keys()) == {"metadata", "nodes", "security_groups"}
 
-    def test_response_has_nine_nodes_and_three_security_groups(self, client):
+    def test_response_has_ten_nodes_and_three_security_groups(self, client):
         response = client.get("/api/topology")
         data = response.json()
-        assert len(data["nodes"]) == 9
+        assert len(data["nodes"]) == 10
         assert len(data["security_groups"]) == 3
-        assert data["metadata"]["node_count"] == 9
+        assert data["metadata"]["node_count"] == 10
         assert data["metadata"]["security_group_count"] == 3
 
     def test_response_includes_both_s3_buckets(self, client):
@@ -76,13 +76,19 @@ class TestFindingsEndpoint:
         assert set(data.keys()) == {"metadata", "findings"}
         assert data["metadata"]["schema_version"] == "1.0"
 
-    def test_response_has_seven_findings_all_for_misconfigured_bucket(self, client):
+    def test_response_has_eight_findings_across_two_resources(self, client):
+        # Seven S3 findings on the misconfigured uploads bucket, plus
+        # one KMS finding on the unrotated customer-managed key —
+        # the first time findings span more than one resource type.
         response = client.get("/api/findings")
         data = response.json()
-        assert len(data["findings"]) == 7
-        assert data["metadata"]["finding_count"] == 7
+        assert len(data["findings"]) == 8
+        assert data["metadata"]["finding_count"] == 8
         resource_ids = {f["resource_id"] for f in data["findings"]}
-        assert resource_ids == {"cloudres-fintech-uploads"}
+        assert resource_ids == {
+            "cloudres-fintech-uploads",
+            "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        }
 
     def test_findings_have_framework_references_from_all_four_frameworks(self, client):
         response = client.get("/api/findings")
@@ -132,7 +138,7 @@ class TestComplianceEndpoint:
     def test_response_reflects_scanner_findings(self, client):
         response = client.get("/api/compliance")
         data = response.json()
-        assert data["metadata"]["total_findings"] == 7
+        assert data["metadata"]["total_findings"] == 8
 
 
 # --- GET /api/report -------------------------------------------------
