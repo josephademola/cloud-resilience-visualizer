@@ -24,19 +24,22 @@ FINDINGS = scan_iam(TOPOLOGY)
 
 class TestIamScannerEndToEnd:
 
-    def test_produces_two_findings_against_misconfigured_account(self):
-        # The mock's account has both active root access keys and no
-        # MFA. Both rules fire on the same account resource.
-        assert len(FINDINGS) == 2
+    def test_produces_three_findings_against_misconfigured_account(self):
+        # The mock's account has active root access keys, no MFA,
+        # and no password policy. All three rules fire on the same
+        # account resource.
+        assert len(FINDINGS) == 3
         finding_type_ids = [f.finding_type_id for f in FINDINGS]
         assert finding_type_ids == [
             "IAM_ROOT_ACCESS_KEYS_ACTIVE",
             "IAM_ACCOUNT_MFA_NOT_ENABLED",
+            "IAM_PASSWORD_POLICY_WEAK",
         ]
         assert all(f.resource_id == "123456789012" for f in FINDINGS)
         severities = {f.finding_type_id: f.severity.value for f in FINDINGS}
         assert severities["IAM_ROOT_ACCESS_KEYS_ACTIVE"] == "critical"
         assert severities["IAM_ACCOUNT_MFA_NOT_ENABLED"] == "high"
+        assert severities["IAM_PASSWORD_POLICY_WEAK"] == "medium"
 
     def test_all_findings_map_to_all_four_frameworks(self):
         expected_frameworks = {

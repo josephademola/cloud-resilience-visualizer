@@ -186,14 +186,16 @@ class TestNormalizeEndToEnd:
         key_ids = {n["id"] for n in _nodes_of_type("kms_key")}
         assert "aws/s3" not in key_ids
 
-    def test_account_node_has_both_iam_misconfigs(self):
+    def test_account_node_has_all_three_iam_misconfigs(self):
         # The mock's account-level IAM misconfigs: root has active
-        # access keys and MFA is not enabled.
+        # access keys, MFA is not enabled, and no password policy is
+        # configured at all.
         accounts = _nodes_of_type("account")
         assert len(accounts) == 1
         assert accounts[0]["id"] == "123456789012"
         assert accounts[0]["properties"]["root_access_keys_present"] is True
         assert accounts[0]["properties"]["account_mfa_enabled"] is False
+        assert accounts[0]["properties"]["password_policy_min_length"] is None
 
     def test_three_security_groups_belong_to_vpc(self):
         # The mock has three chained SGs (web -> app -> db). Each

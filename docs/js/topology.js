@@ -578,6 +578,7 @@ function isBadProperty(key, value) {
     if (key === "key_state" && value === "PendingDeletion") return true;
     if (key === "root_access_keys_present" && value === true) return true;
     if (key === "account_mfa_enabled" && value === false) return true;
+    if (key === "password_policy_min_length" && (value === null || value < 14)) return true;
     if (key === "publicly_accessible" && value === true) return true;
     return false;
 }

@@ -94,6 +94,25 @@ class TestFetchAwsData:
         assert "get_account_summary" in data["iam"]
         assert "SummaryMap" in data["iam"]["get_account_summary"]
 
+    def test_iam_section_has_password_policy_error_marker_when_unset(self, moto_aws):
+        # A fresh moto account has no password policy configured,
+        # same as a fresh real account. get_account_password_policy
+        # raises NoSuchEntityException; _safe_call must catch it and
+        # produce an '_error' marker rather than letting the whole
+        # scan blow up.
+        data = fetch_aws_data()
+        assert "get_account_password_policy" in data["iam"]
+        assert "_error" in data["iam"]["get_account_password_policy"]
+
+    def test_iam_section_reflects_configured_password_policy(self, moto_aws):
+        iam = boto3.client("iam", region_name="eu-west-2")
+        iam.update_account_password_policy(MinimumPasswordLength=16)
+
+        data = fetch_aws_data()
+        policy = data["iam"]["get_account_password_policy"]
+        assert "_error" not in policy
+        assert policy["PasswordPolicy"]["MinimumPasswordLength"] == 16
+
     def test_bucket_details_has_all_seven_s3_calls(self, moto_aws):
         # The normaliser reads all seven per-bucket calls (one per
         # S3 scanner rule). Miss any and that rule silently sees

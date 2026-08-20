@@ -6,6 +6,7 @@ Produces Finding objects for account-wide IAM misconfigurations.
 Current rules:
     - Root user has active access keys         -> CRITICAL
     - Root user does not have MFA enabled       -> HIGH
+    - Account password policy is weak/missing  -> MEDIUM
 
 Design notes:
 
@@ -29,6 +30,13 @@ Design notes:
   fail closed (flag it), same semantic as encryption_enabled in the
   S3 scanner. If we can't confirm root has MFA, we don't assume it
   does.
+
+- password_policy_min_length is stored as a raw value (int or None),
+  not a pre-computed boolean, matching how aws_normalizer stores
+  RDS's backup_retention_days. The "what counts as weak" threshold
+  is a policy judgment call that belongs in the scanner rule, not
+  baked silently into the normaliser. None (no policy configured at
+  all) is treated as weak — fail-closed.
 """
 
 from __future__ import annotations
@@ -49,6 +57,7 @@ def scan_iam(topology: dict[str, Any]) -> list[Finding]:
     rules = (
         _check_root_access_keys,
         _check_account_mfa,
+        _check_password_policy,
     )
 
     for node in topology.get("nodes", []):
@@ -80,6 +89,21 @@ def _check_account_mfa(account: dict[str, Any]) -> Finding | None:
     if props.get("account_mfa_enabled", False):
         return None
     return _build_finding("IAM_ACCOUNT_MFA_NOT_ENABLED", account["id"])
+
+
+# NCSC and NIST's current baseline recommendation for minimum
+# password length. A hardcoded constant, not a magic number, so the
+# threshold is visible and changeable in one place.
+_MIN_PASSWORD_LENGTH = 14
+
+
+def _check_password_policy(account: dict[str, Any]) -> Finding | None:
+    """The account password policy must require at least 14 characters."""
+    props = account.get("properties", {})
+    min_length = props.get("password_policy_min_length")
+    if min_length is not None and min_length >= _MIN_PASSWORD_LENGTH:
+        return None
+    return _build_finding("IAM_PASSWORD_POLICY_WEAK", account["id"])
 
 
 # ---- Shared finding constructor ----

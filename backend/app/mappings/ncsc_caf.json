@@ -16,7 +16,8 @@
       "KMS_KEY_ROTATION_DISABLED": "B3.c, reused from S3_ENCRYPTION_DISABLED. Key rotation is a control on the mechanism that protects stored data, not the data itself, but the outcome it serves is the same one B3.c describes.",
       "KMS_KEY_PENDING_DELETION": "B5.a reused from S3_VERSIONING_DISABLED, not B3.c — this finding is about losing a recovery capability, not about a stored-data control weakening. Same Resilience Preparation outcome as the versioning finding, for the same reason.",
       "IAM_ROOT_ACCESS_KEYS_ACTIVE": "B2.a reused from S3_PUBLIC_VIA_ACL's primary reference. Active root keys are an identity/authentication control gap at the account level rather than the bucket level, but the same CAF outcome — unrestricted, unverified access — applies.",
-      "IAM_ACCOUNT_MFA_NOT_ENABLED": "B2.a again, third use of this outcome in the file. MFA absence is as textbook an identity-verification-and-authentication gap as CAF describes; no other outcome fits better."
+      "IAM_ACCOUNT_MFA_NOT_ENABLED": "B2.a again, third use of this outcome in the file. MFA absence is as textbook an identity-verification-and-authentication gap as CAF describes; no other outcome fits better.",
+      "IAM_PASSWORD_POLICY_WEAK": "B2.a again, fourth use. Still the correct outcome, not just the convenient one: a weak or missing password policy is exactly the same 'identity verification and authentication' gap as the previous three findings, applied to the password mechanism specifically rather than MFA or key management."
     }
   },
 
@@ -62,6 +63,10 @@
   ],
 
   "IAM_ACCOUNT_MFA_NOT_ENABLED": [
+    {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
+  ],
+
+  "IAM_PASSWORD_POLICY_WEAK": [
     {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
   ]
 }

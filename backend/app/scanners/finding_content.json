@@ -84,5 +84,12 @@
     "severity": "high",
     "description": "The account's root user can sign in with just a password, no second factor required. Root cannot be restricted by any IAM policy or SCP, so a leaked or guessed root password alone is enough for complete account takeover, with no additional barrier. This is one of the first checks in almost every cloud security audit and compliance framework, precisely because it is cheap to fix and catastrophic to leave open: a single reused or phished password becomes full administrative control of every resource in the account.",
     "remediation": "Enable MFA on the root user. Sign in as root, go to My Security Credentials -> Multi-factor authentication (MFA) -> Assign MFA device, and register a virtual MFA app, hardware key, or FIDO security key. This can only be configured by root itself, in the same way root's access keys can only be managed by root. A hardware or FIDO key is preferable to a virtual authenticator app for the root user specifically, since it removes the phone or app as a single point of failure for the account's highest-privilege identity."
+  },
+
+  "IAM_PASSWORD_POLICY_WEAK": {
+    "title": "Account password policy is weak or missing",
+    "severity": "medium",
+    "description": "The account has no password policy configured, or one that allows passwords shorter than 14 characters. AWS applies no minimum length or complexity requirement by default; without an explicit policy, IAM users can set passwords as short and simple as the service allows, which makes every human-authenticated identity in the account an easier target for password guessing and credential-stuffing attacks. A 14-character minimum is the current NCSC and NIST baseline recommendation, and is enforced account-wide with a single setting.",
+    "remediation": "Set an account password policy with a minimum length of 14 characters. In the AWS Console: IAM -> Account settings -> Password policy -> Edit -> set Minimum password length to 14, and enable password reuse prevention and expiration if the organisation's policy requires it -> Save. From the AWS CLI: `aws iam update-account-password-policy --minimum-password-length 14`. This applies to every IAM user's console password account-wide; it does not affect access keys or MFA, which are separate controls."
   }
 }

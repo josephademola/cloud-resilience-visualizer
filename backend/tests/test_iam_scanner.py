@@ -10,6 +10,7 @@ from app.models.finding import Finding, Severity
 from app.scanners.iam_scanner import (
     _check_root_access_keys,
     _check_account_mfa,
+    _check_password_policy,
     scan_iam,
 )
 
@@ -88,6 +89,51 @@ class TestCheckAccountMfa:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_password_policy ---------------------------------------------
+class TestCheckPasswordPolicy:
+
+    def test_returns_finding_when_no_policy_configured(self):
+        finding = _check_password_policy(
+            _account(password_policy_min_length=None)
+        )
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_PASSWORD_POLICY_WEAK"
+
+    def test_returns_finding_when_policy_too_short(self):
+        finding = _check_password_policy(
+            _account(password_policy_min_length=8)
+        )
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_PASSWORD_POLICY_WEAK"
+
+    def test_returns_none_when_policy_meets_minimum(self):
+        finding = _check_password_policy(
+            _account(password_policy_min_length=14)
+        )
+        assert finding is None
+
+    def test_returns_none_when_policy_exceeds_minimum(self):
+        finding = _check_password_policy(
+            _account(password_policy_min_length=20)
+        )
+        assert finding is None
+
+    def test_produces_finding_when_property_missing_fail_closed(self):
+        finding = _check_password_policy(_account())
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_PASSWORD_POLICY_WEAK"
+
+    def test_finding_has_medium_severity_and_correct_shape(self):
+        finding = _check_password_policy(
+            _account("999988887777", password_policy_min_length=None)
+        )
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.MEDIUM
+        assert finding.resource_id == "999988887777"
+        assert finding.title == "Account password policy is weak or missing"
+        assert len(finding.framework_references) > 0
+
+
 # --- scan_iam ----------------------------------------------------------
 class TestScanIam:
 
@@ -119,28 +165,32 @@ class TestScanIam:
                 _account(
                     root_access_keys_present=False,
                     account_mfa_enabled=True,
+                    password_policy_min_length=14,
                 )
             ]
         }
         assert scan_iam(topology) == []
 
-    def test_returns_two_findings_for_account_with_both_issues(self):
-        # The flagship case: our mock's account, which has both no
-        # MFA and active root keys. Both rules fire on the same
-        # resource, mirroring the S3/KMS stacked-findings pattern.
+    def test_returns_three_findings_for_account_with_all_issues(self):
+        # The flagship case: our mock's account, which has active
+        # root keys, no MFA, and no password policy. All three rules
+        # fire on the same resource, mirroring the S3/KMS
+        # stacked-findings pattern.
         topology = {
             "nodes": [
                 _account(
                     "123456789012",
                     root_access_keys_present=True,
                     account_mfa_enabled=False,
+                    password_policy_min_length=None,
                 )
             ]
         }
         findings = scan_iam(topology)
-        assert len(findings) == 2
+        assert len(findings) == 3
         assert all(f.resource_id == "123456789012" for f in findings)
         assert [f.finding_type_id for f in findings] == [
             "IAM_ROOT_ACCESS_KEYS_ACTIVE",
             "IAM_ACCOUNT_MFA_NOT_ENABLED",
+            "IAM_PASSWORD_POLICY_WEAK",
         ]

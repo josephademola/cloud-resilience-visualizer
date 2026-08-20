@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-20T17:35:06.269327+00:00",
+    "generated_at": "2026-08-20T17:51:23.976034+00:00",
     "node_count": 11,
     "security_group_count": 3
   },
@@ -149,7 +149,8 @@
       "parent_id": null,
       "properties": {
         "root_access_keys_present": true,
-        "account_mfa_enabled": false
+        "account_mfa_enabled": false,
+        "password_policy_min_length": null
       }
     }
   ],
