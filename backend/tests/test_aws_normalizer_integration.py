@@ -122,7 +122,7 @@ class TestNormalizeEndToEnd:
 
     def test_secure_logs_bucket_has_all_safe_flags(self):
         # The 'cloudres-fintech-logs' bucket in the mock is the
-        # deliberately well-configured bucket. All three S3 booleans
+        # deliberately well-configured bucket. All four S3 booleans
         # should reflect the safe state.
         logs = next(
             (n for n in _nodes_of_type("s3_bucket")
@@ -134,15 +134,17 @@ class TestNormalizeEndToEnd:
         assert props["is_public_via_acl"] is False
         assert props["public_access_block_fully_enabled"] is True
         assert props["encryption_enabled"] is True
+        assert props["versioning_enabled"] is True
 
-    def test_misconfigured_uploads_bucket_has_all_three_flags_set(self):
+    def test_misconfigured_uploads_bucket_has_all_four_flags_set(self):
         # The 'cloudres-fintech-uploads' bucket is the deliberate
         # misconfig in the mock: AllUsers ACL grant, all four PAB
-        # flags off, no encryption. This is the misconfig that the
-        # future scanner will need to flag against three frameworks
-        # (NIS2, NCSC CAF, MITRE ATT&CK). If this assertion ever
-        # fails, the seed misconfig has been silently lost from the
-        # mock — a portfolio-credibility risk worth catching loudly.
+        # flags off, no encryption, versioning never configured. This
+        # is the misconfig that the scanner flags against all four
+        # frameworks (NIS2, NCSC CAF, MITRE ATT&CK, Cyber Essentials).
+        # If this assertion ever fails, the seed misconfig has been
+        # silently lost from the mock — a portfolio-credibility risk
+        # worth catching loudly.
         uploads = next(
             (n for n in _nodes_of_type("s3_bucket")
              if n["id"] == "cloudres-fintech-uploads"),
@@ -153,6 +155,7 @@ class TestNormalizeEndToEnd:
         assert props["is_public_via_acl"] is True
         assert props["public_access_block_fully_enabled"] is False
         assert props["encryption_enabled"] is False
+        assert props["versioning_enabled"] is False
 
     def test_three_security_groups_belong_to_vpc(self):
         # The mock has three chained SGs (web -> app -> db). Each

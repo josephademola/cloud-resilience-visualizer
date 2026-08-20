@@ -8,6 +8,7 @@ Current rules:
     - Public via ACL (AllUsers grant)          -> CRITICAL
     - Public Access Block not fully enabled    -> MEDIUM
     - Server-side encryption not configured    -> HIGH
+    - Versioning not enabled                   -> MEDIUM
 
 Design notes:
 
@@ -55,6 +56,7 @@ def scan_s3_buckets(topology: dict[str, Any]) -> list[Finding]:
         _check_public_via_acl,
         _check_public_access_block,
         _check_encryption,
+        _check_versioning,
     )
 
     for node in topology.get("nodes", []):
@@ -96,6 +98,14 @@ def _check_encryption(bucket: dict[str, Any]) -> Finding | None:
     if props.get("encryption_enabled", False):
         return None
     return _build_finding("S3_ENCRYPTION_DISABLED", bucket["id"])
+
+
+def _check_versioning(bucket: dict[str, Any]) -> Finding | None:
+    """Bucket versioning must be enabled."""
+    props = bucket.get("properties", {})
+    if props.get("versioning_enabled", False):
+        return None
+    return _build_finding("S3_VERSIONING_DISABLED", bucket["id"])
 
 
 # ---- Shared finding constructor ----

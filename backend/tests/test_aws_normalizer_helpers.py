@@ -13,6 +13,7 @@ from app.aws_normalizer import (
     _is_bucket_public_via_acl,
     _is_pab_fully_enabled,
     _is_bucket_encryption_enabled,
+    _is_bucket_versioning_enabled,
     S3_ALL_USERS_URI,
 )
 
@@ -151,3 +152,20 @@ class TestIsBucketEncryptionEnabled:
     def test_returns_false_when_rules_empty(self):
         encryption = {"ServerSideEncryptionConfiguration": {"Rules": []}}
         assert _is_bucket_encryption_enabled(encryption) is False
+
+
+# --- _is_bucket_versioning_enabled -------------------------------------
+class TestIsBucketVersioningEnabled:
+
+    def test_returns_true_when_status_is_enabled(self):
+        assert _is_bucket_versioning_enabled({"Status": "Enabled"}) is True
+
+    def test_returns_false_when_status_is_suspended(self):
+        # Versioning that was turned on and later suspended is not
+        # currently protecting the bucket.
+        assert _is_bucket_versioning_enabled({"Status": "Suspended"}) is False
+
+    def test_returns_false_when_never_configured(self):
+        # Real boto3 returns an empty dict, not an error, when
+        # versioning has never been touched on a bucket.
+        assert _is_bucket_versioning_enabled({}) is False

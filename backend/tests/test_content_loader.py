@@ -29,8 +29,8 @@ class TestGetContent:
             "title", "severity", "description", "remediation"
         }
 
-    def test_returns_content_for_all_three_s3_finding_types(self):
-        # Each of the three current S3 finding types must have a
+    def test_returns_content_for_all_four_s3_finding_types(self):
+        # Each of the four current S3 finding types must have a
         # content entry — the scanner rules assume it. If someone
         # deletes or renames a content entry, the scanner would
         # crash at runtime; this test surfaces that at test time.
@@ -38,6 +38,7 @@ class TestGetContent:
             "S3_PUBLIC_VIA_ACL",
             "S3_PUBLIC_ACCESS_BLOCK_DISABLED",
             "S3_ENCRYPTION_DISABLED",
+            "S3_VERSIONING_DISABLED",
         ]:
             content = get_content(finding_type_id)
             assert content["title"], f"{finding_type_id} has empty title"

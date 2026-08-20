@@ -281,6 +281,9 @@
               }
             ]
           }
+        },
+        "get_bucket_versioning": {
+          "Status": "Enabled"
         }
       },
       "cloudres-fintech-uploads": {

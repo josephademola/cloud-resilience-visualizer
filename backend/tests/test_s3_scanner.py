@@ -25,6 +25,7 @@ from app.scanners.s3_scanner import (
     _check_public_via_acl,
     _check_public_access_block,
     _check_encryption,
+    _check_versioning,
     scan_s3_buckets,
 )
 
@@ -158,6 +159,36 @@ class TestCheckEncryption:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_versioning -------------------------------------------------
+class TestCheckVersioning:
+
+    def test_returns_finding_when_versioning_disabled(self):
+        finding = _check_versioning(_bucket(versioning_enabled=False))
+        assert finding is not None
+        assert finding.finding_type_id == "S3_VERSIONING_DISABLED"
+
+    def test_returns_none_when_versioning_enabled(self):
+        finding = _check_versioning(_bucket(versioning_enabled=True))
+        assert finding is None
+
+    def test_produces_finding_when_property_missing_fail_closed(self):
+        # Versioning is a *protection* signal, same fail-closed
+        # semantic as encryption and PAB. If we can't verify
+        # versioning is on, we can't assume it is.
+        finding = _check_versioning(_bucket())
+        assert finding is not None
+        assert finding.finding_type_id == "S3_VERSIONING_DISABLED"
+
+    def test_finding_has_medium_severity_and_correct_shape(self):
+        finding = _check_versioning(
+            _bucket("no-recovery-bucket", versioning_enabled=False)
+        )
+        assert finding.severity == Severity.MEDIUM
+        assert finding.resource_id == "no-recovery-bucket"
+        assert finding.title == "Bucket versioning not enabled"
+        assert len(finding.framework_references) > 0
+
+
 # --- scan_s3_buckets -------------------------------------------------
 class TestScanS3Buckets:
 
@@ -190,7 +221,7 @@ class TestScanS3Buckets:
         assert all(f.resource_id == "leaky" for f in findings)
 
     def test_returns_zero_findings_for_fully_secure_bucket(self):
-        # All three checks pass -> no findings.
+        # All four checks pass -> no findings.
         topology = {
             "nodes": [
                 _bucket(
@@ -198,14 +229,15 @@ class TestScanS3Buckets:
                     is_public_via_acl=False,
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
+                    versioning_enabled=True,
                 )
             ]
         }
         assert scan_s3_buckets(topology) == []
 
-    def test_returns_three_findings_for_bucket_with_all_three_issues(self):
+    def test_returns_four_findings_for_bucket_with_all_four_issues(self):
         # The flagship case: our mock's misconfigured uploads bucket.
-        # All three rules fire, producing three separate findings on
+        # All four rules fire, producing four separate findings on
         # the same resource, each with its own severity.
         topology = {
             "nodes": [
@@ -214,11 +246,12 @@ class TestScanS3Buckets:
                     is_public_via_acl=True,
                     public_access_block_fully_enabled=False,
                     encryption_enabled=False,
+                    versioning_enabled=False,
                 )
             ]
         }
         findings = scan_s3_buckets(topology)
-        assert len(findings) == 3
+        assert len(findings) == 4
         # Each finding is against the same resource...
         assert all(f.resource_id == "uploads" for f in findings)
         # ...but each has a different finding_type_id and severity.
@@ -227,6 +260,7 @@ class TestScanS3Buckets:
             "S3_PUBLIC_VIA_ACL",
             "S3_PUBLIC_ACCESS_BLOCK_DISABLED",
             "S3_ENCRYPTION_DISABLED",
+            "S3_VERSIONING_DISABLED",
         ]
 
     def test_scans_multiple_buckets_independently(self):
@@ -240,12 +274,14 @@ class TestScanS3Buckets:
                     is_public_via_acl=False,
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
+                    versioning_enabled=True,
                 ),
                 _bucket(
                     "leaky",
                     is_public_via_acl=True,
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
+                    versioning_enabled=True,
                 ),
             ]
         }
