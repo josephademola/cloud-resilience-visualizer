@@ -625,6 +625,7 @@ class TestNormalizeS3Buckets:
                     "logging_enabled": True,
                     "lifecycle_configured": True,
                     "tls_enforced": True,
+                    "arn": "arn:aws:s3:::secure-logs",
                 },
             }
         ]
@@ -721,7 +722,9 @@ class TestNormalizeKmsKeys:
 
     def test_returns_customer_managed_key_with_rotation_status(self):
         kms_data = {
-            "list_keys": {"Keys": [{"KeyId": "key-1"}]},
+            "list_keys": {
+                "Keys": [{"KeyId": "key-1", "KeyArn": "arn:aws:kms:eu-west-2:123456789012:key/key-1"}]
+            },
             "key_details": {
                 "key-1": {
                     "describe_key": {
@@ -746,6 +749,7 @@ class TestNormalizeKmsKeys:
                 "properties": {
                     "key_state": "Enabled",
                     "key_rotation_enabled": False,
+                    "arn": "arn:aws:kms:eu-west-2:123456789012:key/key-1",
                 },
             }
         ]
@@ -973,7 +977,14 @@ class TestNormalizeIamUsers:
 
     def test_returns_user_with_access_keys(self):
         iam_data = {
-            "list_users": {"Users": [{"UserName": "svc-account"}]},
+            "list_users": {
+                "Users": [
+                    {
+                        "UserName": "svc-account",
+                        "Arn": "arn:aws:iam::123456789012:user/svc-account",
+                    }
+                ]
+            },
             "user_details": {
                 "svc-account": {
                     "list_access_keys": {
@@ -1001,7 +1012,8 @@ class TestNormalizeIamUsers:
                             "status": "Active",
                             "create_date": "2022-03-10T09:00:00+00:00",
                         }
-                    ]
+                    ],
+                    "arn": "arn:aws:iam::123456789012:user/svc-account",
                 },
             }
         ]

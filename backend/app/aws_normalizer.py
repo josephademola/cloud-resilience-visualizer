@@ -483,6 +483,7 @@ def _normalize_iam_users(iam_data: dict[str, Any]) -> list[TopologyNode]:
             "parent_id": None,  # IAM is global, not in any VPC
             "properties": {
                 "access_keys": access_keys,
+                "arn": user.get("Arn"),
             },
         })
 
@@ -531,6 +532,7 @@ def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
             "properties": {
                 "key_state": metadata.get("KeyState"),
                 "key_rotation_enabled": rotation.get("KeyRotationEnabled", False),
+                "arn": key.get("KeyArn"),
             },
         })
 
@@ -716,6 +718,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
                 "logging_enabled": _is_bucket_logging_enabled(logging_config),
                 "lifecycle_configured": _is_bucket_lifecycle_configured(lifecycle),
                 "tls_enforced": _is_tls_enforced(policy),
+                "arn": f"arn:aws:s3:::{name}",
             },
         })
 
@@ -828,6 +831,79 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
         "security_groups": security_groups,
     }
 
+
+def get_tagged_resource_arns(
+    aws_data: AwsData, tag_key: str, tag_value: str
+) -> set[str]:
+    """
+    Return the set of resource ARNs tagged with tag_key=tag_value,
+    from the Resource Groups Tagging API's get_resources() response.
+
+    Reads aws_data['resourcegroupstaggingapi']['get_resources']
+    ['ResourceTagMappingList'] — same key present whether aws_data
+    came from mock_aws.json or a live scan (Phase 9a Feature 1).
+    Missing or absent data returns an empty set rather than raising,
+    so an unscoped scan (no project_tag given) never reaches this
+    function in the first place, and a live account this key doesn't
+    apply to just yields no matches.
+    """
+    mappings = (
+        aws_data.get("resourcegroupstaggingapi", {})
+        .get("get_resources", {})
+        .get("ResourceTagMappingList", [])
+    )
+    return {
+        mapping["ResourceARN"]
+        for mapping in mappings
+        if any(
+            tag.get("Key") == tag_key and tag.get("Value") == tag_value
+            for tag in mapping.get("Tags", [])
+        )
+        and mapping.get("ResourceARN")
+    }
+
+
+def filter_topology_by_tag(
+    topology: dict[str, Any], tagged_arns: set[str]
+) -> dict[str, Any]:
+    """
+    Return a new topology containing only nodes tagged into scope,
+    for Phase 9a Feature 1 (tag-based target selection).
+
+    Two categories of node are always kept regardless of tagged_arns:
+      - 'account' nodes: root MFA, CloudTrail coverage, and the other
+        account-wide findings aren't facts about one project's
+        resources, they're facts about the whole AWS account. There
+        is no sensible way to scope "is root MFA enabled" to one
+        tagged project.
+      - Every node type that doesn't yet carry an 'arn' property
+        (vpc, subnet, internet_gateway, ec2_instance, rds_instance):
+        these have no scanner coverage yet either, so tag-filtering
+        them would just break the topology diagram's visual context
+        (an EC2 instance's parent subnet disappearing under it) for
+        no present benefit. Revisit once EC2/RDS scanners exist and
+        gain their own ARNs.
+
+    S3 buckets, KMS keys, and IAM users — the taggable, currently-
+    scanned resource types — are kept only if their 'arn' property is
+    in tagged_arns.
+    """
+    taggable_types = {"s3_bucket", "kms_key", "iam_user"}
+
+    filtered_nodes = [
+        node for node in topology.get("nodes", [])
+        if node.get("type") not in taggable_types
+        or node.get("properties", {}).get("arn") in tagged_arns
+    ]
+
+    return {
+        **topology,
+        "nodes": filtered_nodes,
+        "metadata": {
+            **topology.get("metadata", {}),
+            "node_count": len(filtered_nodes),
+        },
+    }
 
 
 # --- File I/O helpers and CLI runner ---------------------------------

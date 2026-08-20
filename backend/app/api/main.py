@@ -30,10 +30,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.aws_normalizer import normalize
+from app.aws_normalizer import (
+    normalize,
+    get_tagged_resource_arns,
+    filter_topology_by_tag,
+)
 from app.models.finding import Finding, finding_to_dict
 from app.scanners.s3_scanner import scan_s3_buckets
 from app.scanners.kms_scanner import scan_kms_keys
@@ -92,19 +96,43 @@ app.add_middleware(
 _MOCK_PATH = Path(__file__).parent.parent / "data" / "mock_aws.json"
 
 
-def _load_aws_data() -> dict:
+def _load_aws_data(project_tag: str | None = None) -> dict:
     """
     Load AWS data from the configured source.
 
     USE_LIVE_AWS=true -> real AWS via boto3
     otherwise         -> mock_aws.json
+
+    project_tag (Phase 9a Feature 1, e.g. "Project=ShiftCommute") is
+    passed through to fetch_aws_data() in live mode, which queries
+    the Resource Groups Tagging API for it. mock_aws.json's
+    resourcegroupstaggingapi section is static regardless of what was
+    asked for — the tag-matching in get_tagged_resource_arns() still
+    filters correctly against whatever project_tag was actually
+    requested, so an unrelated tag correctly yields no matches even
+    in mock mode.
     """
     if os.environ.get("USE_LIVE_AWS") == "true":
         from app.aws_client import fetch_aws_data
-        return fetch_aws_data()
+        return fetch_aws_data(project_tag)
 
     with open(_MOCK_PATH, encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def _get_topology(project_tag: str | None = None) -> dict:
+    """
+    Load raw AWS data, normalise it, and apply tag-based scoping if
+    project_tag is given (Phase 9a Feature 1). Centralises the
+    raw-load + normalise + filter sequence every endpoint below needs.
+    """
+    raw = _load_aws_data(project_tag)
+    topology = normalize(raw)
+    if project_tag:
+        tag_key, _, tag_value = project_tag.partition("=")
+        tagged_arns = get_tagged_resource_arns(raw, tag_key, tag_value)
+        topology = filter_topology_by_tag(topology, tagged_arns)
+    return topology
 
 
 def _scan_all(topology: dict) -> list[Finding]:
@@ -123,18 +151,27 @@ def _scan_all(topology: dict) -> list[Finding]:
         + scan_account(topology)
     )
 
+_PROJECT_TAG_QUERY = Query(
+    None,
+    description=(
+        'Optional "Key=Value" tag filter (Phase 9a Feature 1), e.g. '
+        '"Project=ShiftCommute". Scopes the scan to resources '
+        "carrying that tag, plus account-wide findings, which always "
+        "apply regardless of scope."
+    ),
+)
+
+
 @app.get("/api/topology", dependencies=[Depends(require_api_key)])
-def get_topology() -> dict:
+def get_topology(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
     """Return the normalised AWS topology."""
-    raw = _load_aws_data()
-    return normalize(raw)
+    return _get_topology(project_tag)
 
 
 @app.get("/api/findings", dependencies=[Depends(require_api_key)])
-def get_findings() -> dict:
+def get_findings(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
     """Return security findings from the scanner."""
-    raw = _load_aws_data()
-    topology = normalize(raw)
+    topology = _get_topology(project_tag)
     findings = _scan_all(topology)
     return {
         "metadata": {
@@ -145,23 +182,21 @@ def get_findings() -> dict:
     }
 
 @app.get("/api/compliance", dependencies=[Depends(require_api_key)])
-def get_compliance() -> dict:
+def get_compliance(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
     """Return compliance view — findings grouped by framework requirement."""
-    raw = _load_aws_data()
-    topology = normalize(raw)
+    topology = _get_topology(project_tag)
     findings = _scan_all(topology)
     return build_compliance_view(findings)
 
 @app.get("/api/report", dependencies=[Depends(require_api_key)])
-def get_report() -> Response:
+def get_report(project_tag: str | None = _PROJECT_TAG_QUERY) -> Response:
     """
     Generate and return the PDF audit report.
 
     Returns raw PDF bytes with Content-Disposition set to attachment,
     which tells the browser to download rather than display inline.
     """
-    raw = _load_aws_data()
-    topology = normalize(raw)
+    topology = _get_topology(project_tag)
     findings = _scan_all(topology)
     compliance = build_compliance_view(findings)
     pdf_bytes = build_pdf_report(topology, findings, compliance)
@@ -184,10 +219,12 @@ def get_evidence() -> dict:
     summary of findings by severity, tool version, timestamp, and
     an integrity hash covering the full record. Any post-hoc
     modification of the record would produce a different hash.
+
+    Does not yet accept project_tag — Phase 9a Feature 4 adds that,
+    plus labelling the record's scope section with it.
     """
     import os
-    raw = _load_aws_data()
-    topology = normalize(raw)
+    topology = _get_topology()
     findings = _scan_all(topology)
 
     # In live mode, fetch the real IAM identity so the record

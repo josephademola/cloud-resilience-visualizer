@@ -482,5 +482,25 @@
     "get_public_access_block": {
       "_error": "NoSuchPublicAccessBlockConfigurationException"
     }
+  },
+  "resourcegroupstaggingapi": {
+    "get_resources": {
+      "ResourceTagMappingList": [
+        {
+          "ResourceARN": "arn:aws:s3:::cloudres-fintech-uploads",
+          "Tags": [
+            {"Key": "Project", "Value": "ShiftCommute"},
+            {"Key": "Environment", "Value": "production"}
+          ]
+        },
+        {
+          "ResourceARN": "arn:aws:s3:::cloudres-fintech-logs",
+          "Tags": [
+            {"Key": "Project", "Value": "CloudResilienceVisualizer"},
+            {"Key": "Environment", "Value": "production"}
+          ]
+        }
+      ]
+    }
   }
 }
