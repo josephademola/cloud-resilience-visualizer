@@ -49,10 +49,11 @@ def _finding(
 # --- build_compliance_view -------------------------------------------
 class TestBuildComplianceView:
 
-    def test_returns_all_four_frameworks_in_expected_order(self):
+    def test_returns_all_five_frameworks_in_expected_order(self):
         # Framework order is a display-layer decision that lives in
         # the aggregator. Locking it in prevents accidental drift.
-        # NIS2 first (broadest EU coverage), CE last (UK-baseline).
+        # NIS2 first (broadest EU coverage), CE and ShiftCommute last
+        # (UK-baseline and engagement-specific, respectively).
         result = build_compliance_view([])
         framework_names = [fw["framework"] for fw in result["frameworks"]]
         assert framework_names == [
@@ -60,6 +61,7 @@ class TestBuildComplianceView:
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
+            "shiftcommute",
         ]
 
     def test_framework_metadata_populated(self):

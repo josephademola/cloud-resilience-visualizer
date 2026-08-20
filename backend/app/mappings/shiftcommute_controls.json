@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "framework": "shiftcommute",
+    "framework_full_name": "ShiftCommute Internal Control Baseline",
+    "description": "Mapping of finding types to ShiftCommute's internal control catalogue, built for the Phase 9a ShiftCommute audit engagement (Phase 9a Feature 2). Nine controls in two groups: GOV-01 through GOV-04 are governance-level policy controls, R-01 through R-05 are resource-level technical controls.",
+    "source_url": null,
+    "mapping_rationale": "Unlike NIS2/NCSC CAF/MITRE ATT&CK/Cyber Essentials, this is not an external published standard with authoritative text to be faithful to — it is a control catalogue defined for this engagement. The mapping is therefore more direct than the audited reasoning those frameworks required, but still one control per finding where the fit is genuine rather than forced. GOV-01 (Data governance and classification policy) has no findings mapped to it: none of CRV's scanners assess data classification, since that requires content inspection the tool doesn't do. Left honestly unmapped rather than stretched to fit.",
+    "controls": {
+      "GOV-01": "Data governance and classification policy",
+      "GOV-02": "Access control and identity management",
+      "GOV-03": "Encryption at rest and in transit",
+      "GOV-04": "Audit logging and monitoring",
+      "R-01": "S3 public access block enforcement",
+      "R-02": "Encryption key management (KMS)",
+      "R-03": "IAM credential hygiene",
+      "R-04": "CloudTrail and audit trail completeness",
+      "R-05": "Data retention and lifecycle management"
+    },
+    "audit_notes": {
+      "S3_PUBLIC_VIA_ACL": "R-01 primary — an AllUsers ACL grant is exactly the exposure R-01 exists to prevent, even though the technical mechanism (ACL, not PAB) is different. GOV-02 secondary, since an ACL grant is also an access-control policy failure at the object level.",
+      "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "R-01, unambiguous — this is the literal control R-01 names.",
+      "S3_ENCRYPTION_DISABLED": "GOV-03 — encryption at rest, half of what this control covers.",
+      "S3_VERSIONING_DISABLED": "R-05 — versioning is a recovery mechanism, the closest fit to 'data retention and lifecycle management' available in this control set.",
+      "S3_LOGGING_DISABLED": "GOV-04 — access logs are the resource-level slice of audit logging and monitoring.",
+      "S3_LIFECYCLE_MISSING": "R-05, unambiguous — the literal control this names.",
+      "S3_TLS_NOT_ENFORCED": "GOV-03 — encryption in transit, the other half of this control.",
+      "KMS_KEY_ROTATION_DISABLED": "R-02, unambiguous — the literal control this names.",
+      "KMS_KEY_PENDING_DELETION": "R-02 primary (key management). R-05 secondary: a completed deletion is a permanent, irreversible loss of access to retained data, which is squarely a retention/availability failure too.",
+      "IAM_ROOT_ACCESS_KEYS_ACTIVE": "R-03 primary (credential hygiene). GOV-02 secondary, since root credential management is also an access-control and identity-management policy matter at the governance level.",
+      "IAM_ACCOUNT_MFA_NOT_ENABLED": "GOV-02 — authentication strength is core to access control and identity management.",
+      "IAM_PASSWORD_POLICY_WEAK": "R-03 — password policy is a credential hygiene control.",
+      "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "R-03, unambiguous — credential rotation is the clearest possible case of credential hygiene.",
+      "ACCOUNT_CLOUDTRAIL_DISABLED": "R-04 primary, unambiguous. GOV-04 secondary: this is also the account-wide instance of the audit logging and monitoring governance control, not just the resource-level trail configuration.",
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "R-01 — the account-wide instance of the same control S3_PUBLIC_ACCESS_BLOCK_DISABLED maps to."
+    }
+  },
+
+  "S3_PUBLIC_VIA_ACL": [
+    {"framework": "shiftcommute", "reference_id": "R-01", "label": "S3 public access block enforcement"},
+    {"framework": "shiftcommute", "reference_id": "GOV-02", "label": "Access control and identity management"}
+  ],
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
+    {"framework": "shiftcommute", "reference_id": "R-01", "label": "S3 public access block enforcement"}
+  ],
+
+  "S3_ENCRYPTION_DISABLED": [
+    {"framework": "shiftcommute", "reference_id": "GOV-03", "label": "Encryption at rest and in transit"}
+  ],
+
+  "S3_VERSIONING_DISABLED": [
+    {"framework": "shiftcommute", "reference_id": "R-05", "label": "Data retention and lifecycle management"}
+  ],
+
+  "S3_LOGGING_DISABLED": [
+    {"framework": "shiftcommute", "reference_id": "GOV-04", "label": "Audit logging and monitoring"}
+  ],
+
+  "S3_LIFECYCLE_MISSING": [
+    {"framework": "shiftcommute", "reference_id": "R-05", "label": "Data retention and lifecycle management"}
+  ],
+
+  "S3_TLS_NOT_ENFORCED": [
+    {"framework": "shiftcommute", "reference_id": "GOV-03", "label": "Encryption at rest and in transit"}
+  ],
+
+  "KMS_KEY_ROTATION_DISABLED": [
+    {"framework": "shiftcommute", "reference_id": "R-02", "label": "Encryption key management (KMS)"}
+  ],
+
+  "KMS_KEY_PENDING_DELETION": [
+    {"framework": "shiftcommute", "reference_id": "R-02", "label": "Encryption key management (KMS)"},
+    {"framework": "shiftcommute", "reference_id": "R-05", "label": "Data retention and lifecycle management"}
+  ],
+
+  "IAM_ROOT_ACCESS_KEYS_ACTIVE": [
+    {"framework": "shiftcommute", "reference_id": "R-03", "label": "IAM credential hygiene"},
+    {"framework": "shiftcommute", "reference_id": "GOV-02", "label": "Access control and identity management"}
+  ],
+
+  "IAM_ACCOUNT_MFA_NOT_ENABLED": [
+    {"framework": "shiftcommute", "reference_id": "GOV-02", "label": "Access control and identity management"}
+  ],
+
+  "IAM_PASSWORD_POLICY_WEAK": [
+    {"framework": "shiftcommute", "reference_id": "R-03", "label": "IAM credential hygiene"}
+  ],
+
+  "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": [
+    {"framework": "shiftcommute", "reference_id": "R-03", "label": "IAM credential hygiene"}
+  ],
+
+  "ACCOUNT_CLOUDTRAIL_DISABLED": [
+    {"framework": "shiftcommute", "reference_id": "R-04", "label": "CloudTrail and audit trail completeness"},
+    {"framework": "shiftcommute", "reference_id": "GOV-04", "label": "Audit logging and monitoring"}
+  ],
+
+  "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
+    {"framework": "shiftcommute", "reference_id": "R-01", "label": "S3 public access block enforcement"}
+  ]
+}

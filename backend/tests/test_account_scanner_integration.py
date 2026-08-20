@@ -38,12 +38,13 @@ class TestAccountScannerEndToEnd:
         assert severities["ACCOUNT_CLOUDTRAIL_DISABLED"] == "critical"
         assert severities["ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED"] == "high"
 
-    def test_all_findings_map_to_all_four_frameworks(self):
+    def test_all_findings_map_to_all_five_frameworks(self):
         expected_frameworks = {
             "nis2",
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
+            "shiftcommute",
         }
         for finding in FINDINGS:
             frameworks_present = {

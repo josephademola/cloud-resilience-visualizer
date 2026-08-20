@@ -548,12 +548,13 @@ function groupFrameworkRefs(refs) {
 }
 
 function renderFrameworkRefs(groups) {
-    const frameworkOrder = ["nis2", "ncsc_caf", "mitre_attack", "cyber_essentials"];
+    const frameworkOrder = ["nis2", "ncsc_caf", "mitre_attack", "cyber_essentials", "shiftcommute"];
     const frameworkLabels = {
         nis2: "NIS2",
         ncsc_caf: "NCSC CAF",
         mitre_attack: "MITRE ATT&CK",
         cyber_essentials: "Cyber Essentials",
+        shiftcommute: "ShiftCommute",
     };
     const parts = [];
     for (const key of frameworkOrder) {

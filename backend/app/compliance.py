@@ -14,11 +14,11 @@ Design notes:
 
 - Framework order and framework-specific display metadata are
   hardcoded here rather than read from the mapping files. There are
-  four of them, they're stable, and pulling them into a separate
-  configuration file would be over-engineering. If a fifth framework
-  is ever added, both this file and the mapping loader would need
-  updates — the change surface is small and both places would be
-  obvious to a maintainer.
+  five of them, they're stable, and pulling them into a separate
+  configuration file would be over-engineering. Adding a framework
+  (ShiftCommute was the first addition, Phase 9a Feature 2) means
+  updating both this file and the mapping loader — the change
+  surface is small and both places are obvious to a maintainer.
 
 - unit_label per framework is deliberately different. NIS2 has
   'articles', CAF has 'outcomes', MITRE has 'techniques enabled'
@@ -41,12 +41,15 @@ from app.models.finding import Finding
 
 
 # Framework display order for the compliance dashboard. NIS2 first
-# (broadest EU coverage), Cyber Essentials last (UK-specific baseline).
+# (broadest EU coverage), Cyber Essentials last (UK-specific baseline),
+# ShiftCommute last of all — it's an engagement-specific control
+# catalogue, not a published external standard like the other four.
 _FRAMEWORK_ORDER = (
     "nis2",
     "ncsc_caf",
     "mitre_attack",
     "cyber_essentials",
+    "shiftcommute",
 )
 
 # Per-framework display metadata. full_name shows in the section
@@ -68,6 +71,10 @@ _FRAMEWORK_META = {
         "full_name": "UK Cyber Essentials",
         "unit_label": "themes failing",
     },
+    "shiftcommute": {
+        "full_name": "ShiftCommute Internal Control Baseline",
+        "unit_label": "controls failing",
+    },
 }
 
 
@@ -81,7 +88,7 @@ def build_compliance_view(findings: list[Finding]) -> dict[str, Any]:
             "metadata": {
                 "schema_version": "1.0",
                 "total_findings": <int>,
-                "framework_count": 4,
+                "framework_count": 5,
             },
             "frameworks": [
                 {
