@@ -65,6 +65,7 @@ class TestGetContent:
             "IAM_ROOT_ACCESS_KEYS_ACTIVE",
             "IAM_ACCOUNT_MFA_NOT_ENABLED",
             "IAM_PASSWORD_POLICY_WEAK",
+            "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS",
         ]:
             content = get_content(finding_type_id)
             assert content["title"], f"{finding_type_id} has empty title"

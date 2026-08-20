@@ -113,6 +113,35 @@ class TestFetchAwsData:
         assert "_error" not in policy
         assert policy["PasswordPolicy"]["MinimumPasswordLength"] == 16
 
+    def test_iam_section_has_list_users_and_user_details(self, moto_aws):
+        data = fetch_aws_data()
+        assert "list_users" in data["iam"]
+        assert "user_details" in data["iam"]
+
+    def test_user_details_entry_exists_for_every_user(self, moto_aws):
+        # Same invariant as bucket_details/key_details: every user in
+        # list_users must have a corresponding user_details entry.
+        iam = boto3.client("iam", region_name="eu-west-2")
+        iam.create_user(UserName="test-user-alpha")
+        iam.create_user(UserName="test-user-bravo")
+
+        data = fetch_aws_data()
+        listed_usernames = {u["UserName"] for u in data["iam"]["list_users"]["Users"]}
+        detail_usernames = set(data["iam"]["user_details"].keys())
+        assert listed_usernames == detail_usernames
+
+    def test_user_details_reflects_created_access_key(self, moto_aws):
+        iam = boto3.client("iam", region_name="eu-west-2")
+        iam.create_user(UserName="test-user-with-key")
+        iam.create_access_key(UserName="test-user-with-key")
+
+        data = fetch_aws_data()
+        key_metadata = data["iam"]["user_details"]["test-user-with-key"][
+            "list_access_keys"
+        ]["AccessKeyMetadata"]
+        assert len(key_metadata) == 1
+        assert key_metadata[0]["Status"] == "Active"
+
     def test_bucket_details_has_all_seven_s3_calls(self, moto_aws):
         # The normaliser reads all seven per-bucket calls (one per
         # S3 scanner rule). Miss any and that rule silently sees
@@ -215,6 +244,8 @@ class TestFetchAwsData:
         assert isinstance(data["kms"]["list_keys"]["Keys"], list)
         assert isinstance(data["kms"]["key_details"], dict)
         assert isinstance(data["iam"]["get_account_summary"]["SummaryMap"], dict)
+        assert isinstance(data["iam"]["list_users"]["Users"], list)
+        assert isinstance(data["iam"]["user_details"], dict)
         # No custom resources beyond the default VPC/subnets
         assert data["s3"]["list_buckets"]["Buckets"] == []
         assert data["rds"]["describe_db_instances"]["DBInstances"] == []

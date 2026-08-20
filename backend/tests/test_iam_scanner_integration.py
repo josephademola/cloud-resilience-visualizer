@@ -26,20 +26,33 @@ class TestIamScannerEndToEnd:
 
     def test_produces_three_findings_against_misconfigured_account(self):
         # The mock's account has active root access keys, no MFA,
-        # and no password policy. All three rules fire on the same
-        # account resource.
-        assert len(FINDINGS) == 3
-        finding_type_ids = [f.finding_type_id for f in FINDINGS]
+        # and no password policy. All three account-level rules fire
+        # on the same account resource.
+        account_findings = [f for f in FINDINGS if f.resource_id == "123456789012"]
+        assert len(account_findings) == 3
+        finding_type_ids = [f.finding_type_id for f in account_findings]
         assert finding_type_ids == [
             "IAM_ROOT_ACCESS_KEYS_ACTIVE",
             "IAM_ACCOUNT_MFA_NOT_ENABLED",
             "IAM_PASSWORD_POLICY_WEAK",
         ]
-        assert all(f.resource_id == "123456789012" for f in FINDINGS)
-        severities = {f.finding_type_id: f.severity.value for f in FINDINGS}
+        severities = {f.finding_type_id: f.severity.value for f in account_findings}
         assert severities["IAM_ROOT_ACCESS_KEYS_ACTIVE"] == "critical"
         assert severities["IAM_ACCOUNT_MFA_NOT_ENABLED"] == "high"
         assert severities["IAM_PASSWORD_POLICY_WEAK"] == "medium"
+
+    def test_produces_one_finding_against_the_legacy_service_account(self):
+        # The mock's IAM user has a single old active access key.
+        user_findings = [
+            f for f in FINDINGS
+            if f.resource_id == "cloudres-fintech-legacy-svc-account"
+        ]
+        assert len(user_findings) == 1
+        assert user_findings[0].finding_type_id == "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS"
+        assert user_findings[0].severity.value == "medium"
+
+    def test_produces_four_findings_total(self):
+        assert len(FINDINGS) == 4
 
     def test_all_findings_map_to_all_four_frameworks(self):
         expected_frameworks = {

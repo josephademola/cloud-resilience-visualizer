@@ -17,7 +17,8 @@
       "KMS_KEY_PENDING_DELETION": "21(2)(c) reused from S3_VERSIONING_DISABLED. A completed key deletion permanently destroys access to everything it encrypted — the clearest possible business-continuity and disaster-recovery failure this file maps to anything.",
       "IAM_ROOT_ACCESS_KEYS_ACTIVE": "21(2)(i) is a direct match — root access keys are the highest-privilege credential in the account, and their existence is squarely an access-control-policy failure.",
       "IAM_ACCOUNT_MFA_NOT_ENABLED": "21(2)(j) explicitly names multi-factor authentication. First use of this sub-paragraph in the file — no other finding maps to it, since this is the only one that is specifically an MFA gap rather than a broader access-control or cryptography issue.",
-      "IAM_PASSWORD_POLICY_WEAK": "21(2)(g) covers basic cyber hygiene practices and training. A minimum password length policy is about as textbook a basic-cyber-hygiene control as exists — first use of this sub-paragraph in the file."
+      "IAM_PASSWORD_POLICY_WEAK": "21(2)(g) covers basic cyber hygiene practices and training. A minimum password length policy is about as textbook a basic-cyber-hygiene control as exists — first use of this sub-paragraph in the file.",
+      "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "21(2)(i) reused. An unrotated access key is exactly the kind of credential asset this sub-paragraph's 'asset management' language covers — it's a standing credential that hasn't been through any lifecycle management process."
     }
   },
 
@@ -119,6 +120,14 @@
       "framework": "nis2",
       "reference_id": "Article 21(2)(g)",
       "label": "Basic cyber hygiene practices and cybersecurity training"
+    }
+  ],
+
+  "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(i)",
+      "label": "Access control policies and asset management"
     }
   ]
 }

@@ -1,20 +1,24 @@
 """
 IAM misconfiguration scanner.
 
-Produces Finding objects for account-wide IAM misconfigurations.
+Produces Finding objects for account-wide IAM misconfigurations and
+per-user IAM hygiene issues.
 
 Current rules:
     - Root user has active access keys         -> CRITICAL
     - Root user does not have MFA enabled       -> HIGH
     - Account password policy is weak/missing  -> MEDIUM
+    - Active access key older than 90 days     -> MEDIUM
 
 Design notes:
 
-- Unlike s3_scanner.py and kms_scanner.py, this scanner doesn't walk
-  a list of resources — there is at most one 'account' node in the
-  topology (see aws_normalizer._normalize_account), representing the
-  whole AWS account. Findings here are facts about the account as a
-  whole, not about any specific bucket, key, or instance.
+- Two different node shapes, two different rule groups. The first
+  three rules walk the single 'account' node in the topology (see
+  aws_normalizer._normalize_account) — facts about the whole AWS
+  account, not any specific resource. The fourth rule walks
+  'iam_user' nodes instead (see aws_normalizer._normalize_iam_users),
+  one per IAM user, the same per-resource shape as S3 buckets or KMS
+  keys. scan_iam() dispatches on node type to the matching rule group.
 
 - Same _build_finding pattern as the other scanners: content from
   finding_content.json, framework references from the mapping
@@ -37,10 +41,17 @@ Design notes:
   is a policy judgment call that belongs in the scanner rule, not
   baked silently into the normaliser. None (no policy configured at
   all) is treated as weak — fail-closed.
+
+- _check_access_key_age is the only rule in this codebase that reads
+  the current time. That is confined here deliberately, never in the
+  normaliser — see docs/design_decisions.md #10 for why an age-based
+  check is a narrow, documented exception to "deterministic output
+  everywhere."
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from app.mappings.loader import get_framework_references
@@ -50,18 +61,27 @@ from app.scanners.content_loader import get_content
 
 def scan_iam(topology: dict[str, Any]) -> list[Finding]:
     """
-    Walk the account node in the topology and return all findings.
+    Walk the account and IAM user nodes in the topology and return
+    all findings.
     """
     findings: list[Finding] = []
 
-    rules = (
+    account_rules = (
         _check_root_access_keys,
         _check_account_mfa,
         _check_password_policy,
     )
+    user_rules = (
+        _check_access_key_age,
+    )
 
     for node in topology.get("nodes", []):
-        if node.get("type") != "account":
+        node_type = node.get("type")
+        if node_type == "account":
+            rules = account_rules
+        elif node_type == "iam_user":
+            rules = user_rules
+        else:
             continue
 
         for rule in rules:
@@ -104,6 +124,53 @@ def _check_password_policy(account: dict[str, Any]) -> Finding | None:
     if min_length is not None and min_length >= _MIN_PASSWORD_LENGTH:
         return None
     return _build_finding("IAM_PASSWORD_POLICY_WEAK", account["id"])
+
+
+# Industry-standard rotation window. Also a hardcoded, visible
+# constant rather than a magic number.
+_MAX_ACCESS_KEY_AGE_DAYS = 90
+
+
+def _check_access_key_age(user: dict[str, Any]) -> Finding | None:
+    """
+    A user must not have any active access key older than 90 days.
+
+    One finding per user, not per key: if any active key is too old,
+    the user gets flagged, the same per-resource granularity every
+    other scanner in this codebase uses. A user is fail-closed
+    against an unparseable creation date the same way a missing
+    protection-signal property would be — if we can't confirm a key
+    is recent, we don't assume it is.
+    """
+    props = user.get("properties", {})
+    now = datetime.now(timezone.utc)
+
+    for key in props.get("access_keys", []):
+        if key.get("status") != "Active":
+            continue
+
+        create_date = _parse_iso_datetime(key.get("create_date"))
+        if create_date is None:
+            return _build_finding("IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS", user["id"])
+
+        age_days = (now - create_date).days
+        if age_days > _MAX_ACCESS_KEY_AGE_DAYS:
+            return _build_finding("IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS", user["id"])
+
+    return None
+
+
+def _parse_iso_datetime(value: Any) -> datetime | None:
+    """Parse an ISO-8601 string into a timezone-aware datetime, or None."""
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
 
 
 # ---- Shared finding constructor ----
