@@ -14,12 +14,14 @@ Design notes:
   region — whatever `aws configure` set up on this machine. No
   hardcoded credentials, no hardcoded region.
 
-- Per-bucket S3 calls (ACL, PAB, encryption) can fail per-bucket
-  without invalidating the whole scan. We catch ClientError and
-  produce the '_error' marker the mock uses. The normaliser's
-  helpers already treat missing keys as fail-closed, so an error
-  on encryption fetch becomes 'encryption not enabled' downstream —
-  which is the right security default.
+- Per-bucket S3 calls (ACL, PAB, encryption, versioning, logging,
+  lifecycle, policy) and per-key KMS calls (describe_key,
+  rotation status) can fail individually without invalidating the
+  whole scan. We catch ClientError and produce the '_error' marker
+  the mock uses. The normaliser's helpers already treat missing keys
+  as fail-closed, so an error on encryption fetch becomes
+  'encryption not enabled' downstream — which is the right security
+  default.
 
 - boto3's 'ResponseMetadata' key gets stripped from every response
   before returning. That metadata contains request IDs and HTTP
@@ -52,6 +54,7 @@ def fetch_aws_data() -> dict[str, Any]:
     ec2 = boto3.client("ec2")
     rds = boto3.client("rds")
     s3 = boto3.client("s3")
+    kms = boto3.client("kms")
 
     return {
         "ec2": {
@@ -72,15 +75,19 @@ def fetch_aws_data() -> dict[str, Any]:
             "list_buckets": _strip_metadata(s3.list_buckets()),
             "bucket_details": _fetch_bucket_details(s3),
         },
+        "kms": {
+            "list_keys": _strip_metadata(kms.list_keys()),
+            "key_details": _fetch_kms_key_details(kms),
+        },
     }
 
 
 def _fetch_bucket_details(s3) -> dict[str, dict]:
     """
-    For each bucket in the account, fetch ACL, PAB, and encryption
-    config. Per-bucket errors are captured as '_error' markers
-    rather than propagated — one broken bucket shouldn't kill the
-    whole scan.
+    For each bucket in the account, fetch ACL, PAB, encryption,
+    versioning, logging, lifecycle, and policy config. Per-bucket
+    errors are captured as '_error' markers rather than propagated —
+    one broken bucket shouldn't kill the whole scan.
     """
     buckets_response = s3.list_buckets()
     details: dict[str, dict] = {}
@@ -95,6 +102,40 @@ def _fetch_bucket_details(s3) -> dict[str, dict]:
             "get_bucket_encryption": _safe_bucket_call(
                 s3.get_bucket_encryption, name
             ),
+            "get_bucket_versioning": _safe_bucket_call(
+                s3.get_bucket_versioning, name
+            ),
+            "get_bucket_logging": _safe_bucket_call(
+                s3.get_bucket_logging, name
+            ),
+            "get_bucket_lifecycle_configuration": _safe_bucket_call(
+                s3.get_bucket_lifecycle_configuration, name
+            ),
+            "get_bucket_policy": _safe_bucket_call(
+                s3.get_bucket_policy, name
+            ),
+        }
+    return details
+
+
+def _fetch_kms_key_details(kms) -> dict[str, dict]:
+    """
+    For each KMS key in the account, fetch its metadata and rotation
+    status. Per-key errors are captured as '_error' markers rather
+    than propagated, same tolerance as per-bucket S3 detail calls —
+    for example, get_key_rotation_status raises for asymmetric or
+    HMAC keys, which don't support rotation at all.
+    """
+    keys_response = kms.list_keys()
+    details: dict[str, dict] = {}
+
+    for key in keys_response.get("Keys", []):
+        key_id = key["KeyId"]
+        details[key_id] = {
+            "describe_key": _safe_kms_call(kms.describe_key, key_id),
+            "get_key_rotation_status": _safe_kms_call(
+                kms.get_key_rotation_status, key_id
+            ),
         }
     return details
 
@@ -106,6 +147,19 @@ def _safe_bucket_call(method, bucket_name: str) -> dict:
     """
     try:
         response = method(Bucket=bucket_name)
+        return _strip_metadata(response)
+    except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code", "UnknownError")
+        return {"_error": error_code}
+
+
+def _safe_kms_call(method, key_id: str) -> dict:
+    """
+    Call a per-key KMS method. On success, return the response minus
+    boto3 metadata. On failure, return an '_error' marker.
+    """
+    try:
+        response = method(KeyId=key_id)
         return _strip_metadata(response)
     except ClientError as e:
         error_code = e.response.get("Error", {}).get("Code", "UnknownError")
