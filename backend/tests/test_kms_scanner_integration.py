@@ -41,12 +41,13 @@ class TestKmsScannerEndToEnd:
         assert severities["KMS_KEY_ROTATION_DISABLED"] == "high"
         assert severities["KMS_KEY_PENDING_DELETION"] == "critical"
 
-    def test_all_findings_map_to_all_four_frameworks(self):
+    def test_all_findings_map_to_all_five_frameworks(self):
         expected_frameworks = {
             "nis2",
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
+            "confidential",
         }
         for finding in FINDINGS:
             frameworks_present = {

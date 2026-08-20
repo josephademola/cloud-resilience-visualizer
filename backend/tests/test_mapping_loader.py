@@ -1,7 +1,7 @@
 """
 Unit tests for app.mappings.loader.
 
-The loader reads all four framework JSON files and provides a single
+The loader reads all five framework JSON files and provides a single
 lookup by finding_type_id. These tests verify:
 
   - Known finding types return references from every framework that
@@ -29,10 +29,11 @@ class TestGetFrameworkReferences:
         refs = get_framework_references("S3_PUBLIC_VIA_ACL")
         assert len(refs) > 0
 
-    def test_combines_references_from_all_four_frameworks(self):
+    def test_combines_references_from_all_five_frameworks(self):
         # S3_PUBLIC_VIA_ACL has entries in nis2, ncsc_caf, mitre_attack,
-        # and cyber_essentials mapping files. The loader must combine
-        # them so a downstream reader sees all four framework names.
+        # cyber_essentials, and confidential mapping files. The loader
+        # must combine them so a downstream reader sees all five
+        # framework names.
         refs = get_framework_references("S3_PUBLIC_VIA_ACL")
         frameworks_present = {r.framework for r in refs}
         assert frameworks_present == {
@@ -40,6 +41,7 @@ class TestGetFrameworkReferences:
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
+            "confidential",
         }
 
     def test_returns_empty_tuple_for_unknown_finding_type(self):

@@ -31,13 +31,14 @@ from app.models.finding import FrameworkReference
 # The mapping files live alongside this loader in app/mappings/.
 _MAPPINGS_DIR = Path(__file__).parent
 
-# Files loaded (order doesn't matter — references from all four
+# Files loaded (order doesn't matter — references from all five
 # get combined into one list per finding-type-id).
 _FRAMEWORK_FILES = (
     "nis2.json",
     "ncsc_caf.json",
     "mitre_attack.json",
     "cyber_essentials.json",
+    "confidential_controls.json",
 )
 
 # Cache populated on first call to _get_mappings().
@@ -50,8 +51,8 @@ def get_framework_references(
     """
     Return all framework references for a given finding type ID.
 
-    Combines entries across all four mapping files. If a finding
-    type appears in three of the four files, this returns references
+    Combines entries across all five mapping files. If a finding
+    type appears in three of the five files, this returns references
     from all three, in file-load order.
 
     Returns an empty tuple if the finding type has no mapping at all

@@ -84,6 +84,7 @@ function renderScoreCards(frameworks) {
         ncsc_caf: "NCSC CAF",
         mitre_attack: "MITRE ATT&amp;CK",
         cyber_essentials: "Cyber Essentials",
+        confidential: "ConfidentialClient",
     };
 
     const cards = frameworks.map(fw => {

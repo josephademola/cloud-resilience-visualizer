@@ -54,12 +54,13 @@ class TestIamScannerEndToEnd:
     def test_produces_four_findings_total(self):
         assert len(FINDINGS) == 4
 
-    def test_all_findings_map_to_all_four_frameworks(self):
+    def test_all_findings_map_to_all_five_frameworks(self):
         expected_frameworks = {
             "nis2",
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
+            "confidential",
         }
         for finding in FINDINGS:
             frameworks_present = {
