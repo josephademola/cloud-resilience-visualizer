@@ -73,6 +73,13 @@ class TestGetContent:
             assert len(content["description"]) > 50  # not a stub
             assert len(content["remediation"]) > 50  # not a stub
 
+    def test_returns_content_for_account_cloudtrail_disabled(self):
+        content = get_content("ACCOUNT_CLOUDTRAIL_DISABLED")
+        assert content["title"], "ACCOUNT_CLOUDTRAIL_DISABLED has empty title"
+        assert content["severity"] in {"low", "medium", "high", "critical"}
+        assert len(content["description"]) > 50  # not a stub
+        assert len(content["remediation"]) > 50  # not a stub
+
     def test_raises_key_error_for_unknown_finding_type(self):
         # Content is a hard requirement — a Finding without a title,
         # description, and remediation is broken. Fail fast rather

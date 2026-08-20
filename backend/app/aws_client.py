@@ -14,14 +14,16 @@ Design notes:
   region — whatever `aws configure` set up on this machine. No
   hardcoded credentials, no hardcoded region.
 
-- Per-bucket S3 calls (ACL, PAB, encryption, versioning, logging,
-  lifecycle, policy) and per-key KMS calls (describe_key,
-  rotation status) can fail individually without invalidating the
-  whole scan. We catch ClientError and produce the '_error' marker
-  the mock uses. The normaliser's helpers already treat missing keys
-  as fail-closed, so an error on encryption fetch becomes
-  'encryption not enabled' downstream — which is the right security
-  default.
+- Every per-resource or account-wide call that could plausibly fail
+  in a healthy account (per-bucket S3 calls, per-key KMS calls,
+  per-user IAM calls, per-trail CloudTrail calls, and account-wide
+  calls like get_account_password_policy) goes through the single
+  _safe_call() helper, which catches ClientError and produces the
+  '_error' marker the mock uses, rather than each resource type
+  having its own near-identical wrapper. The normaliser's helpers
+  already treat missing keys as fail-closed, so an error on
+  encryption fetch becomes 'encryption not enabled' downstream —
+  which is the right security default.
 
 - boto3's 'ResponseMetadata' key gets stripped from every response
   before returning. That metadata contains request IDs and HTTP
@@ -57,6 +59,7 @@ def fetch_aws_data() -> dict[str, Any]:
     kms = boto3.client("kms")
     iam = boto3.client("iam")
     sts = boto3.client("sts")
+    cloudtrail = boto3.client("cloudtrail")
 
     return {
         "ec2": {
@@ -90,6 +93,10 @@ def fetch_aws_data() -> dict[str, Any]:
             "list_users": _strip_metadata(iam.list_users()),
             "user_details": _fetch_iam_user_details(iam),
         },
+        "cloudtrail": {
+            "describe_trails": _strip_metadata(cloudtrail.describe_trails()),
+            "trail_status": _fetch_trail_statuses(cloudtrail),
+        },
     }
 
 
@@ -106,24 +113,24 @@ def _fetch_bucket_details(s3) -> dict[str, dict]:
     for bucket in buckets_response.get("Buckets", []):
         name = bucket["Name"]
         details[name] = {
-            "get_bucket_acl": _safe_bucket_call(s3.get_bucket_acl, name),
-            "get_public_access_block": _safe_bucket_call(
-                s3.get_public_access_block, name
+            "get_bucket_acl": _safe_call(s3.get_bucket_acl, Bucket=name),
+            "get_public_access_block": _safe_call(
+                s3.get_public_access_block, Bucket=name
             ),
-            "get_bucket_encryption": _safe_bucket_call(
-                s3.get_bucket_encryption, name
+            "get_bucket_encryption": _safe_call(
+                s3.get_bucket_encryption, Bucket=name
             ),
-            "get_bucket_versioning": _safe_bucket_call(
-                s3.get_bucket_versioning, name
+            "get_bucket_versioning": _safe_call(
+                s3.get_bucket_versioning, Bucket=name
             ),
-            "get_bucket_logging": _safe_bucket_call(
-                s3.get_bucket_logging, name
+            "get_bucket_logging": _safe_call(
+                s3.get_bucket_logging, Bucket=name
             ),
-            "get_bucket_lifecycle_configuration": _safe_bucket_call(
-                s3.get_bucket_lifecycle_configuration, name
+            "get_bucket_lifecycle_configuration": _safe_call(
+                s3.get_bucket_lifecycle_configuration, Bucket=name
             ),
-            "get_bucket_policy": _safe_bucket_call(
-                s3.get_bucket_policy, name
+            "get_bucket_policy": _safe_call(
+                s3.get_bucket_policy, Bucket=name
             ),
         }
     return details
@@ -143,9 +150,9 @@ def _fetch_kms_key_details(kms) -> dict[str, dict]:
     for key in keys_response.get("Keys", []):
         key_id = key["KeyId"]
         details[key_id] = {
-            "describe_key": _safe_kms_call(kms.describe_key, key_id),
-            "get_key_rotation_status": _safe_kms_call(
-                kms.get_key_rotation_status, key_id
+            "describe_key": _safe_call(kms.describe_key, KeyId=key_id),
+            "get_key_rotation_status": _safe_call(
+                kms.get_key_rotation_status, KeyId=key_id
             ),
         }
     return details
@@ -164,63 +171,45 @@ def _fetch_iam_user_details(iam) -> dict[str, dict]:
     for user in users_response.get("Users", []):
         username = user["UserName"]
         details[username] = {
-            "list_access_keys": _safe_iam_user_call(
-                iam.list_access_keys, username
+            "list_access_keys": _safe_call(
+                iam.list_access_keys, UserName=username
             ),
         }
     return details
 
 
-def _safe_iam_user_call(method, username: str) -> dict:
+def _fetch_trail_statuses(cloudtrail) -> dict[str, dict]:
     """
-    Call a per-user IAM method. On success, return the response minus
-    boto3 metadata. On failure, return an '_error' marker.
+    For each CloudTrail trail in the account, fetch its logging
+    status. Per-trail errors are captured as '_error' markers rather
+    than propagated, same tolerance as every other per-resource
+    detail call. Empty when the account has no trails at all.
+    """
+    trails_response = cloudtrail.describe_trails()
+    statuses: dict[str, dict] = {}
+
+    for trail in trails_response.get("trailList", []):
+        name = trail["Name"]
+        statuses[name] = _safe_call(cloudtrail.get_trail_status, Name=name)
+
+    return statuses
+
+
+def _safe_call(method, **kwargs) -> dict:
+    """
+    Call an AWS API method — with or without an identifying keyword
+    argument (Bucket=, KeyId=, UserName=, Name=, or none at all for
+    an account-wide call like get_account_summary). On success,
+    return the response minus boto3 metadata. On failure, return an
+    '_error' marker rather than propagating: a failure here is often
+    expected, not exceptional — a healthy account that simply never
+    configured the thing being asked about (NoSuchEntityException for
+    no password policy), or a resource that doesn't support the
+    operation (get_key_rotation_status on an asymmetric KMS key). One
+    broken resource shouldn't invalidate the whole scan.
     """
     try:
-        response = method(UserName=username)
-        return _strip_metadata(response)
-    except ClientError as e:
-        error_code = e.response.get("Error", {}).get("Code", "UnknownError")
-        return {"_error": error_code}
-
-
-def _safe_bucket_call(method, bucket_name: str) -> dict:
-    """
-    Call a per-bucket S3 method. On success, return the response
-    minus boto3 metadata. On failure, return an '_error' marker.
-    """
-    try:
-        response = method(Bucket=bucket_name)
-        return _strip_metadata(response)
-    except ClientError as e:
-        error_code = e.response.get("Error", {}).get("Code", "UnknownError")
-        return {"_error": error_code}
-
-
-def _safe_kms_call(method, key_id: str) -> dict:
-    """
-    Call a per-key KMS method. On success, return the response minus
-    boto3 metadata. On failure, return an '_error' marker.
-    """
-    try:
-        response = method(KeyId=key_id)
-        return _strip_metadata(response)
-    except ClientError as e:
-        error_code = e.response.get("Error", {}).get("Code", "UnknownError")
-        return {"_error": error_code}
-
-
-def _safe_call(method) -> dict:
-    """
-    Call an account-wide method that takes no resource-identifying
-    argument (e.g. get_account_password_policy). On success, return
-    the response minus boto3 metadata. On failure — expected in a
-    healthy account that simply never configured the thing being
-    asked about, e.g. NoSuchEntityException for no password policy —
-    return an '_error' marker.
-    """
-    try:
-        response = method()
+        response = method(**kwargs)
         return _strip_metadata(response)
     except ClientError as e:
         error_code = e.response.get("Error", {}).get("Code", "UnknownError")

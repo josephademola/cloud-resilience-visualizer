@@ -819,7 +819,7 @@ class TestNormalizeKmsKeys:
 # --- _normalize_account --------------------------------------------------
 class TestNormalizeAccount:
 
-    def test_returns_account_node_with_all_three_iam_properties(self):
+    def test_returns_account_node_with_all_iam_and_cloudtrail_properties(self):
         iam_data = {
             "account_id": "123456789012",
             "get_account_summary": {
@@ -832,7 +832,13 @@ class TestNormalizeAccount:
                 "PasswordPolicy": {"MinimumPasswordLength": 8}
             },
         }
-        assert _normalize_account(iam_data) == [
+        cloudtrail_data = {
+            "describe_trails": {
+                "trailList": [{"Name": "main-trail"}]
+            },
+            "trail_status": {"main-trail": {"IsLogging": True}},
+        }
+        assert _normalize_account(iam_data, cloudtrail_data) == [
             {
                 "id": "123456789012",
                 "type": "account",
@@ -842,9 +848,45 @@ class TestNormalizeAccount:
                     "root_access_keys_present": True,
                     "account_mfa_enabled": False,
                     "password_policy_min_length": 8,
+                    "cloudtrail_logging_enabled": True,
                 },
             }
         ]
+
+    def test_cloudtrail_logging_disabled_when_no_trails_exist(self):
+        iam_data = {"account_id": "123456789012"}
+        cloudtrail_data = {"describe_trails": {"trailList": []}}
+        nodes = _normalize_account(iam_data, cloudtrail_data)
+        assert nodes[0]["properties"]["cloudtrail_logging_enabled"] is False
+
+    def test_cloudtrail_logging_disabled_when_trail_exists_but_not_logging(self):
+        iam_data = {"account_id": "123456789012"}
+        cloudtrail_data = {
+            "describe_trails": {"trailList": [{"Name": "stopped-trail"}]},
+            "trail_status": {"stopped-trail": {"IsLogging": False}},
+        }
+        nodes = _normalize_account(iam_data, cloudtrail_data)
+        assert nodes[0]["properties"]["cloudtrail_logging_enabled"] is False
+
+    def test_cloudtrail_logging_enabled_when_any_trail_is_logging(self):
+        # Two trails, only one logging — still counts as covered.
+        iam_data = {"account_id": "123456789012"}
+        cloudtrail_data = {
+            "describe_trails": {
+                "trailList": [{"Name": "stopped-trail"}, {"Name": "active-trail"}]
+            },
+            "trail_status": {
+                "stopped-trail": {"IsLogging": False},
+                "active-trail": {"IsLogging": True},
+            },
+        }
+        nodes = _normalize_account(iam_data, cloudtrail_data)
+        assert nodes[0]["properties"]["cloudtrail_logging_enabled"] is True
+
+    def test_cloudtrail_logging_defaults_to_false_when_no_cloudtrail_data(self):
+        # cloudtrail_data is an optional second argument.
+        nodes = _normalize_account({"account_id": "123456789012"})
+        assert nodes[0]["properties"]["cloudtrail_logging_enabled"] is False
 
     def test_password_policy_min_length_is_none_when_no_policy_configured(self):
         # Real boto3 raises NoSuchEntityException; our mock convention

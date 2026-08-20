@@ -59,7 +59,7 @@ class TestFetchAwsData:
         # Top-level keys must match mock_aws.json exactly so the
         # normaliser downstream can process either data source.
         data = fetch_aws_data()
-        assert set(data.keys()) == {"ec2", "rds", "s3", "kms", "iam"}
+        assert set(data.keys()) == {"ec2", "rds", "s3", "kms", "iam", "cloudtrail"}
 
     def test_ec2_section_has_all_expected_service_keys(self, moto_aws):
         # The normaliser calls specific keys under "ec2" — miss any
@@ -141,6 +141,70 @@ class TestFetchAwsData:
         ]["AccessKeyMetadata"]
         assert len(key_metadata) == 1
         assert key_metadata[0]["Status"] == "Active"
+
+    def test_cloudtrail_section_has_describe_trails_and_trail_status(self, moto_aws):
+        data = fetch_aws_data()
+        assert "describe_trails" in data["cloudtrail"]
+        assert "trail_status" in data["cloudtrail"]
+        assert isinstance(data["cloudtrail"]["describe_trails"]["trailList"], list)
+        assert isinstance(data["cloudtrail"]["trail_status"], dict)
+
+    def test_trail_status_entry_exists_for_every_trail(self, moto_aws):
+        cloudtrail = boto3.client("cloudtrail", region_name="eu-west-2")
+        s3 = boto3.client("s3", region_name="eu-west-2")
+        s3.create_bucket(
+            Bucket="test-cloudtrail-bucket",
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3.put_bucket_policy(
+            Bucket="test-cloudtrail-bucket",
+            Policy=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Principal": {"Service": "cloudtrail.amazonaws.com"},
+                    "Action": "s3:PutObject",
+                    "Resource": "arn:aws:s3:::test-cloudtrail-bucket/*",
+                }],
+            }),
+        )
+        cloudtrail.create_trail(
+            Name="test-trail", S3BucketName="test-cloudtrail-bucket"
+        )
+
+        data = fetch_aws_data()
+        trail_names = {
+            t["Name"] for t in data["cloudtrail"]["describe_trails"]["trailList"]
+        }
+        status_names = set(data["cloudtrail"]["trail_status"].keys())
+        assert trail_names == status_names
+
+    def test_trail_status_reflects_logging_state(self, moto_aws):
+        cloudtrail = boto3.client("cloudtrail", region_name="eu-west-2")
+        s3 = boto3.client("s3", region_name="eu-west-2")
+        s3.create_bucket(
+            Bucket="test-cloudtrail-bucket-2",
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3.put_bucket_policy(
+            Bucket="test-cloudtrail-bucket-2",
+            Policy=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Effect": "Allow",
+                    "Principal": {"Service": "cloudtrail.amazonaws.com"},
+                    "Action": "s3:PutObject",
+                    "Resource": "arn:aws:s3:::test-cloudtrail-bucket-2/*",
+                }],
+            }),
+        )
+        cloudtrail.create_trail(
+            Name="test-trail-2", S3BucketName="test-cloudtrail-bucket-2"
+        )
+        cloudtrail.start_logging(Name="test-trail-2")
+
+        data = fetch_aws_data()
+        assert data["cloudtrail"]["trail_status"]["test-trail-2"]["IsLogging"] is True
 
     def test_bucket_details_has_all_seven_s3_calls(self, moto_aws):
         # The normaliser reads all seven per-bucket calls (one per
@@ -246,6 +310,7 @@ class TestFetchAwsData:
         assert isinstance(data["iam"]["get_account_summary"]["SummaryMap"], dict)
         assert isinstance(data["iam"]["list_users"]["Users"], list)
         assert isinstance(data["iam"]["user_details"], dict)
+        assert isinstance(data["cloudtrail"]["describe_trails"]["trailList"], list)
         # No custom resources beyond the default VPC/subnets
         assert data["s3"]["list_buckets"]["Buckets"] == []
         assert data["rds"]["describe_db_instances"]["DBInstances"] == []
