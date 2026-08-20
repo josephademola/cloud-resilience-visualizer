@@ -818,11 +818,14 @@ class TestNormalizeKmsKeys:
 # --- _normalize_account --------------------------------------------------
 class TestNormalizeAccount:
 
-    def test_returns_account_node_with_root_keys_present(self):
+    def test_returns_account_node_with_both_iam_flags(self):
         iam_data = {
             "account_id": "123456789012",
             "get_account_summary": {
-                "SummaryMap": {"AccountAccessKeysPresent": 1}
+                "SummaryMap": {
+                    "AccountAccessKeysPresent": 1,
+                    "AccountMFAEnabled": 0,
+                }
             },
         }
         assert _normalize_account(iam_data) == [
@@ -831,24 +834,32 @@ class TestNormalizeAccount:
                 "type": "account",
                 "name": "AWS Account 123456789012",
                 "parent_id": None,
-                "properties": {"root_access_keys_present": True},
+                "properties": {
+                    "root_access_keys_present": True,
+                    "account_mfa_enabled": False,
+                },
             }
         ]
 
-    def test_returns_account_node_with_root_keys_absent(self):
+    def test_returns_account_node_with_root_keys_absent_and_mfa_enabled(self):
         iam_data = {
             "account_id": "123456789012",
             "get_account_summary": {
-                "SummaryMap": {"AccountAccessKeysPresent": 0}
+                "SummaryMap": {
+                    "AccountAccessKeysPresent": 0,
+                    "AccountMFAEnabled": 1,
+                }
             },
         }
         nodes = _normalize_account(iam_data)
         assert nodes[0]["properties"]["root_access_keys_present"] is False
+        assert nodes[0]["properties"]["account_mfa_enabled"] is True
 
-    def test_defaults_root_keys_to_false_when_summary_missing(self):
+    def test_defaults_both_iam_flags_to_false_when_summary_missing(self):
         iam_data = {"account_id": "123456789012"}
         nodes = _normalize_account(iam_data)
         assert nodes[0]["properties"]["root_access_keys_present"] is False
+        assert nodes[0]["properties"]["account_mfa_enabled"] is False
 
     def test_returns_empty_list_when_account_id_missing(self):
         assert _normalize_account({}) == []

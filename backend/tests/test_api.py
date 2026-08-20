@@ -76,16 +76,15 @@ class TestFindingsEndpoint:
         assert set(data.keys()) == {"metadata", "findings"}
         assert data["metadata"]["schema_version"] == "1.0"
 
-    def test_response_has_ten_findings_across_three_resources(self, client):
+    def test_response_has_eleven_findings_across_three_resources(self, client):
         # Seven S3 findings on the misconfigured uploads bucket, two
         # KMS findings (rotation disabled, pending deletion) on the
-        # same doomed customer-managed key, and one IAM finding on
-        # the account itself — the first finding not tied to any
-        # specific bucket, key, or instance.
+        # same doomed customer-managed key, and two IAM findings
+        # (root keys active, MFA disabled) on the account itself.
         response = client.get("/api/findings")
         data = response.json()
-        assert len(data["findings"]) == 10
-        assert data["metadata"]["finding_count"] == 10
+        assert len(data["findings"]) == 11
+        assert data["metadata"]["finding_count"] == 11
         resource_ids = {f["resource_id"] for f in data["findings"]}
         assert resource_ids == {
             "cloudres-fintech-uploads",
@@ -141,7 +140,7 @@ class TestComplianceEndpoint:
     def test_response_reflects_scanner_findings(self, client):
         response = client.get("/api/compliance")
         data = response.json()
-        assert data["metadata"]["total_findings"] == 10
+        assert data["metadata"]["total_findings"] == 11
 
 
 # --- GET /api/report -------------------------------------------------

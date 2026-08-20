@@ -77,5 +77,12 @@
     "severity": "critical",
     "description": "The account's root user has one or more active access keys. Root has no permissions boundary: it bypasses every IAM policy, every SCP, and every permissions boundary in the account, and it cannot be restricted the way an IAM user or role can. There is no legitimate day-to-day workflow that needs root API access; AWS's own guidance is that root credentials should be locked away and used only for the handful of account-level tasks that specifically require them. An active root access key is a standing, unrestrictable credential that, if leaked, gives an attacker complete and immediate control of the account with no IAM guardrail able to stop them.",
     "remediation": "Deactivate and delete the root access keys. Sign in as root, go to My Security Credentials -> Access keys, and deactivate then delete each key listed there. This must be done via the AWS Management Console or CLI using root's own session; it cannot be done by an IAM user, even an administrator, since nobody else has permission to manage root's credentials. Going forward, root should not have access keys at all: use IAM users or roles with least-privilege policies for every programmatic task, and enable MFA on the root user itself."
+  },
+
+  "IAM_ACCOUNT_MFA_NOT_ENABLED": {
+    "title": "Root user does not have MFA enabled",
+    "severity": "high",
+    "description": "The account's root user can sign in with just a password, no second factor required. Root cannot be restricted by any IAM policy or SCP, so a leaked or guessed root password alone is enough for complete account takeover, with no additional barrier. This is one of the first checks in almost every cloud security audit and compliance framework, precisely because it is cheap to fix and catastrophic to leave open: a single reused or phished password becomes full administrative control of every resource in the account.",
+    "remediation": "Enable MFA on the root user. Sign in as root, go to My Security Credentials -> Multi-factor authentication (MFA) -> Assign MFA device, and register a virtual MFA app, hardware key, or FIDO security key. This can only be configured by root itself, in the same way root's access keys can only be managed by root. A hardware or FIDO key is preferable to a virtual authenticator app for the root user specifically, since it removes the phone or app as a single point of failure for the account's highest-privilege identity."
   }
 }

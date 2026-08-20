@@ -399,6 +399,7 @@ def _normalize_account(iam_data: dict[str, Any]) -> list[TopologyNode]:
             "root_access_keys_present": summary.get(
                 "AccountAccessKeysPresent", 0
             ) > 0,
+            "account_mfa_enabled": summary.get("AccountMFAEnabled", 0) > 0,
         },
     }]
 

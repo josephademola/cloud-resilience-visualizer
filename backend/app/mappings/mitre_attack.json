@@ -15,7 +15,8 @@
       "S3_TLS_NOT_ENFORCED": "T1557 (Adversary-in-the-Middle) is not part of the Cloud IaaS sub-matrix this file otherwise draws from — it's a general network technique. Included anyway as the closest honest fit: an attacker positioned on the network path can read plaintext S3 requests when TLS is not enforced. Noted as a departure from the sub-matrix scope rather than presented as if it belonged there.",
       "KMS_KEY_ROTATION_DISABLED": "T1530 by extension, same reasoning as the S3 encryption findings: a key that never rotates means a single compromise of the key material exposes everything ever encrypted under it, for as long as that data exists. Secondary consequence, not a primary enablement.",
       "KMS_KEY_PENDING_DELETION": "T1485 (Data Destruction) — the same technique S3_VERSIONING_DISABLED maps to, but unlike that weaker fit, this one is direct: a completed key deletion makes everything encrypted under it permanently unreadable, which is definitionally data destruction. Attackers have used KMS key deletion this way deliberately against S3-encrypted data. The strongest-confidence mapping in this file after S3_PUBLIC_VIA_ACL.",
-      "IAM_ROOT_ACCESS_KEYS_ACTIVE": "T1078.004 (Valid Accounts: Cloud Accounts). Worth contrasting with S3_PUBLIC_ACCESS_BLOCK_DISABLED above: T1078.004 was the wrong mapping there and got corrected to T1580, specifically because PAB being off doesn't involve credentials at all. Active root access keys ARE compromised-or-available credentials in exactly the sense T1078.004 describes — this is the clean, correct use of the technique the earlier correction was implicitly reserving it for."
+      "IAM_ROOT_ACCESS_KEYS_ACTIVE": "T1078.004 (Valid Accounts: Cloud Accounts). Worth contrasting with S3_PUBLIC_ACCESS_BLOCK_DISABLED above: T1078.004 was the wrong mapping there and got corrected to T1580, specifically because PAB being off doesn't involve credentials at all. Active root access keys ARE compromised-or-available credentials in exactly the sense T1078.004 describes — this is the clean, correct use of the technique the earlier correction was implicitly reserving it for.",
+      "IAM_ACCOUNT_MFA_NOT_ENABLED": "T1078.004 again, immediately after IAM_ROOT_ACCESS_KEYS_ACTIVE. This is deliberate reuse, not an oversight: a password with no second factor is exactly as much a 'valid account' credential-compromise vector as an active access key is, for the same root identity. Flagged here so back-to-back identical references read as reasoned rather than copy-pasted."
     }
   },
 
@@ -56,6 +57,10 @@
   ],
 
   "IAM_ROOT_ACCESS_KEYS_ACTIVE": [
+    {"framework": "mitre_attack", "reference_id": "T1078.004", "label": "Valid Accounts: Cloud Accounts (Initial Access tactic)"}
+  ],
+
+  "IAM_ACCOUNT_MFA_NOT_ENABLED": [
     {"framework": "mitre_attack", "reference_id": "T1078.004", "label": "Valid Accounts: Cloud Accounts (Initial Access tactic)"}
   ]
 }

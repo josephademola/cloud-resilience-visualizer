@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-20T17:26:45.555209+00:00",
+    "generated_at": "2026-08-20T17:35:06.269327+00:00",
     "node_count": 11,
     "security_group_count": 3
   },
@@ -148,7 +148,8 @@
       "name": "AWS Account 123456789012",
       "parent_id": null,
       "properties": {
-        "root_access_keys_present": true
+        "root_access_keys_present": true,
+        "account_mfa_enabled": false
       }
     }
   ],

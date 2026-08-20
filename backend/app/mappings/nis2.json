@@ -15,7 +15,8 @@
       "S3_TLS_NOT_ENFORCED": "21(2)(h) is reused deliberately, not by oversight — the same sub-paragraph already used for S3_ENCRYPTION_DISABLED. NIS2's cryptography clause does not distinguish encryption at rest from encryption in transit, and TLS enforcement is encryption policy applied to data in motion rather than data at rest.",
       "KMS_KEY_ROTATION_DISABLED": "21(2)(h) again — key rotation is a cryptography and encryption policy matter as directly as any finding in this file. First non-S3 finding mapped, same clause as the two S3 cryptography findings above.",
       "KMS_KEY_PENDING_DELETION": "21(2)(c) reused from S3_VERSIONING_DISABLED. A completed key deletion permanently destroys access to everything it encrypted — the clearest possible business-continuity and disaster-recovery failure this file maps to anything.",
-      "IAM_ROOT_ACCESS_KEYS_ACTIVE": "21(2)(i) is a direct match — root access keys are the highest-privilege credential in the account, and their existence is squarely an access-control-policy failure."
+      "IAM_ROOT_ACCESS_KEYS_ACTIVE": "21(2)(i) is a direct match — root access keys are the highest-privilege credential in the account, and their existence is squarely an access-control-policy failure.",
+      "IAM_ACCOUNT_MFA_NOT_ENABLED": "21(2)(j) explicitly names multi-factor authentication. First use of this sub-paragraph in the file — no other finding maps to it, since this is the only one that is specifically an MFA gap rather than a broader access-control or cryptography issue."
     }
   },
 
@@ -101,6 +102,14 @@
       "framework": "nis2",
       "reference_id": "Article 21(2)(i)",
       "label": "Access control policies and asset management"
+    }
+  ],
+
+  "IAM_ACCOUNT_MFA_NOT_ENABLED": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(j)",
+      "label": "Use of multi-factor authentication solutions"
     }
   ]
 }
