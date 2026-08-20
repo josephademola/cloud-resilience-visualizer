@@ -9,6 +9,7 @@ data instead of IAM data.
 from app.models.finding import Finding, Severity
 from app.scanners.account_scanner import (
     _check_cloudtrail_logging,
+    _check_s3_account_pab,
     scan_account,
 )
 
@@ -56,6 +57,38 @@ class TestCheckCloudtrailLogging:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_s3_account_pab ------------------------------------------------
+class TestCheckS3AccountPab:
+
+    def test_returns_finding_when_pab_disabled(self):
+        finding = _check_s3_account_pab(
+            _account(account_s3_block_public_access_enabled=False)
+        )
+        assert finding is not None
+        assert finding.finding_type_id == "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED"
+
+    def test_returns_none_when_pab_enabled(self):
+        finding = _check_s3_account_pab(
+            _account(account_s3_block_public_access_enabled=True)
+        )
+        assert finding is None
+
+    def test_produces_finding_when_property_missing_fail_closed(self):
+        finding = _check_s3_account_pab(_account())
+        assert finding is not None
+        assert finding.finding_type_id == "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED"
+
+    def test_finding_has_high_severity_and_correct_shape(self):
+        finding = _check_s3_account_pab(
+            _account("999988887777", account_s3_block_public_access_enabled=False)
+        )
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.HIGH
+        assert finding.resource_id == "999988887777"
+        assert finding.title == "Account-level S3 Block Public Access not fully enabled"
+        assert len(finding.framework_references) > 0
+
+
 # --- scan_account --------------------------------------------------------
 class TestScanAccount:
 
@@ -78,8 +111,31 @@ class TestScanAccount:
         findings = scan_account(topology)
         assert all(f.resource_id == "123456789012" for f in findings)
 
-    def test_returns_zero_findings_when_cloudtrail_logging_enabled(self):
+    def test_returns_zero_findings_for_clean_account(self):
         topology = {
-            "nodes": [_account(cloudtrail_logging_enabled=True)]
+            "nodes": [
+                _account(
+                    cloudtrail_logging_enabled=True,
+                    account_s3_block_public_access_enabled=True,
+                )
+            ]
         }
         assert scan_account(topology) == []
+
+    def test_returns_two_findings_for_account_with_both_issues(self):
+        topology = {
+            "nodes": [
+                _account(
+                    "123456789012",
+                    cloudtrail_logging_enabled=False,
+                    account_s3_block_public_access_enabled=False,
+                )
+            ]
+        }
+        findings = scan_account(topology)
+        assert len(findings) == 2
+        assert all(f.resource_id == "123456789012" for f in findings)
+        assert [f.finding_type_id for f in findings] == [
+            "ACCOUNT_CLOUDTRAIL_DISABLED",
+            "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED",
+        ]

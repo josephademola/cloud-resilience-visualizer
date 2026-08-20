@@ -187,10 +187,11 @@ class TestNormalizeEndToEnd:
         key_ids = {n["id"] for n in _nodes_of_type("kms_key")}
         assert "aws/s3" not in key_ids
 
-    def test_account_node_has_all_four_account_level_misconfigs(self):
+    def test_account_node_has_all_five_account_level_misconfigs(self):
         # The mock's account-level misconfigs: root has active access
         # keys, MFA is not enabled, no password policy is configured,
-        # and no CloudTrail trail exists.
+        # no CloudTrail trail exists, and account-level S3 Public
+        # Access Block was never configured.
         accounts = _nodes_of_type("account")
         assert len(accounts) == 1
         assert accounts[0]["id"] == "123456789012"
@@ -198,6 +199,7 @@ class TestNormalizeEndToEnd:
         assert accounts[0]["properties"]["account_mfa_enabled"] is False
         assert accounts[0]["properties"]["password_policy_min_length"] is None
         assert accounts[0]["properties"]["cloudtrail_logging_enabled"] is False
+        assert accounts[0]["properties"]["account_s3_block_public_access_enabled"] is False
 
     def test_iam_user_has_one_active_access_key(self):
         # The mock's IAM user has a single active, old access key —

@@ -19,7 +19,8 @@
       "IAM_ACCOUNT_MFA_NOT_ENABLED": "T1078.004 again, immediately after IAM_ROOT_ACCESS_KEYS_ACTIVE. This is deliberate reuse, not an oversight: a password with no second factor is exactly as much a 'valid account' credential-compromise vector as an active access key is, for the same root identity. Flagged here so back-to-back identical references read as reasoned rather than copy-pasted.",
       "IAM_PASSWORD_POLICY_WEAK": "T1110 (Brute Force), a new technique for this file rather than a third T1078.004 reuse. The distinction matters: T1078.004 describes a credential being usable once an attacker already has it, whereas T1110 describes the mechanism that gets them a working credential in the first place — a weak or absent length policy is what makes passwords guessable or crackable at all.",
       "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "T1078.004 a third time, but under a different tactic than the previous two: Persistence rather than Initial Access. T1078 legitimately spans both. Root's active keys and missing MFA are about a credential existing and being usable right now; an old, unrotated key is specifically about how long a valid credential persists as a foothold once an attacker has it, which is what Persistence describes.",
-      "ACCOUNT_CLOUDTRAIL_DISABLED": "T1562.008 (Disable or Modify Cloud Logs), reused from S3_LOGGING_DISABLED — but this time as the clean fit that mapping was documented as lacking. S3_LOGGING_DISABLED's audit note called the technique imperfect because it describes an attacker actively disabling logs, not logs having never existed. Here the two collapse into the same thing: CloudTrail not logging, whether because it was disabled or never configured, is exactly what this technique describes at the account level. The technique this file's PAB correction and S3 logging note were both implicitly reaching for."
+      "ACCOUNT_CLOUDTRAIL_DISABLED": "T1562.008 (Disable or Modify Cloud Logs), reused from S3_LOGGING_DISABLED — but this time as the clean fit that mapping was documented as lacking. S3_LOGGING_DISABLED's audit note called the technique imperfect because it describes an attacker actively disabling logs, not logs having never existed. Here the two collapse into the same thing: CloudTrail not logging, whether because it was disabled or never configured, is exactly what this technique describes at the account level. The technique this file's PAB correction and S3 logging note were both implicitly reaching for.",
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "T1580, the same corrected mapping S3_PUBLIC_ACCESS_BLOCK_DISABLED uses (originally the wrong T1078.004, fixed to T1580). Same reasoning at account scope: an attacker in reconnaissance can discover public buckets across the whole account more easily when this safety net is off, not just on one bucket."
     }
   },
 
@@ -77,5 +78,9 @@
 
   "ACCOUNT_CLOUDTRAIL_DISABLED": [
     {"framework": "mitre_attack", "reference_id": "T1562.008", "label": "Disable or Modify Cloud Logs (Defense Evasion tactic)"}
+  ],
+
+  "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
+    {"framework": "mitre_attack", "reference_id": "T1580", "label": "Cloud Infrastructure Discovery (Discovery tactic)"}
   ]
 }

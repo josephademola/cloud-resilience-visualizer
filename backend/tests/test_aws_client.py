@@ -59,7 +59,9 @@ class TestFetchAwsData:
         # Top-level keys must match mock_aws.json exactly so the
         # normaliser downstream can process either data source.
         data = fetch_aws_data()
-        assert set(data.keys()) == {"ec2", "rds", "s3", "kms", "iam", "cloudtrail"}
+        assert set(data.keys()) == {
+            "ec2", "rds", "s3", "kms", "iam", "cloudtrail", "s3control",
+        }
 
     def test_ec2_section_has_all_expected_service_keys(self, moto_aws):
         # The normaliser calls specific keys under "ec2" — miss any
@@ -178,6 +180,35 @@ class TestFetchAwsData:
         }
         status_names = set(data["cloudtrail"]["trail_status"].keys())
         assert trail_names == status_names
+
+    def test_s3control_section_has_error_marker_when_unset(self, moto_aws):
+        # A fresh moto/real account has no account-level Public
+        # Access Block configured. get_public_access_block raises
+        # NoSuchPublicAccessBlockConfigurationException; _safe_call
+        # must catch it, same as the password policy case.
+        data = fetch_aws_data()
+        assert "get_public_access_block" in data["s3control"]
+        assert "_error" in data["s3control"]["get_public_access_block"]
+
+    def test_s3control_section_reflects_configured_pab(self, moto_aws):
+        sts = boto3.client("sts", region_name="eu-west-2")
+        account_id = sts.get_caller_identity()["Account"]
+
+        s3control = boto3.client("s3control", region_name="eu-west-2")
+        s3control.put_public_access_block(
+            AccountId=account_id,
+            PublicAccessBlockConfiguration={
+                "BlockPublicAcls": True,
+                "IgnorePublicAcls": True,
+                "BlockPublicPolicy": True,
+                "RestrictPublicBuckets": True,
+            },
+        )
+
+        data = fetch_aws_data()
+        pab = data["s3control"]["get_public_access_block"]
+        assert "_error" not in pab
+        assert pab["PublicAccessBlockConfiguration"]["BlockPublicAcls"] is True
 
     def test_trail_status_reflects_logging_state(self, moto_aws):
         cloudtrail = boto3.client("cloudtrail", region_name="eu-west-2")
@@ -311,6 +342,7 @@ class TestFetchAwsData:
         assert isinstance(data["iam"]["list_users"]["Users"], list)
         assert isinstance(data["iam"]["user_details"], dict)
         assert isinstance(data["cloudtrail"]["describe_trails"]["trailList"], list)
+        assert isinstance(data["s3control"]["get_public_access_block"], dict)
         # No custom resources beyond the default VPC/subnets
         assert data["s3"]["list_buckets"]["Buckets"] == []
         assert data["rds"]["describe_db_instances"]["DBInstances"] == []

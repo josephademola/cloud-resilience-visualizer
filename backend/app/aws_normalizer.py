@@ -374,6 +374,7 @@ def _normalize_rds_instances(rds_data: dict[str, Any],) -> list[TopologyNode]:
 def _normalize_account(
     iam_data: dict[str, Any],
     cloudtrail_data: dict[str, Any] | None = None,
+    s3control_data: dict[str, Any] | None = None,
 ) -> list[TopologyNode]:
     """
     Transform account-wide facts from multiple AWS services into a
@@ -410,6 +411,13 @@ def _normalize_account(
         for trail in trails
     )
 
+    # s3control's account-level Public Access Block has the identical
+    # response shape as a bucket's — reuse the existing helper rather
+    # than duplicate the same four-flag check at a different scope.
+    s3control_data = s3control_data or {}
+    account_pab = s3control_data.get("get_public_access_block", {})
+    account_s3_block_public_access_enabled = _is_pab_fully_enabled(account_pab)
+
     return [{
         "id": account_id,
         "type": "account",
@@ -422,6 +430,7 @@ def _normalize_account(
             "account_mfa_enabled": summary.get("AccountMFAEnabled", 0) > 0,
             "password_policy_min_length": min_length,
             "cloudtrail_logging_enabled": cloudtrail_logging_enabled,
+            "account_s3_block_public_access_enabled": account_s3_block_public_access_enabled,
         },
     }]
 
@@ -769,9 +778,9 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
 
     Args:
         aws_data: A dict matching the structure of mock_aws.json.
-            Top-level keys are 'ec2', 's3', 'rds', 'kms', 'iam', and
-            'cloudtrail'. Missing branches are treated as empty (no
-            resources of that service exist).
+            Top-level keys are 'ec2', 's3', 'rds', 'kms', 'iam',
+            'cloudtrail', and 's3control'. Missing branches are
+            treated as empty (no resources of that service exist).
 
     Returns:
         A dict with three keys:
@@ -785,6 +794,7 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     kms_data = aws_data.get("kms", {})
     iam_data = aws_data.get("iam", {})
     cloudtrail_data = aws_data.get("cloudtrail", {})
+    s3control_data = aws_data.get("s3control", {})
 
     # Combine every per-resource normalizer's output into one flat
     # node list. Order is chosen for human readability when reading
@@ -803,7 +813,7 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     nodes.extend(_normalize_s3_buckets(s3_data))
     nodes.extend(_normalize_kms_keys(kms_data))
     nodes.extend(_normalize_iam_users(iam_data))
-    nodes.extend(_normalize_account(iam_data, cloudtrail_data))
+    nodes.extend(_normalize_account(iam_data, cloudtrail_data, s3control_data))
 
     security_groups = _normalize_security_groups(ec2_data)
 

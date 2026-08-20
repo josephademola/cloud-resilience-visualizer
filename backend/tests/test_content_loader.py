@@ -80,6 +80,13 @@ class TestGetContent:
         assert len(content["description"]) > 50  # not a stub
         assert len(content["remediation"]) > 50  # not a stub
 
+    def test_returns_content_for_account_s3_block_public_access_disabled(self):
+        content = get_content("ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED")
+        assert content["title"], "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED has empty title"
+        assert content["severity"] in {"low", "medium", "high", "critical"}
+        assert len(content["description"]) > 50  # not a stub
+        assert len(content["remediation"]) > 50  # not a stub
+
     def test_raises_key_error_for_unknown_finding_type(self):
         # Content is a hard requirement — a Finding without a title,
         # description, and remediation is broken. Fail fast rather

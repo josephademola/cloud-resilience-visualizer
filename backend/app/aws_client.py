@@ -60,6 +60,9 @@ def fetch_aws_data() -> dict[str, Any]:
     iam = boto3.client("iam")
     sts = boto3.client("sts")
     cloudtrail = boto3.client("cloudtrail")
+    s3control = boto3.client("s3control")
+
+    account_id = sts.get_caller_identity()["Account"]
 
     return {
         "ec2": {
@@ -85,7 +88,7 @@ def fetch_aws_data() -> dict[str, Any]:
             "key_details": _fetch_kms_key_details(kms),
         },
         "iam": {
-            "account_id": sts.get_caller_identity()["Account"],
+            "account_id": account_id,
             "get_account_summary": _strip_metadata(iam.get_account_summary()),
             "get_account_password_policy": _safe_call(
                 iam.get_account_password_policy
@@ -96,6 +99,11 @@ def fetch_aws_data() -> dict[str, Any]:
         "cloudtrail": {
             "describe_trails": _strip_metadata(cloudtrail.describe_trails()),
             "trail_status": _fetch_trail_statuses(cloudtrail),
+        },
+        "s3control": {
+            "get_public_access_block": _safe_call(
+                s3control.get_public_access_block, AccountId=account_id
+            ),
         },
     }
 

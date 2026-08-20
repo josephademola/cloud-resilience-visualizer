@@ -7,7 +7,8 @@ Public Access Block, and anything else that describes the account as
 a whole rather than one specific resource.
 
 Current rules:
-    - No trail actively logging the account    -> CRITICAL
+    - No trail actively logging the account         -> CRITICAL
+    - Account-level S3 Public Access Block disabled -> HIGH
 
 Design notes:
 
@@ -26,6 +27,12 @@ Design notes:
   concept — "the account's region" — that doesn't exist anywhere
   else in this codebase. Documented here rather than silently
   narrowed.
+
+- account_s3_block_public_access_enabled is computed in the
+  normaliser by reusing _is_pab_fully_enabled's four-flag logic
+  directly against s3control's response, since it's the identical
+  check at account scope instead of bucket scope. No separate
+  account-level implementation of the same four-flag comparison.
 
 - Same _build_finding pattern as the other scanners.
 """
@@ -47,6 +54,7 @@ def scan_account(topology: dict[str, Any]) -> list[Finding]:
 
     rules = (
         _check_cloudtrail_logging,
+        _check_s3_account_pab,
     )
 
     for node in topology.get("nodes", []):
@@ -70,6 +78,14 @@ def _check_cloudtrail_logging(account: dict[str, Any]) -> Finding | None:
     if props.get("cloudtrail_logging_enabled", False):
         return None
     return _build_finding("ACCOUNT_CLOUDTRAIL_DISABLED", account["id"])
+
+
+def _check_s3_account_pab(account: dict[str, Any]) -> Finding | None:
+    """All four account-level S3 Public Access Block flags must be enabled."""
+    props = account.get("properties", {})
+    if props.get("account_s3_block_public_access_enabled", False):
+        return None
+    return _build_finding("ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED", account["id"])
 
 
 # ---- Shared finding constructor ----

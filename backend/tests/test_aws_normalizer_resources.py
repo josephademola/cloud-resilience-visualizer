@@ -819,7 +819,7 @@ class TestNormalizeKmsKeys:
 # --- _normalize_account --------------------------------------------------
 class TestNormalizeAccount:
 
-    def test_returns_account_node_with_all_iam_and_cloudtrail_properties(self):
+    def test_returns_account_node_with_all_properties(self):
         iam_data = {
             "account_id": "123456789012",
             "get_account_summary": {
@@ -838,7 +838,17 @@ class TestNormalizeAccount:
             },
             "trail_status": {"main-trail": {"IsLogging": True}},
         }
-        assert _normalize_account(iam_data, cloudtrail_data) == [
+        s3control_data = {
+            "get_public_access_block": {
+                "PublicAccessBlockConfiguration": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": True,
+                    "RestrictPublicBuckets": True,
+                }
+            }
+        }
+        assert _normalize_account(iam_data, cloudtrail_data, s3control_data) == [
             {
                 "id": "123456789012",
                 "type": "account",
@@ -849,9 +859,40 @@ class TestNormalizeAccount:
                     "account_mfa_enabled": False,
                     "password_policy_min_length": 8,
                     "cloudtrail_logging_enabled": True,
+                    "account_s3_block_public_access_enabled": True,
                 },
             }
         ]
+
+    def test_account_s3_pab_disabled_when_never_configured(self):
+        # Real boto3 raises NoSuchPublicAccessBlockConfigurationException;
+        # our mock convention represents that as an '_error' marker.
+        # _is_pab_fully_enabled already handles this correctly without
+        # special-casing, since a missing PublicAccessBlockConfiguration
+        # key defaults every flag to False.
+        iam_data = {"account_id": "123456789012"}
+        s3control_data = {
+            "get_public_access_block": {
+                "_error": "NoSuchPublicAccessBlockConfigurationException"
+            }
+        }
+        nodes = _normalize_account(iam_data, s3control_data=s3control_data)
+        assert nodes[0]["properties"]["account_s3_block_public_access_enabled"] is False
+
+    def test_account_s3_pab_disabled_when_any_flag_false(self):
+        iam_data = {"account_id": "123456789012"}
+        s3control_data = {
+            "get_public_access_block": {
+                "PublicAccessBlockConfiguration": {
+                    "BlockPublicAcls": True,
+                    "IgnorePublicAcls": True,
+                    "BlockPublicPolicy": False,
+                    "RestrictPublicBuckets": True,
+                }
+            }
+        }
+        nodes = _normalize_account(iam_data, s3control_data=s3control_data)
+        assert nodes[0]["properties"]["account_s3_block_public_access_enabled"] is False
 
     def test_cloudtrail_logging_disabled_when_no_trails_exist(self):
         iam_data = {"account_id": "123456789012"}
@@ -921,6 +962,7 @@ class TestNormalizeAccount:
         assert nodes[0]["properties"]["root_access_keys_present"] is False
         assert nodes[0]["properties"]["account_mfa_enabled"] is False
         assert nodes[0]["properties"]["password_policy_min_length"] is None
+        assert nodes[0]["properties"]["account_s3_block_public_access_enabled"] is False
 
     def test_returns_empty_list_when_account_id_missing(self):
         assert _normalize_account({}) == []

@@ -76,15 +76,17 @@ class TestFindingsEndpoint:
         assert set(data.keys()) == {"metadata", "findings"}
         assert data["metadata"]["schema_version"] == "1.0"
 
-    def test_response_has_fourteen_findings_across_four_resources(self, client):
+    def test_response_has_fifteen_findings_across_four_resources(self, client):
         # Seven S3 findings on the misconfigured uploads bucket, two
-        # KMS findings on the same doomed customer-managed key, four
-        # account-level findings (3 IAM + CloudTrail disabled), and
-        # one IAM user finding (old access key).
+        # KMS findings on the same doomed customer-managed key, five
+        # account-level findings (3 IAM + CloudTrail + account PAB),
+        # and one IAM user finding (old access key). This is the
+        # last rule in Phase 9a Feature 3 -- 12 ShiftCommute rules
+        # built in total across S3, KMS, IAM, and account scanners.
         response = client.get("/api/findings")
         data = response.json()
-        assert len(data["findings"]) == 14
-        assert data["metadata"]["finding_count"] == 14
+        assert len(data["findings"]) == 15
+        assert data["metadata"]["finding_count"] == 15
         resource_ids = {f["resource_id"] for f in data["findings"]}
         assert resource_ids == {
             "cloudres-fintech-uploads",
@@ -141,7 +143,7 @@ class TestComplianceEndpoint:
     def test_response_reflects_scanner_findings(self, client):
         response = client.get("/api/compliance")
         data = response.json()
-        assert data["metadata"]["total_findings"] == 14
+        assert data["metadata"]["total_findings"] == 15
 
 
 # --- GET /api/report -------------------------------------------------
