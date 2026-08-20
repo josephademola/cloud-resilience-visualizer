@@ -4,12 +4,13 @@
     "framework_full_name": "NCSC Cyber Assessment Framework v4.0",
     "description": "Mapping of finding types to Cyber Assessment Framework (CAF) outcomes. CAF is the UK National Cyber Security Centre's outcomes-based framework used by regulators. Objective B (Protecting Against Cyber Attack) is where most cloud misconfigurations land.",
     "source_url": "https://www.ncsc.gov.uk/collection/cyber-assessment-framework",
-    "mapping_rationale": "CAF is outcomes-based, not control-based. Each outcome describes a state the organisation should reach; mappings link finding types to the outcome(s) they most directly compromise. Objective B outcomes are chosen for cloud misconfigurations because Objective B covers Protecting Against Cyber Attack, which is where technical misconfigurations sit.",
+    "mapping_rationale": "CAF is outcomes-based, not control-based. Each outcome describes a state the organisation should reach; mappings link finding types to the outcome(s) they most directly compromise. Most cloud misconfigurations land in Objective B (Protecting Against Cyber Attack), since that is where technical misconfigurations sit. Detection-oriented findings are mapped to Objective C (Detecting Cyber Security Events) instead, on the same 'most direct outcome' logic, rather than being forced into B for consistency.",
     "audit_notes": {
       "S3_PUBLIC_VIA_ACL": "Two references. B2.a is primary — a bucket readable by AllUsers has bypassed identity verification and authorisation entirely. B3.a is secondary and softer — 'Understanding Data' captures the case where the organisation may not know that the misconfigured bucket contains sensitive data. B3.a is defensible but weaker than B2.a.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "B4.a covers 'Secure by design'. PAB is the security-by-default configuration for S3 buckets; leaving it disabled is a design failure. This mapping is clean.",
       "S3_ENCRYPTION_DISABLED": "B3.c covers 'Stored data' outcomes and explicitly includes encryption at rest as a control. This mapping is unambiguous.",
-      "S3_VERSIONING_DISABLED": "B5.a covers Resilience Preparation — ensuring the organisation is resilient to and can recover from a cyber attack or operational failure. Versioning is a recovery mechanism at the object level; disabling it removes a specific, low-cost resilience control this outcome expects to be in place."
+      "S3_VERSIONING_DISABLED": "B5.a covers Resilience Preparation — ensuring the organisation is resilient to and can recover from a cyber attack or operational failure. Versioning is a recovery mechanism at the object level; disabling it removes a specific, low-cost resilience control this outcome expects to be in place.",
+      "S3_LOGGING_DISABLED": "First finding mapped outside Objective B. C1.a (Monitoring Coverage, under Objective C: Detecting Cyber Security Events) is the honest fit — access logging is a detection capability, not a protection one, and CAF's own structure separates the two. Forcing this into an Objective B outcome would have been the more consistent-looking choice but the less accurate one."
     }
   },
 
@@ -28,5 +29,9 @@
 
   "S3_VERSIONING_DISABLED": [
     {"framework": "ncsc_caf", "reference_id": "B5.a", "label": "Resilience Preparation"}
+  ],
+
+  "S3_LOGGING_DISABLED": [
+    {"framework": "ncsc_caf", "reference_id": "C1.a", "label": "Monitoring Coverage"}
   ]
 }

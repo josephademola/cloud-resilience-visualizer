@@ -26,6 +26,7 @@ from app.scanners.s3_scanner import (
     _check_public_access_block,
     _check_encryption,
     _check_versioning,
+    _check_logging,
     scan_s3_buckets,
 )
 
@@ -189,6 +190,35 @@ class TestCheckVersioning:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_logging ----------------------------------------------------
+class TestCheckLogging:
+
+    def test_returns_finding_when_logging_disabled(self):
+        finding = _check_logging(_bucket(logging_enabled=False))
+        assert finding is not None
+        assert finding.finding_type_id == "S3_LOGGING_DISABLED"
+
+    def test_returns_none_when_logging_enabled(self):
+        finding = _check_logging(_bucket(logging_enabled=True))
+        assert finding is None
+
+    def test_produces_finding_when_property_missing_fail_closed(self):
+        # Logging is a *protection* signal — same fail-closed
+        # semantic as versioning, encryption, and PAB.
+        finding = _check_logging(_bucket())
+        assert finding is not None
+        assert finding.finding_type_id == "S3_LOGGING_DISABLED"
+
+    def test_finding_has_low_severity_and_correct_shape(self):
+        finding = _check_logging(
+            _bucket("no-audit-trail-bucket", logging_enabled=False)
+        )
+        assert finding.severity == Severity.LOW
+        assert finding.resource_id == "no-audit-trail-bucket"
+        assert finding.title == "S3 access logging not enabled"
+        assert len(finding.framework_references) > 0
+
+
 # --- scan_s3_buckets -------------------------------------------------
 class TestScanS3Buckets:
 
@@ -221,7 +251,7 @@ class TestScanS3Buckets:
         assert all(f.resource_id == "leaky" for f in findings)
 
     def test_returns_zero_findings_for_fully_secure_bucket(self):
-        # All four checks pass -> no findings.
+        # All five checks pass -> no findings.
         topology = {
             "nodes": [
                 _bucket(
@@ -230,14 +260,15 @@ class TestScanS3Buckets:
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
                     versioning_enabled=True,
+                    logging_enabled=True,
                 )
             ]
         }
         assert scan_s3_buckets(topology) == []
 
-    def test_returns_four_findings_for_bucket_with_all_four_issues(self):
+    def test_returns_five_findings_for_bucket_with_all_five_issues(self):
         # The flagship case: our mock's misconfigured uploads bucket.
-        # All four rules fire, producing four separate findings on
+        # All five rules fire, producing five separate findings on
         # the same resource, each with its own severity.
         topology = {
             "nodes": [
@@ -247,11 +278,12 @@ class TestScanS3Buckets:
                     public_access_block_fully_enabled=False,
                     encryption_enabled=False,
                     versioning_enabled=False,
+                    logging_enabled=False,
                 )
             ]
         }
         findings = scan_s3_buckets(topology)
-        assert len(findings) == 4
+        assert len(findings) == 5
         # Each finding is against the same resource...
         assert all(f.resource_id == "uploads" for f in findings)
         # ...but each has a different finding_type_id and severity.
@@ -261,6 +293,7 @@ class TestScanS3Buckets:
             "S3_PUBLIC_ACCESS_BLOCK_DISABLED",
             "S3_ENCRYPTION_DISABLED",
             "S3_VERSIONING_DISABLED",
+            "S3_LOGGING_DISABLED",
         ]
 
     def test_scans_multiple_buckets_independently(self):
@@ -275,6 +308,7 @@ class TestScanS3Buckets:
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
                     versioning_enabled=True,
+                    logging_enabled=True,
                 ),
                 _bucket(
                     "leaky",
@@ -282,6 +316,7 @@ class TestScanS3Buckets:
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
                     versioning_enabled=True,
+                    logging_enabled=True,
                 ),
             ]
         }

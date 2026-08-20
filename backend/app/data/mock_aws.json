@@ -284,6 +284,12 @@
         },
         "get_bucket_versioning": {
           "Status": "Enabled"
+        },
+        "get_bucket_logging": {
+          "LoggingEnabled": {
+            "TargetBucket": "cloudres-fintech-logs",
+            "TargetPrefix": "s3-access-logs/"
+          }
         }
       },
       "cloudres-fintech-uploads": {

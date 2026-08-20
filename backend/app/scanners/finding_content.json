@@ -35,5 +35,12 @@
     "severity": "medium",
     "description": "This bucket has never had versioning turned on, so deleting or overwriting an object destroys the previous copy permanently. Versioning is S3's built-in defence against accidental deletion, application bugs that overwrite data, and ransomware-style mass-encryption of objects: with it enabled, every prior version remains recoverable. It also underpins MFA Delete and object-level recovery workflows that many incident response runbooks assume are available.",
     "remediation": "Enable versioning on the bucket. In the AWS Console: S3 -> the bucket -> Properties tab -> Bucket Versioning -> Edit -> select 'Enable' -> Save. From the AWS CLI: `aws s3api put-bucket-versioning --bucket <name> --versioning-configuration Status=Enabled`. Verify with `aws s3api get-bucket-versioning --bucket <name>` and confirm the Status is 'Enabled'. Once enabled, versioning cannot be fully turned off again, only suspended, so pair this with a lifecycle rule to expire old versions and control storage cost."
+  },
+
+  "S3_LOGGING_DISABLED": {
+    "title": "S3 access logging not enabled",
+    "severity": "low",
+    "description": "Server access logging has never been configured for this bucket, so there is no record of who requested which object, when, from where, or whether the request succeeded. Without it, investigating a suspected data exposure means answering 'what was accessed and by whom' with no data to draw on. Access logs are also frequently requested as evidence during an audit or incident response, separate from CloudTrail, which logs API management events rather than individual object-level GET/PUT requests.",
+    "remediation": "Enable server access logging, pointing at a separate logging bucket (never the bucket itself, to avoid a logging loop). In the AWS Console: S3 -> the bucket -> Properties tab -> Server access logging -> Edit -> Enable -> choose a target bucket and prefix -> Save. From the AWS CLI: `aws s3api put-bucket-logging --bucket <name> --bucket-logging-status '{\"LoggingEnabled\":{\"TargetBucket\":\"<log-bucket>\",\"TargetPrefix\":\"<name>/\"}}'`. The target bucket needs the standard S3 log-delivery ACL grant, which the Console option configures automatically."
   }
 }
