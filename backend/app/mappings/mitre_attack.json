@@ -10,7 +10,8 @@
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Corrected from an earlier draft that mapped this to T1078.004 (Valid Accounts: Cloud Accounts). That mapping was wrong — T1078.004 is about compromised credentials, and PAB being off doesn't enable credential-based attacks. T1580 (Cloud Infrastructure Discovery) is a weaker but more honest fit: an attacker in reconnaissance can discover misconfigured buckets more easily when PAB is off. Mapping defensive control weaknesses to attacker techniques is inherently forced; documented here rather than papered over.",
       "S3_ENCRYPTION_DISABLED": "T1530 covers this by extension — data extracted from cloud storage is more valuable and usable if not encrypted at rest. This is a secondary consequence rather than a primary enablement, but it is defensible.",
       "S3_VERSIONING_DISABLED": "No technique directly matches — disabling versioning is not an attacker action, it's the absence of a recovery mechanism. Mapped to T1485 (Data Destruction) as a weaker, honest fit, following the same reasoning as the PAB mapping above: this misconfiguration doesn't enable a destructive attack, but it removes the safety net that would otherwise let the organisation undo one.",
-      "S3_LOGGING_DISABLED": "T1562.008 (Disable or Modify Cloud Logs) is an imperfect fit and documented as such: the technique describes an attacker actively turning logging off, whereas this finding is logging having never been turned on. Both produce the identical outcome an investigator cares about, an activity blind spot on this bucket, so the technique is mapped here as the closest honest match rather than left unmapped."
+      "S3_LOGGING_DISABLED": "T1562.008 (Disable or Modify Cloud Logs) is an imperfect fit and documented as such: the technique describes an attacker actively turning logging off, whereas this finding is logging having never been turned on. Both produce the identical outcome an investigator cares about, an activity blind spot on this bucket, so the technique is mapped here as the closest honest match rather than left unmapped.",
+      "S3_LIFECYCLE_MISSING": "T1530 covers this by extension, same reasoning as S3_ENCRYPTION_DISABLED: unbounded retention means more objects are sitting in the bucket for an attacker to collect if they do gain access. A secondary consequence, not a primary enablement, but defensible on the same grounds as the encryption mapping."
     }
   },
 
@@ -32,5 +33,9 @@
 
   "S3_LOGGING_DISABLED": [
     {"framework": "mitre_attack", "reference_id": "T1562.008", "label": "Disable or Modify Cloud Logs (Defense Evasion tactic)"}
+  ],
+
+  "S3_LIFECYCLE_MISSING": [
+    {"framework": "mitre_attack", "reference_id": "T1530", "label": "Data from Cloud Storage (Collection tactic)"}
   ]
 }

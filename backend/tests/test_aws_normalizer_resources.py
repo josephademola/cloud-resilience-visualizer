@@ -592,6 +592,9 @@ class TestNormalizeS3Buckets:
                             "TargetPrefix": "secure-logs/",
                         }
                     },
+                    "get_bucket_lifecycle_configuration": {
+                        "Rules": [{"ID": "expire-old", "Status": "Enabled"}]
+                    },
                 },
             },
         }
@@ -609,16 +612,17 @@ class TestNormalizeS3Buckets:
                     "encryption_enabled": True,
                     "versioning_enabled": True,
                     "logging_enabled": True,
+                    "lifecycle_configured": True,
                 },
             }
         ]
 
-    def test_returns_misconfigured_bucket_with_all_five_flags_failing(self):
+    def test_returns_misconfigured_bucket_with_all_six_flags_failing(self):
         # The S3 nightmare bucket: public ACL grant, PAB completely off,
-        # encryption API would have raised in real boto3 (our mock
-        # represents that as {"_error": "..."}), and versioning and
-        # logging were never configured. All five misconfig booleans
-        # must reflect the insecure state.
+        # encryption and lifecycle APIs would have raised in real boto3
+        # (our mock represents that as {"_error": "..."}), and
+        # versioning and logging were never configured. All six
+        # misconfig booleans must reflect the insecure state.
         s3_data = {
             "list_buckets": {"Buckets": [{"Name": "public-uploads"}]},
             "bucket_details": {
@@ -645,6 +649,9 @@ class TestNormalizeS3Buckets:
                     "get_bucket_encryption": {
                         "_error": "ServerSideEncryptionConfigurationNotFoundError"
                     },
+                    "get_bucket_lifecycle_configuration": {
+                        "_error": "NoSuchLifecycleConfiguration"
+                    },
                 },
             },
         }
@@ -655,6 +662,7 @@ class TestNormalizeS3Buckets:
         assert props["encryption_enabled"] is False
         assert props["versioning_enabled"] is False
         assert props["logging_enabled"] is False
+        assert props["lifecycle_configured"] is False
 
     def test_defaults_safely_when_bucket_details_missing(self):
         # A bucket appears in list_buckets but has no entry in
@@ -672,6 +680,7 @@ class TestNormalizeS3Buckets:
         assert props["encryption_enabled"] is False
         assert props["versioning_enabled"] is False
         assert props["logging_enabled"] is False
+        assert props["lifecycle_configured"] is False
 
     def test_skips_bucket_with_missing_name(self):
         s3_data = {

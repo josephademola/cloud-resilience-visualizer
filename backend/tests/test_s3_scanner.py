@@ -27,6 +27,7 @@ from app.scanners.s3_scanner import (
     _check_encryption,
     _check_versioning,
     _check_logging,
+    _check_lifecycle,
     scan_s3_buckets,
 )
 
@@ -219,6 +220,33 @@ class TestCheckLogging:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_lifecycle ---------------------------------------------------
+class TestCheckLifecycle:
+
+    def test_returns_finding_when_lifecycle_not_configured(self):
+        finding = _check_lifecycle(_bucket(lifecycle_configured=False))
+        assert finding is not None
+        assert finding.finding_type_id == "S3_LIFECYCLE_MISSING"
+
+    def test_returns_none_when_lifecycle_configured(self):
+        finding = _check_lifecycle(_bucket(lifecycle_configured=True))
+        assert finding is None
+
+    def test_produces_finding_when_property_missing_fail_closed(self):
+        finding = _check_lifecycle(_bucket())
+        assert finding is not None
+        assert finding.finding_type_id == "S3_LIFECYCLE_MISSING"
+
+    def test_finding_has_low_severity_and_correct_shape(self):
+        finding = _check_lifecycle(
+            _bucket("unbounded-retention-bucket", lifecycle_configured=False)
+        )
+        assert finding.severity == Severity.LOW
+        assert finding.resource_id == "unbounded-retention-bucket"
+        assert finding.title == "S3 lifecycle policy not configured"
+        assert len(finding.framework_references) > 0
+
+
 # --- scan_s3_buckets -------------------------------------------------
 class TestScanS3Buckets:
 
@@ -251,7 +279,7 @@ class TestScanS3Buckets:
         assert all(f.resource_id == "leaky" for f in findings)
 
     def test_returns_zero_findings_for_fully_secure_bucket(self):
-        # All five checks pass -> no findings.
+        # All six checks pass -> no findings.
         topology = {
             "nodes": [
                 _bucket(
@@ -261,14 +289,15 @@ class TestScanS3Buckets:
                     encryption_enabled=True,
                     versioning_enabled=True,
                     logging_enabled=True,
+                    lifecycle_configured=True,
                 )
             ]
         }
         assert scan_s3_buckets(topology) == []
 
-    def test_returns_five_findings_for_bucket_with_all_five_issues(self):
+    def test_returns_six_findings_for_bucket_with_all_six_issues(self):
         # The flagship case: our mock's misconfigured uploads bucket.
-        # All five rules fire, producing five separate findings on
+        # All six rules fire, producing six separate findings on
         # the same resource, each with its own severity.
         topology = {
             "nodes": [
@@ -279,11 +308,12 @@ class TestScanS3Buckets:
                     encryption_enabled=False,
                     versioning_enabled=False,
                     logging_enabled=False,
+                    lifecycle_configured=False,
                 )
             ]
         }
         findings = scan_s3_buckets(topology)
-        assert len(findings) == 5
+        assert len(findings) == 6
         # Each finding is against the same resource...
         assert all(f.resource_id == "uploads" for f in findings)
         # ...but each has a different finding_type_id and severity.
@@ -294,6 +324,7 @@ class TestScanS3Buckets:
             "S3_ENCRYPTION_DISABLED",
             "S3_VERSIONING_DISABLED",
             "S3_LOGGING_DISABLED",
+            "S3_LIFECYCLE_MISSING",
         ]
 
     def test_scans_multiple_buckets_independently(self):
@@ -309,6 +340,7 @@ class TestScanS3Buckets:
                     encryption_enabled=True,
                     versioning_enabled=True,
                     logging_enabled=True,
+                    lifecycle_configured=True,
                 ),
                 _bucket(
                     "leaky",
@@ -317,6 +349,7 @@ class TestScanS3Buckets:
                     encryption_enabled=True,
                     versioning_enabled=True,
                     logging_enabled=True,
+                    lifecycle_configured=True,
                 ),
             ]
         }

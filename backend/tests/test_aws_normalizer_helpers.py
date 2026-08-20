@@ -15,6 +15,7 @@ from app.aws_normalizer import (
     _is_bucket_encryption_enabled,
     _is_bucket_versioning_enabled,
     _is_bucket_logging_enabled,
+    _is_bucket_lifecycle_configured,
     S3_ALL_USERS_URI,
 )
 
@@ -188,3 +189,20 @@ class TestIsBucketLoggingEnabled:
         # Real boto3 returns an empty dict, not an error, when access
         # logging has never been configured on a bucket.
         assert _is_bucket_logging_enabled({}) is False
+
+
+# --- _is_bucket_lifecycle_configured -------------------------------------
+class TestIsBucketLifecycleConfigured:
+
+    def test_returns_true_when_rules_present(self):
+        lifecycle = {"Rules": [{"ID": "expire-old", "Status": "Enabled"}]}
+        assert _is_bucket_lifecycle_configured(lifecycle) is True
+
+    def test_returns_false_when_error_marker_present(self):
+        # Our mock convention: _error means no lifecycle configuration
+        # exists, matching real boto3's NoSuchLifecycleConfiguration.
+        lifecycle = {"_error": "NoSuchLifecycleConfiguration"}
+        assert _is_bucket_lifecycle_configured(lifecycle) is False
+
+    def test_returns_false_when_rules_empty(self):
+        assert _is_bucket_lifecycle_configured({"Rules": []}) is False

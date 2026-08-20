@@ -290,6 +290,16 @@
             "TargetBucket": "cloudres-fintech-logs",
             "TargetPrefix": "s3-access-logs/"
           }
+        },
+        "get_bucket_lifecycle_configuration": {
+          "Rules": [
+            {
+              "ID": "expire-old-logs",
+              "Status": "Enabled",
+              "Expiration": {"Days": 365},
+              "Filter": {"Prefix": ""}
+            }
+          ]
         }
       },
       "cloudres-fintech-uploads": {
@@ -326,6 +336,9 @@
         },
         "get_bucket_encryption": {
          "_error": "ServerSideEncryptionConfigurationNotFoundError"
+        },
+        "get_bucket_lifecycle_configuration": {
+          "_error": "NoSuchLifecycleConfiguration"
         }
       }
     }
