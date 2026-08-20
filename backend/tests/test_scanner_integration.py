@@ -37,19 +37,20 @@ FINDINGS = scan_s3_buckets(TOPOLOGY)
 
 class TestScannerEndToEnd:
 
-    def test_produces_three_findings_against_misconfigured_bucket(self):
-        # The mock's 'cloudres-fintech-uploads' bucket has all three
-        # S3 misconfigurations. All three rules must fire, producing
-        # three findings on the same resource.
+    def test_produces_four_findings_against_misconfigured_bucket(self):
+        # The mock's 'cloudres-fintech-uploads' bucket has all four
+        # S3 misconfigurations. All four rules must fire, producing
+        # four findings on the same resource.
         uploads_findings = [
             f for f in FINDINGS if f.resource_id == "cloudres-fintech-uploads"
         ]
-        assert len(uploads_findings) == 3
+        assert len(uploads_findings) == 4
         finding_type_ids = [f.finding_type_id for f in uploads_findings]
         assert finding_type_ids == [
             "S3_PUBLIC_VIA_ACL",
             "S3_PUBLIC_ACCESS_BLOCK_DISABLED",
             "S3_ENCRYPTION_DISABLED",
+            "S3_VERSIONING_DISABLED",
         ]
 
     def test_secure_bucket_produces_no_findings(self):

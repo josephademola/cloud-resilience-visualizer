@@ -8,7 +8,8 @@
     "audit_notes": {
       "S3_PUBLIC_VIA_ACL": "Two themes. User Access Control is primary — an AllUsers grant is a direct failure of access control. Secure Configuration is secondary — the bucket was configured insecurely at creation or through subsequent changes.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Secure Configuration only. PAB is a bucket-level configuration setting; the theme covers exactly this case.",
-      "S3_ENCRYPTION_DISABLED": "Secure Configuration only. Encryption at rest is a default AWS bucket configuration; a bucket without it has been configured (or left configured) insecurely."
+      "S3_ENCRYPTION_DISABLED": "Secure Configuration only. Encryption at rest is a default AWS bucket configuration; a bucket without it has been configured (or left configured) insecurely.",
+      "S3_VERSIONING_DISABLED": "Secure Configuration only. Cyber Essentials has no dedicated backup or resilience theme, so this is mapped to the same theme as the other S3 findings: versioning is a bucket-level configuration setting, and its absence is a configuration gap rather than a control from a different theme."
     }
   },
 
@@ -22,6 +23,10 @@
   ],
 
   "S3_ENCRYPTION_DISABLED": [
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
+  ],
+
+  "S3_VERSIONING_DISABLED": [
     {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ]
 }

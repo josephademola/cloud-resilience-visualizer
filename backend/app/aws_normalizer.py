@@ -426,6 +426,20 @@ def _is_bucket_encryption_enabled(encryption_response: dict[str, Any]) -> bool:
     return len(rules) > 0
 
 
+def _is_bucket_versioning_enabled(versioning_response: dict[str, Any]) -> bool:
+    """
+    Return True if bucket versioning is enabled.
+
+    Real boto3 get_bucket_versioning() returns an empty dict when
+    versioning has never been configured on the bucket (not an error,
+    unlike encryption). It returns {"Status": "Enabled"} or
+    {"Status": "Suspended"} once versioning has been turned on at
+    least once. Only "Enabled" counts as protected — a bucket that
+    was enabled and later suspended is not currently protected.
+    """
+    return versioning_response.get("Status") == "Enabled"
+
+
 def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
     """
     Transform S3 list_buckets + bucket_details into topology nodes.
@@ -456,6 +470,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
         acl = details.get("get_bucket_acl", {})
         pab = details.get("get_public_access_block", {})
         encryption = details.get("get_bucket_encryption", {})
+        versioning = details.get("get_bucket_versioning", {})
 
         nodes.append({
             "id": name,
@@ -467,6 +482,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
                 "is_public_via_acl": _is_bucket_public_via_acl(acl),
                 "public_access_block_fully_enabled": _is_pab_fully_enabled(pab),
                 "encryption_enabled": _is_bucket_encryption_enabled(encryption),
+                "versioning_enabled": _is_bucket_versioning_enabled(versioning),
             },
         })
 

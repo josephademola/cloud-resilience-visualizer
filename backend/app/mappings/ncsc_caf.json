@@ -8,7 +8,8 @@
     "audit_notes": {
       "S3_PUBLIC_VIA_ACL": "Two references. B2.a is primary — a bucket readable by AllUsers has bypassed identity verification and authorisation entirely. B3.a is secondary and softer — 'Understanding Data' captures the case where the organisation may not know that the misconfigured bucket contains sensitive data. B3.a is defensible but weaker than B2.a.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "B4.a covers 'Secure by design'. PAB is the security-by-default configuration for S3 buckets; leaving it disabled is a design failure. This mapping is clean.",
-      "S3_ENCRYPTION_DISABLED": "B3.c covers 'Stored data' outcomes and explicitly includes encryption at rest as a control. This mapping is unambiguous."
+      "S3_ENCRYPTION_DISABLED": "B3.c covers 'Stored data' outcomes and explicitly includes encryption at rest as a control. This mapping is unambiguous.",
+      "S3_VERSIONING_DISABLED": "B5.a covers Resilience Preparation — ensuring the organisation is resilient to and can recover from a cyber attack or operational failure. Versioning is a recovery mechanism at the object level; disabling it removes a specific, low-cost resilience control this outcome expects to be in place."
     }
   },
 
@@ -23,5 +24,9 @@
 
   "S3_ENCRYPTION_DISABLED": [
     {"framework": "ncsc_caf", "reference_id": "B3.c", "label": "Stored data"}
+  ],
+
+  "S3_VERSIONING_DISABLED": [
+    {"framework": "ncsc_caf", "reference_id": "B5.a", "label": "Resilience Preparation"}
   ]
 }
