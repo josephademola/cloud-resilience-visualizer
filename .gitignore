@@ -66,3 +66,6 @@ npm-debug.log
 *.tmp
 local_*/
 *.exe
+
+# === Claude Code handover doc — source of truth, kept outside git ===
+CLAUDE_HANDOVER*.md
