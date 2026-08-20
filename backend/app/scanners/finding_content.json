@@ -91,5 +91,12 @@
     "severity": "medium",
     "description": "The account has no password policy configured, or one that allows passwords shorter than 14 characters. AWS applies no minimum length or complexity requirement by default; without an explicit policy, IAM users can set passwords as short and simple as the service allows, which makes every human-authenticated identity in the account an easier target for password guessing and credential-stuffing attacks. A 14-character minimum is the current NCSC and NIST baseline recommendation, and is enforced account-wide with a single setting.",
     "remediation": "Set an account password policy with a minimum length of 14 characters. In the AWS Console: IAM -> Account settings -> Password policy -> Edit -> set Minimum password length to 14, and enable password reuse prevention and expiration if the organisation's policy requires it -> Save. From the AWS CLI: `aws iam update-account-password-policy --minimum-password-length 14`. This applies to every IAM user's console password account-wide; it does not affect access keys or MFA, which are separate controls."
+  },
+
+  "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": {
+    "title": "IAM access key older than 90 days",
+    "severity": "medium",
+    "description": "This user has an active access key that was created more than 90 days ago and has never been rotated. Access keys don't expire on their own, so a key created years ago for a one-off task can remain fully valid indefinitely if nobody remembers to remove it. The longer a key lives, the more places it tends to end up copied into (scripts, CI pipelines, developer laptops, old backups), and the larger the window becomes for it to leak without anyone noticing. Rotating keys on a schedule limits how much damage a single leaked credential can do, regardless of when or how it leaked.",
+    "remediation": "Rotate the key: create a new access key for the user, update every script, application, or CI pipeline that references the old one, verify nothing is still using it (check CloudTrail for recent activity on the old key), then deactivate and delete the old key. In the AWS Console: IAM -> Users -> the user -> Security credentials tab -> Access keys. From the CLI: `aws iam create-access-key --user-name <name>` followed later by `aws iam delete-access-key --user-name <name> --access-key-id <old-key-id>`. If the key isn't actually needed any more, delete it outright rather than rotating it — the best-rotated key is one that doesn't exist."
   }
 }

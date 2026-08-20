@@ -47,7 +47,7 @@ class TestNormalizeEndToEnd:
         # some malformed string).
         meta = TOPOLOGY["metadata"]
         assert meta["schema_version"] == "1.0"
-        assert meta["node_count"] == 11
+        assert meta["node_count"] == 12
         assert meta["security_group_count"] == 3
         # If this raises ValueError, the timestamp format is broken.
         datetime.fromisoformat(meta["generated_at"])
@@ -56,11 +56,11 @@ class TestNormalizeEndToEnd:
         # The mock environment is fixed: 1 VPC, 2 subnets, 1 IGW,
         # 2 EC2 instances, 1 RDS, 2 S3 buckets, 1 customer-managed KMS
         # key (the mock's second KMS key is AWS-managed and excluded
-        # by the normalizer), 1 account node = 11 nodes total.
-        # Asserting the breakdown (not just the total) catches the
-        # case where two resources are silently swapped (e.g. an EC2
-        # missing and an extra S3 appearing — total still 11, but the
-        # mix is wrong).
+        # by the normalizer), 1 IAM user, 1 account node = 12 nodes
+        # total. Asserting the breakdown (not just the total) catches
+        # the case where two resources are silently swapped (e.g. an
+        # EC2 missing and an extra S3 appearing — total still 12, but
+        # the mix is wrong).
         type_counts: dict[str, int] = {}
         for node in TOPOLOGY["nodes"]:
             type_counts[node["type"]] = type_counts.get(node["type"], 0) + 1
@@ -72,6 +72,7 @@ class TestNormalizeEndToEnd:
             "rds_instance": 1,
             "s3_bucket": 2,
             "kms_key": 1,
+            "iam_user": 1,
             "account": 1,
         }
 
@@ -196,6 +197,16 @@ class TestNormalizeEndToEnd:
         assert accounts[0]["properties"]["root_access_keys_present"] is True
         assert accounts[0]["properties"]["account_mfa_enabled"] is False
         assert accounts[0]["properties"]["password_policy_min_length"] is None
+
+    def test_iam_user_has_one_active_access_key(self):
+        # The mock's IAM user has a single active, old access key —
+        # the deliberate misconfig for IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS.
+        users = _nodes_of_type("iam_user")
+        assert len(users) == 1
+        assert users[0]["id"] == "cloudres-fintech-legacy-svc-account"
+        keys = users[0]["properties"]["access_keys"]
+        assert len(keys) == 1
+        assert keys[0]["status"] == "Active"
 
     def test_three_security_groups_belong_to_vpc(self):
         # The mock has three chained SGs (web -> app -> db). Each

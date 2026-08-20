@@ -1,8 +1,8 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-20T17:51:23.976034+00:00",
-    "node_count": 11,
+    "generated_at": "2026-08-20T18:51:35.486177+00:00",
+    "node_count": 12,
     "security_group_count": 3
   },
   "nodes": [
@@ -140,6 +140,21 @@
       "properties": {
         "key_state": "PendingDeletion",
         "key_rotation_enabled": false
+      }
+    },
+    {
+      "id": "cloudres-fintech-legacy-svc-account",
+      "type": "iam_user",
+      "name": "cloudres-fintech-legacy-svc-account",
+      "parent_id": null,
+      "properties": {
+        "access_keys": [
+          {
+            "access_key_id": "AKIA2C3D4E5F6G7H8I9J",
+            "status": "Active",
+            "create_date": "2022-03-10T09:00:00+00:00"
+          }
+        ]
       }
     },
     {

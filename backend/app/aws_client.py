@@ -87,6 +87,8 @@ def fetch_aws_data() -> dict[str, Any]:
             "get_account_password_policy": _safe_call(
                 iam.get_account_password_policy
             ),
+            "list_users": _strip_metadata(iam.list_users()),
+            "user_details": _fetch_iam_user_details(iam),
         },
     }
 
@@ -147,6 +149,39 @@ def _fetch_kms_key_details(kms) -> dict[str, dict]:
             ),
         }
     return details
+
+
+def _fetch_iam_user_details(iam) -> dict[str, dict]:
+    """
+    For each IAM user in the account, fetch their access key
+    metadata. Per-user errors are captured as '_error' markers
+    rather than propagated, same tolerance as per-bucket and per-key
+    detail calls.
+    """
+    users_response = iam.list_users()
+    details: dict[str, dict] = {}
+
+    for user in users_response.get("Users", []):
+        username = user["UserName"]
+        details[username] = {
+            "list_access_keys": _safe_iam_user_call(
+                iam.list_access_keys, username
+            ),
+        }
+    return details
+
+
+def _safe_iam_user_call(method, username: str) -> dict:
+    """
+    Call a per-user IAM method. On success, return the response minus
+    boto3 metadata. On failure, return an '_error' marker.
+    """
+    try:
+        response = method(UserName=username)
+        return _strip_metadata(response)
+    except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code", "UnknownError")
+        return {"_error": error_code}
 
 
 def _safe_bucket_call(method, bucket_name: str) -> dict:

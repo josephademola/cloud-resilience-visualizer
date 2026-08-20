@@ -71,6 +71,13 @@ Alternatives considered | Scan all KMS keys including AWS-managed.
 Rationale | AWS-managed keys rotate automatically; the account owner has no control over that setting. Flagging them would produce false positives that a real auditor would reject. The rule applies only where the control is the owner's responsibility.
 Date | 2026-08-20, part of Phase 9a Feature 3 (kms_scanner.py)
 
+## 10. Age-based checks depend on wall-clock time, confined to the scanner layer
+
+Decision | `IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS` compares each active access key's creation date to the current time at scan time. `datetime.now()` is used only inside the scanner rule function, never in `aws_normalizer.py`.
+Alternatives considered | Avoiding wall-clock time entirely (not possible for an age-based control — every real CSPM tool, including Prowler and ScoutSuite, has this same property); or computing the age in the normaliser instead of the scanner.
+Rationale | This is a deliberate, narrow exception to decision #5 (deterministic output everywhere). "Same input, same output" holds for every other rule in this codebase because nothing else depends on the current date; an age-based check cannot make that claim without becoming useless, since a key that was fine yesterday is correctly flagged today. The honest version of the determinism principle here is "same input, same day, same output" — determinism within a scan run, not invariance across calendar time. Confining `datetime.now()` to the scanner rule, rather than letting it leak into the normaliser, keeps `_normalize_iam_users()` a pure function of its input; only the rule that is inherently time-relative reaches for the clock.
+Date | 2026-08-20, part of Phase 9a Feature 3 (iam_scanner.py)
+
 ---
 
 *Note: an earlier draft of this document also listed a decision to

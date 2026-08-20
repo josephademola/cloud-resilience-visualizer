@@ -158,13 +158,15 @@ function computeLayout(topology) {
 
     const rightEdge = rightmostEdge(layouts);
     let bucketY = LAYOUT.vpc.startY;
-    // S3 buckets, KMS keys, and the account node are all global,
-    // non-VPC-scoped, so they share the same right-hand column — the
-    // cursor simply continues downward across all three types. The
-    // account node isn't really a "resource" the way a bucket or key
-    // is, but it renders the same way: one more box in this column.
+    // S3 buckets, KMS keys, IAM users, and the account node are all
+    // global, non-VPC-scoped, so they share the same right-hand
+    // column — the cursor simply continues downward across all four
+    // types. The account node isn't really a "resource" the way a
+    // bucket, key, or user is, but it renders the same way: one more
+    // box in this column.
     const globalResources = topology.nodes.filter(
-        n => n.type === "s3_bucket" || n.type === "kms_key" || n.type === "account"
+        n => n.type === "s3_bucket" || n.type === "kms_key"
+          || n.type === "iam_user" || n.type === "account"
     );
     for (const resource of globalResources) {
         layouts[resource.id] = {
@@ -246,7 +248,7 @@ function layoutResourcesInSubnet(subnet, byParent, layouts) {
 function renderTopology(map, topology) {
     const layouts = computeLayout(topology);
 
-    const renderOrder = ["vpc", "subnet", "internet_gateway", "ec2_instance", "rds_instance", "s3_bucket", "kms_key", "account"];
+    const renderOrder = ["vpc", "subnet", "internet_gateway", "ec2_instance", "rds_instance", "s3_bucket", "kms_key", "iam_user", "account"];
     for (const type of renderOrder) {
         for (const node of topology.nodes.filter(n => n.type === type)) {
             renderNode(map, node, layouts[node.id], layouts);
@@ -333,6 +335,8 @@ function nodeLabelHtml(node) {
             return `${iconHtml}<span>${node.name}</span>`;
         case "account":
             return `${iconHtml}<span>${node.name}</span>`;
+        case "iam_user":
+            return `${iconHtml}<span>${node.name}</span>`;
         default:
             return node.name;
     }
@@ -346,6 +350,7 @@ function iconForType(node) {
         case "s3_bucket":        return hasFindings(node) ? "ti-alert-triangle" : "ti-bucket";
         case "kms_key":          return hasFindings(node) ? "ti-alert-triangle" : "ti-key";
         case "account":          return hasFindings(node) ? "ti-alert-triangle" : "ti-shield";
+        case "iam_user":         return hasFindings(node) ? "ti-alert-triangle" : "ti-user";
         default:                 return null;
     }
 }
@@ -467,10 +472,38 @@ function buildPropertiesHtml(node) {
 
     for (const key in props) {
         const value = props[key];
+        // access_keys is a list of {access_key_id, status, create_date}
+        // objects, not a scalar — it needs its own row per key rather
+        // than the generic single-value row every other property gets.
+        if (key === "access_keys") {
+            rows.push(...buildAccessKeyRows(value));
+            continue;
+        }
         const isBad = isBadProperty(key, value);
         rows.push(propertyRow(humanKey(key), formatValue(value), isBad));
     }
     return rows.join("");
+}
+
+function buildAccessKeyRows(accessKeys) {
+    if (!accessKeys || accessKeys.length === 0) {
+        return [propertyRow("Access keys", "(none)", false)];
+    }
+    return accessKeys.map(key => {
+        const label = `Access key ${key.access_key_id || "(unknown)"}`;
+        const isBad = isActiveKeyOlderThan90Days(key);
+        const value = `${key.status || "unknown"}, created ${formatValue(key.create_date)}`;
+        return propertyRow(label, value, isBad);
+    });
+}
+
+function isActiveKeyOlderThan90Days(key) {
+    if (key.status !== "Active") return false;
+    const created = key.create_date ? new Date(key.create_date) : null;
+    if (!created || isNaN(created.getTime())) return true; // fail closed
+    const ageMs = Date.now() - created.getTime();
+    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+    return ageDays > 90;
 }
 
 function propertyRow(key, value, isBad) {
@@ -551,6 +584,7 @@ function humanType(node) {
         case "s3_bucket":        return "S3 Bucket";
         case "kms_key":          return "KMS Key";
         case "account":          return "AWS Account";
+        case "iam_user":         return "IAM User";
         default:                 return node.type;
     }
 }

@@ -47,12 +47,12 @@ class TestTopologyEndpoint:
         data = response.json()
         assert set(data.keys()) == {"metadata", "nodes", "security_groups"}
 
-    def test_response_has_eleven_nodes_and_three_security_groups(self, client):
+    def test_response_has_twelve_nodes_and_three_security_groups(self, client):
         response = client.get("/api/topology")
         data = response.json()
-        assert len(data["nodes"]) == 11
+        assert len(data["nodes"]) == 12
         assert len(data["security_groups"]) == 3
-        assert data["metadata"]["node_count"] == 11
+        assert data["metadata"]["node_count"] == 12
         assert data["metadata"]["security_group_count"] == 3
 
     def test_response_includes_both_s3_buckets(self, client):
@@ -76,21 +76,21 @@ class TestFindingsEndpoint:
         assert set(data.keys()) == {"metadata", "findings"}
         assert data["metadata"]["schema_version"] == "1.0"
 
-    def test_response_has_twelve_findings_across_three_resources(self, client):
+    def test_response_has_thirteen_findings_across_four_resources(self, client):
         # Seven S3 findings on the misconfigured uploads bucket, two
-        # KMS findings (rotation disabled, pending deletion) on the
-        # same doomed customer-managed key, and three IAM findings
-        # (root keys active, MFA disabled, weak password policy) on
-        # the account itself.
+        # KMS findings on the same doomed customer-managed key, three
+        # account-level IAM findings, and one IAM user finding (old
+        # access key) — the first time findings span four resources.
         response = client.get("/api/findings")
         data = response.json()
-        assert len(data["findings"]) == 12
-        assert data["metadata"]["finding_count"] == 12
+        assert len(data["findings"]) == 13
+        assert data["metadata"]["finding_count"] == 13
         resource_ids = {f["resource_id"] for f in data["findings"]}
         assert resource_ids == {
             "cloudres-fintech-uploads",
             "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
             "123456789012",
+            "cloudres-fintech-legacy-svc-account",
         }
 
     def test_findings_have_framework_references_from_all_four_frameworks(self, client):
@@ -141,7 +141,7 @@ class TestComplianceEndpoint:
     def test_response_reflects_scanner_findings(self, client):
         response = client.get("/api/compliance")
         data = response.json()
-        assert data["metadata"]["total_findings"] == 12
+        assert data["metadata"]["total_findings"] == 13
 
 
 # --- GET /api/report -------------------------------------------------

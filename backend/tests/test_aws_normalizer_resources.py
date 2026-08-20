@@ -24,6 +24,7 @@ from app.aws_normalizer import (
     _normalize_s3_buckets,
     _normalize_kms_keys,
     _normalize_account,
+    _normalize_iam_users,
     _normalize_security_groups,
 )
 
@@ -881,6 +882,79 @@ class TestNormalizeAccount:
 
     def test_returns_empty_list_when_account_id_missing(self):
         assert _normalize_account({}) == []
+
+
+# --- _normalize_iam_users -------------------------------------------------
+class TestNormalizeIamUsers:
+
+    def test_returns_user_with_access_keys(self):
+        iam_data = {
+            "list_users": {"Users": [{"UserName": "svc-account"}]},
+            "user_details": {
+                "svc-account": {
+                    "list_access_keys": {
+                        "AccessKeyMetadata": [
+                            {
+                                "AccessKeyId": "AKIAEXAMPLE",
+                                "Status": "Active",
+                                "CreateDate": "2022-03-10T09:00:00+00:00",
+                            }
+                        ]
+                    }
+                }
+            },
+        }
+        assert _normalize_iam_users(iam_data) == [
+            {
+                "id": "svc-account",
+                "type": "iam_user",
+                "name": "svc-account",
+                "parent_id": None,
+                "properties": {
+                    "access_keys": [
+                        {
+                            "access_key_id": "AKIAEXAMPLE",
+                            "status": "Active",
+                            "create_date": "2022-03-10T09:00:00+00:00",
+                        }
+                    ]
+                },
+            }
+        ]
+
+    def test_returns_user_with_empty_access_keys_when_none_exist(self):
+        iam_data = {
+            "list_users": {"Users": [{"UserName": "console-only-user"}]},
+            "user_details": {
+                "console-only-user": {
+                    "list_access_keys": {"AccessKeyMetadata": []}
+                }
+            },
+        }
+        nodes = _normalize_iam_users(iam_data)
+        assert nodes[0]["properties"]["access_keys"] == []
+
+    def test_defaults_safely_when_user_details_missing(self):
+        # A user appears in list_users but has no entry in
+        # user_details (e.g. the detail API call failed). Fail
+        # closed to an empty key list rather than crashing.
+        iam_data = {
+            "list_users": {"Users": [{"UserName": "no-details-user"}]},
+            "user_details": {},
+        }
+        nodes = _normalize_iam_users(iam_data)
+        assert nodes[0]["properties"]["access_keys"] == []
+
+    def test_skips_user_with_missing_username(self):
+        iam_data = {
+            "list_users": {"Users": [{}, {"UserName": "ok-user"}]},
+            "user_details": {},
+        }
+        nodes = _normalize_iam_users(iam_data)
+        assert [n["id"] for n in nodes] == ["ok-user"]
+
+    def test_returns_empty_list_when_no_users(self):
+        assert _normalize_iam_users({}) == []
 
 
 # --- _normalize_security_groups --------------------------------------

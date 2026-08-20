@@ -412,6 +412,60 @@ def _normalize_account(iam_data: dict[str, Any]) -> list[TopologyNode]:
     }]
 
 
+def _normalize_iam_users(iam_data: dict[str, Any]) -> list[TopologyNode]:
+    """
+    Transform list_users + user_details into topology nodes, one per
+    IAM user.
+
+    Unlike _normalize_account (a singleton), this produces one node
+    per user, the same shape as S3 buckets or KMS keys — IAM users
+    are individual resources, not a single account-wide fact.
+
+    access_keys is stored as a raw list (id, status, creation date)
+    rather than a pre-computed "is old" boolean. Whether a key counts
+    as old depends on the current date, which this function
+    deliberately never looks at — that calculation belongs entirely
+    to the scanner rule. See docs/design_decisions.md #10.
+    """
+    nodes: list[TopologyNode] = []
+
+    user_list = iam_data.get("list_users", {}).get("Users", [])
+    user_details = iam_data.get("user_details", {})
+
+    for user in user_list:
+        username = user.get("UserName")
+        if not username:
+            logger.warning("Skipping IAM user with missing UserName")
+            continue
+
+        details = user_details.get(username, {})
+        key_metadata = details.get("list_access_keys", {}).get(
+            "AccessKeyMetadata", []
+        )
+
+        access_keys = [
+            {
+                "access_key_id": key.get("AccessKeyId"),
+                "status": key.get("Status"),
+                "create_date": key.get("CreateDate"),
+            }
+            for key in key_metadata
+            if key.get("AccessKeyId")
+        ]
+
+        nodes.append({
+            "id": username,
+            "type": "iam_user",
+            "name": username,
+            "parent_id": None,  # IAM is global, not in any VPC
+            "properties": {
+                "access_keys": access_keys,
+            },
+        })
+
+    return nodes
+
+
 def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
     """
     Transform list_keys + key_details into topology nodes.
@@ -721,10 +775,10 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     # node list. Order is chosen for human readability when reading
     # the resulting topology.json: top-level containers (VPCs) first,
     # then everything that nests inside them, then global services
-    # (S3, KMS) and finally the account-level node, which isn't
-    # scoped to any resource at all. The frontend doesn't depend on
-    # this order — it rebuilds the hierarchy from parent_id — but it
-    # makes the file easier for humans to scan.
+    # (S3, KMS, IAM users) and finally the account-level node, which
+    # isn't scoped to any resource at all. The frontend doesn't
+    # depend on this order — it rebuilds the hierarchy from
+    # parent_id — but it makes the file easier for humans to scan.
     nodes: list[TopologyNode] = []
     nodes.extend(_normalize_vpcs(ec2_data))
     nodes.extend(_normalize_subnets(ec2_data))
@@ -733,6 +787,7 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     nodes.extend(_normalize_rds_instances(rds_data))
     nodes.extend(_normalize_s3_buckets(s3_data))
     nodes.extend(_normalize_kms_keys(kms_data))
+    nodes.extend(_normalize_iam_users(iam_data))
     nodes.extend(_normalize_account(iam_data))
 
     security_groups = _normalize_security_groups(ec2_data)
