@@ -210,7 +210,7 @@ def get_report(project_tag: str | None = _PROJECT_TAG_QUERY) -> Response:
     )
 
 @app.get("/api/evidence", dependencies=[Depends(require_api_key)])
-def get_evidence() -> dict:
+def get_evidence(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
     """
     Return an audit evidence record for the most recent scan.
 
@@ -220,11 +220,13 @@ def get_evidence() -> dict:
     an integrity hash covering the full record. Any post-hoc
     modification of the record would produce a different hash.
 
-    Does not yet accept project_tag — Phase 9a Feature 4 adds that,
-    plus labelling the record's scope section with it.
+    project_tag (Phase 9a Feature 4) scopes the scan the same way it
+    does on the other endpoints, and is additionally recorded in the
+    evidence record's scope section, so a stored evidence bundle
+    self-documents which project it covered.
     """
     import os
-    topology = _get_topology()
+    topology = _get_topology(project_tag)
     findings = _scan_all(topology)
 
     # In live mode, fetch the real IAM identity so the record
@@ -246,4 +248,5 @@ def get_evidence() -> dict:
         findings,
         iam_identity=iam_identity,
         data_source=data_source,
+        project_tag=project_tag,
     )

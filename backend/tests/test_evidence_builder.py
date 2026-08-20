@@ -135,6 +135,19 @@ class TestScope:
         assert record["scope"]["security_group_count"] == 0
         assert record["scope"]["resource_types"] == []
 
+    def test_project_tag_flows_through_into_scope(self):
+        # Phase 9a Feature 4: a scoped scan self-documents which
+        # project it covered, inside scope rather than as a new
+        # top-level key.
+        record = build_evidence_record(
+            _topology(), [], project_tag="Project=ConfidentialClient"
+        )
+        assert record["scope"]["project_tag"] == "Project=ConfidentialClient"
+
+    def test_project_tag_defaults_to_none_for_unscoped_scan(self):
+        record = build_evidence_record(_topology(), [])
+        assert record["scope"]["project_tag"] is None
+
 
 class TestFindingsSummary:
 
