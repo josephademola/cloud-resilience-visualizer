@@ -16,6 +16,7 @@ from app.aws_normalizer import (
     _is_bucket_versioning_enabled,
     _is_bucket_logging_enabled,
     _is_bucket_lifecycle_configured,
+    _is_tls_enforced,
     S3_ALL_USERS_URI,
 )
 
@@ -206,3 +207,32 @@ class TestIsBucketLifecycleConfigured:
 
     def test_returns_false_when_rules_empty(self):
         assert _is_bucket_lifecycle_configured({"Rules": []}) is False
+
+
+# --- _is_tls_enforced -----------------------------------------------------
+class TestIsTlsEnforced:
+
+    _DENY_POLICY = (
+        '{"Version":"2012-10-17","Statement":[{"Sid":"DenyInsecureTransport",'
+        '"Effect":"Deny","Principal":"*","Action":"s3:*","Resource":"*",'
+        '"Condition":{"Bool":{"aws:SecureTransport":"false"}}}]}'
+    )
+
+    def test_returns_true_when_deny_statement_present(self):
+        assert _is_tls_enforced({"Policy": self._DENY_POLICY}) is True
+
+    def test_returns_false_when_error_marker_present(self):
+        # Our mock convention: _error means no bucket policy exists at
+        # all, matching real boto3's NoSuchBucketPolicy.
+        assert _is_tls_enforced({"_error": "NoSuchBucketPolicy"}) is False
+
+    def test_returns_false_when_policy_has_no_deny_statement(self):
+        allow_only_policy = (
+            '{"Version":"2012-10-17","Statement":[{"Effect":"Allow",'
+            '"Principal":{"AWS":"arn:aws:iam::123456789012:root"},'
+            '"Action":"s3:GetObject","Resource":"*"}]}'
+        )
+        assert _is_tls_enforced({"Policy": allow_only_policy}) is False
+
+    def test_returns_false_when_policy_is_unparseable(self):
+        assert _is_tls_enforced({"Policy": "not valid json"}) is False
