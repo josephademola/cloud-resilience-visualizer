@@ -12,7 +12,7 @@ client would see, so these tests exercise the full stack (HTTP layer
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.main import app
+from app.api.main import app, _is_confidential_scope, _scan_all
 
 
 @pytest.fixture(autouse=True)
@@ -131,12 +131,14 @@ class TestFindingsEndpoint:
         resource_ids = {f["resource_id"] for f in data["findings"]}
         assert resource_ids == {"cloudres-fintech-uploads", "123456789012"}
 
-    def test_findings_have_framework_references_from_all_seven_frameworks(self, client):
+    def test_findings_have_framework_references_from_all_six_public_frameworks(self, client):
+        # ConfidentialClient is excluded from an unscoped scan — see
+        # TestConfidentialClientConfidentiality below.
         response = client.get("/api/findings")
         data = response.json()
         expected = {
             "nis2", "ncsc_caf", "mitre_attack", "cyber_essentials",
-            "confidential", "iso27001", "dora",
+            "iso27001", "dora",
         }
         for finding in data["findings"]:
             frameworks = {
@@ -146,6 +148,124 @@ class TestFindingsEndpoint:
                 f"{finding['finding_type_id']} missing frameworks: "
                 f"{expected - frameworks}"
             )
+            assert "confidential" not in frameworks
+
+
+# --- _is_confidential_scope / _scan_all --------------------------------
+class TestIsConfidentialClientScope:
+
+    def test_true_for_project_confidential(self):
+        assert _is_confidential_scope("Project=ConfidentialClient") is True
+
+    def test_false_for_none(self):
+        assert _is_confidential_scope(None) is False
+
+    def test_false_for_empty_string(self):
+        assert _is_confidential_scope("") is False
+
+    def test_false_for_a_different_tag_value(self):
+        assert _is_confidential_scope("Project=CloudResilienceVisualizer") is False
+
+    def test_false_for_a_different_tag_key_with_the_same_value(self):
+        # Deliberately strict: only the tag VALUE is checked, and it
+        # must exactly equal "ConfidentialClient" regardless of which key
+        # it's under, but a totally different key isn't special-cased
+        # into matching — this documents the exact-value semantic.
+        assert _is_confidential_scope("Team=ConfidentialClient") is True
+
+
+class TestScanAllStripsConfidentialClient:
+
+    def _topology_with_root_keys_active(self):
+        return {
+            "metadata": {"schema_version": "1.0"},
+            "nodes": [
+                {
+                    "id": "123456789012",
+                    "type": "account",
+                    "name": "AWS Account 123456789012",
+                    "parent_id": None,
+                    "properties": {
+                        "root_access_keys_present": True,
+                        "account_mfa_enabled": True,
+                        "password_policy_min_length": 20,
+                        "cloudtrail_logging_enabled": True,
+                        "account_s3_block_public_access_enabled": True,
+                    },
+                }
+            ],
+            "security_groups": [],
+        }
+
+    def test_strips_confidential_when_unscoped(self):
+        findings = _scan_all(self._topology_with_root_keys_active())
+        assert len(findings) == 1
+        frameworks = {r.framework for r in findings[0].framework_references}
+        assert "confidential" not in frameworks
+        # Every other framework must still be present -- this isn't
+        # stripping everything, just the one confidential framework.
+        assert "nis2" in frameworks
+
+    def test_keeps_confidential_when_scoped_to_confidential(self):
+        findings = _scan_all(
+            self._topology_with_root_keys_active(), "Project=ConfidentialClient"
+        )
+        frameworks = {r.framework for r in findings[0].framework_references}
+        assert "confidential" in frameworks
+
+    def test_strips_confidential_when_scoped_to_a_different_project(self):
+        findings = _scan_all(
+            self._topology_with_root_keys_active(),
+            "Project=CloudResilienceVisualizer",
+        )
+        frameworks = {r.framework for r in findings[0].framework_references}
+        assert "confidential" not in frameworks
+
+
+# --- ConfidentialClient confidentiality -------------------------------------
+class TestConfidentialClientConfidentiality:
+    """
+    ConfidentialClient's control catalogue is client-confidential. It must
+    only ever appear when the scan is explicitly scoped to
+    Project=ConfidentialClient — never on an unscoped scan, and never on a
+    scan scoped to a different tagged project.
+    """
+
+    def test_confidential_appears_when_scoped_to_confidential(self, client):
+        response = client.get("/api/findings?project_tag=Project=ConfidentialClient")
+        data = response.json()
+        frameworks_present = {
+            r["framework"]
+            for finding in data["findings"]
+            for r in finding["framework_references"]
+        }
+        assert "confidential" in frameworks_present
+
+    def test_confidential_absent_when_scoped_to_a_different_project(self, client):
+        response = client.get(
+            "/api/findings?project_tag=Project=CloudResilienceVisualizer"
+        )
+        data = response.json()
+        frameworks_present = {
+            r["framework"]
+            for finding in data["findings"]
+            for r in finding["framework_references"]
+        }
+        assert "confidential" not in frameworks_present
+
+    def test_compliance_dashboard_includes_confidential_when_scoped(self, client):
+        response = client.get("/api/compliance?project_tag=Project=ConfidentialClient")
+        data = response.json()
+        framework_names = {fw["framework"] for fw in data["frameworks"]}
+        assert "confidential" in framework_names
+
+    def test_compliance_dashboard_excludes_confidential_for_other_project(self, client):
+        response = client.get(
+            "/api/compliance?project_tag=Project=CloudResilienceVisualizer"
+        )
+        data = response.json()
+        framework_names = {fw["framework"] for fw in data["frameworks"]}
+        assert "confidential" not in framework_names
 
 
 # --- Error handling --------------------------------------------------
@@ -168,7 +288,9 @@ class TestComplianceEndpoint:
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/json")
 
-    def test_response_has_seven_frameworks_in_expected_order(self, client):
+    def test_response_has_six_frameworks_by_default(self, client):
+        # ConfidentialClient is client-confidential and must not appear on
+        # an unscoped scan — see TestConfidentialClientConfidentiality.
         response = client.get("/api/compliance")
         data = response.json()
         framework_names = [fw["framework"] for fw in data["frameworks"]]
@@ -179,7 +301,6 @@ class TestComplianceEndpoint:
             "cyber_essentials",
             "iso27001",
             "dora",
-            "confidential",
         ]
 
     def test_response_reflects_scanner_findings(self, client):

@@ -49,12 +49,24 @@ def _finding(
 # --- build_compliance_view -------------------------------------------
 class TestBuildComplianceView:
 
-    def test_returns_all_seven_frameworks_in_expected_order(self):
+    def test_returns_six_frameworks_in_expected_order_by_default(self):
         # Framework order is a display-layer decision that lives in
         # the aggregator. Locking it in prevents accidental drift.
-        # NIS2 first (broadest EU coverage), ConfidentialClient last of all
-        # (engagement-specific, not a published external standard).
+        # NIS2 first (broadest EU coverage). ConfidentialClient is excluded
+        # by default — see test_omits_confidential_section_by_default.
         result = build_compliance_view([])
+        framework_names = [fw["framework"] for fw in result["frameworks"]]
+        assert framework_names == [
+            "nis2",
+            "ncsc_caf",
+            "mitre_attack",
+            "cyber_essentials",
+            "iso27001",
+            "dora",
+        ]
+
+    def test_returns_all_seven_frameworks_when_confidential_included(self):
+        result = build_compliance_view([], include_confidential=True)
         framework_names = [fw["framework"] for fw in result["frameworks"]]
         assert framework_names == [
             "nis2",
@@ -65,6 +77,20 @@ class TestBuildComplianceView:
             "dora",
             "confidential",
         ]
+
+    def test_confidential_findings_still_grouped_when_included(self):
+        findings = [
+            _finding(
+                "IAM_ROOT_ACCESS_KEYS_ACTIVE", Severity.CRITICAL, "123456789012",
+                "Root user has active access keys",
+                (_ref("confidential", "R-03", "IAM credential hygiene"),),
+            )
+        ]
+        result = build_compliance_view(findings, include_confidential=True)
+        confidential = next(
+            fw for fw in result["frameworks"] if fw["framework"] == "confidential"
+        )
+        assert confidential["failing_count"] == 1
 
     def test_framework_metadata_populated(self):
         # Each framework entry must carry its display metadata:
@@ -80,10 +106,10 @@ class TestBuildComplianceView:
             )
 
     def test_empty_findings_produces_empty_requirements(self):
-        # No findings -> no failing requirements. But the four
-        # framework entries still exist (with failing_count = 0)
-        # so the dashboard can render "0 articles failing" cleanly
-        # rather than a missing section.
+        # No findings -> no failing requirements. But the framework
+        # entries (six by default) still exist (with failing_count
+        # = 0) so the dashboard can render "0 articles failing"
+        # cleanly rather than a missing section.
         result = build_compliance_view([])
         assert result["metadata"]["total_findings"] == 0
         for fw in result["frameworks"]:

@@ -24,9 +24,12 @@ Design notes:
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from app.models.finding import FrameworkReference
+
+logger = logging.getLogger(__name__)
 
 # The mapping files live alongside this loader in app/mappings/.
 _MAPPINGS_DIR = Path(__file__).parent
@@ -93,6 +96,21 @@ def _load_all_mappings() -> dict[str, list[FrameworkReference]]:
 
     for filename in _FRAMEWORK_FILES:
         path = _MAPPINGS_DIR / filename
+        if not path.exists():
+            # confidential_controls.json is deliberately not committed
+            # to the repo (client-confidential control catalogue) —
+            # it exists only on machines/environments where it was
+            # placed locally. Skip rather than crash the whole app
+            # over one optional mapping file being absent, same
+            # fail-soft spirit as every other missing-data path in
+            # this codebase.
+            logger.warning(
+                "Mapping file %s not found, skipping — its finding "
+                "types will have no references from this framework.",
+                filename,
+            )
+            continue
+
         with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
 

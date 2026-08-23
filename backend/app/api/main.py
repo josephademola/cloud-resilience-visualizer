@@ -23,10 +23,20 @@ Design notes:
   at this scale (< 5ms) that caching adds complexity without
   meaningful gain. In Phase 6 the mock read is replaced with real
   boto3 calls — the endpoint contract stays the same.
+
+- ConfidentialClient's control catalogue (confidential_controls.json) is
+  client-confidential and is not committed to this repo. _scan_all()
+  strips its framework references from findings, and
+  build_compliance_view() omits its dashboard section entirely,
+  unless project_tag is explicitly "Project=ConfidentialClient". The
+  mapping file also simply won't exist wherever it wasn't placed
+  locally — app.mappings.loader skips a missing mapping file rather
+  than crashing, so this degrades safely in any environment.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -135,7 +145,15 @@ def _get_topology(project_tag: str | None = None) -> dict:
     return topology
 
 
-def _scan_all(topology: dict) -> list[Finding]:
+def _is_confidential_scope(project_tag: str | None) -> bool:
+    """True only when the scan is explicitly scoped to ConfidentialClient."""
+    if not project_tag:
+        return False
+    _, _, tag_value = project_tag.partition("=")
+    return tag_value == "ConfidentialClient"
+
+
+def _scan_all(topology: dict, project_tag: str | None = None) -> list[Finding]:
     """
     Run every scanner against the topology and combine their findings.
 
@@ -143,13 +161,32 @@ def _scan_all(topology: dict) -> list[Finding]:
     buckets, KMS keys, ...), so calling all of them against the same
     topology is safe — order here is scanner-registration order, not
     resource order, and determines nothing about correctness.
+
+    ConfidentialClient's control catalogue is client-confidential: its
+    framework references are stripped from every finding unless the
+    scan is explicitly scoped to Project=ConfidentialClient. An unscoped
+    scan, or one scoped to a different tagged project, must never
+    surface another client's internal control mappings.
     """
-    return (
+    findings = (
         scan_s3_buckets(topology)
         + scan_kms_keys(topology)
         + scan_iam(topology)
         + scan_account(topology)
     )
+
+    if _is_confidential_scope(project_tag):
+        return findings
+
+    return [
+        dataclasses.replace(
+            f,
+            framework_references=tuple(
+                r for r in f.framework_references if r.framework != "confidential"
+            ),
+        )
+        for f in findings
+    ]
 
 _PROJECT_TAG_QUERY = Query(
     None,
@@ -172,7 +209,7 @@ def get_topology(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
 def get_findings(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
     """Return security findings from the scanner."""
     topology = _get_topology(project_tag)
-    findings = _scan_all(topology)
+    findings = _scan_all(topology, project_tag)
     return {
         "metadata": {
             "schema_version": "1.0",
@@ -185,8 +222,10 @@ def get_findings(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
 def get_compliance(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
     """Return compliance view — findings grouped by framework requirement."""
     topology = _get_topology(project_tag)
-    findings = _scan_all(topology)
-    return build_compliance_view(findings)
+    findings = _scan_all(topology, project_tag)
+    return build_compliance_view(
+        findings, include_confidential=_is_confidential_scope(project_tag)
+    )
 
 @app.get("/api/report", dependencies=[Depends(require_api_key)])
 def get_report(project_tag: str | None = _PROJECT_TAG_QUERY) -> Response:
@@ -197,8 +236,10 @@ def get_report(project_tag: str | None = _PROJECT_TAG_QUERY) -> Response:
     which tells the browser to download rather than display inline.
     """
     topology = _get_topology(project_tag)
-    findings = _scan_all(topology)
-    compliance = build_compliance_view(findings)
+    findings = _scan_all(topology, project_tag)
+    compliance = build_compliance_view(
+        findings, include_confidential=_is_confidential_scope(project_tag)
+    )
     pdf_bytes = build_pdf_report(topology, findings, compliance)
 
     return Response(
@@ -227,7 +268,7 @@ def get_evidence(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
     """
     import os
     topology = _get_topology(project_tag)
-    findings = _scan_all(topology)
+    findings = _scan_all(topology, project_tag)
 
     # In live mode, fetch the real IAM identity so the record
     # shows which account and user ran the scan.

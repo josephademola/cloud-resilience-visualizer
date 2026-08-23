@@ -16,6 +16,9 @@ These tests read the real mapping files in app/mappings/ rather than
 mocking them. Small project, static content, no reason to fake it.
 """
 
+import json
+
+from app.mappings import loader as loader_module
 from app.mappings.loader import get_framework_references
 from app.models.finding import FrameworkReference
 
@@ -71,3 +74,36 @@ class TestGetFrameworkReferences:
         # (also frozen), not a raw dict.
         for ref in refs:
             assert isinstance(ref, FrameworkReference)
+
+
+# --- Missing mapping file tolerance ------------------------------------
+class TestMissingMappingFile:
+    """
+    confidential_controls.json is deliberately not committed to the
+    repo (client-confidential) -- it only exists on machines/
+    environments where someone placed it locally. The loader must
+    degrade gracefully wherever it's absent (e.g. the deployed
+    instance), not crash the whole app over one missing file.
+    """
+
+    def test_load_all_mappings_skips_a_missing_file_without_raising(
+        self, tmp_path, monkeypatch
+    ):
+        (tmp_path / "nis2.json").write_text(
+            json.dumps({
+                "TEST_FINDING": [
+                    {"framework": "nis2", "reference_id": "X", "label": "Y"}
+                ]
+            }),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(loader_module, "_MAPPINGS_DIR", tmp_path)
+        monkeypatch.setattr(
+            loader_module, "_FRAMEWORK_FILES", ("nis2.json", "does_not_exist.json")
+        )
+        monkeypatch.setattr(loader_module, "_MAPPINGS_CACHE", None)
+
+        refs = loader_module.get_framework_references("TEST_FINDING")
+
+        assert len(refs) == 1
+        assert refs[0].framework == "nis2"

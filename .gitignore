@@ -69,3 +69,9 @@ local_*/
 
 # === Claude Code handover doc — source of truth, kept outside git ===
 CLAUDE_HANDOVER*.md
+
+# === Client-confidential mapping files — never committed ===
+# ConfidentialClient's internal control catalogue belongs to that business,
+# not this repo. Keep it locally for real ConfidentialClient-scoped scans;
+# app/mappings/loader.py tolerates its absence everywhere else.
+backend/app/mappings/confidential_controls.json

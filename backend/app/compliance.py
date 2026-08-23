@@ -88,10 +88,23 @@ _FRAMEWORK_META = {
 }
 
 
-def build_compliance_view(findings: list[Finding]) -> dict[str, Any]:
+def build_compliance_view(
+    findings: list[Finding], *, include_confidential: bool = False
+) -> dict[str, Any]:
     """
     Reshape a flat list of findings into per-framework requirement
     groupings suitable for the compliance dashboard.
+
+    include_confidential defaults to False — fail-closed, the same
+    semantic every protection signal in this codebase uses. Callers
+    must explicitly pass True, and only after confirming the scan is
+    actually scoped to Project=ConfidentialClient. ConfidentialClient's control
+    catalogue is client-confidential — it must never appear in an
+    unscoped scan's dashboard, or one scoped to a different tagged
+    project, and a caller that forgets to pass this parameter should
+    get the safe behaviour, not the exposing one. The section is
+    omitted entirely rather than shown empty, so an unrelated scan
+    doesn't even reveal that a "ConfidentialClient" framework exists.
 
     Return shape:
         {
@@ -127,8 +140,13 @@ def build_compliance_view(findings: list[Finding]) -> dict[str, Any]:
         }
     """
     frameworks_output = []
+    framework_order = (
+        _FRAMEWORK_ORDER
+        if include_confidential
+        else tuple(f for f in _FRAMEWORK_ORDER if f != "confidential")
+    )
 
-    for framework_name in _FRAMEWORK_ORDER:
+    for framework_name in framework_order:
         meta = _FRAMEWORK_META[framework_name]
         failing_requirements = _group_findings_by_requirement(
             findings, framework_name
