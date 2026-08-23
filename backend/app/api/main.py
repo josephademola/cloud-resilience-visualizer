@@ -167,6 +167,29 @@ def _is_confidential_scope(project_tag: str | None) -> bool:
     return tag_value == configured_value
 
 
+def _get_iam_identity_and_data_source() -> tuple[str, str]:
+    """
+    Determine the IAM identity and data source label for an evidence
+    record, based on USE_LIVE_AWS.
+
+    Only calls STS (a real AWS API call) when actually in live mode —
+    a mock-mode scan must never make any AWS API call at all, real
+    credentials or not. Shared by GET /api/evidence and
+    scripts/run_scheduled_audit.py so this check lives in exactly one
+    place.
+    """
+    if os.environ.get("USE_LIVE_AWS") == "true":
+        try:
+            import boto3
+            sts = boto3.client("sts")
+            iam_identity = sts.get_caller_identity()["Arn"]
+        except Exception:
+            iam_identity = "unknown"
+        return iam_identity, "live"
+
+    return "mock-mode", "mock"
+
+
 def _scan_all(topology: dict, project_tag: str | None = None) -> list[Finding]:
     """
     Run every scanner against the topology and combine their findings.
@@ -281,23 +304,9 @@ def get_evidence(project_tag: str | None = _PROJECT_TAG_QUERY) -> dict:
     evidence record's scope section, so a stored evidence bundle
     self-documents which project it covered.
     """
-    import os
     topology = _get_topology(project_tag)
     findings = _scan_all(topology, project_tag)
-
-    # In live mode, fetch the real IAM identity so the record
-    # shows which account and user ran the scan.
-    if os.environ.get("USE_LIVE_AWS") == "true":
-        try:
-            import boto3
-            sts = boto3.client("sts")
-            iam_identity = sts.get_caller_identity()["Arn"]
-        except Exception:
-            iam_identity = "unknown"
-        data_source = "live"
-    else:
-        iam_identity = "mock-mode"
-        data_source = "mock"
+    iam_identity, data_source = _get_iam_identity_and_data_source()
 
     return build_evidence_record(
         topology,

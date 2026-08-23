@@ -1,0 +1,74 @@
+# Cloud Resilience Visualizer — scheduled compliance audit
+#
+# Runs a real (non-mock) scan against a tagged AWS project on a
+# weekly schedule and uploads the resulting evidence record as a
+# workflow artifact. Authenticates to AWS via OIDC — no long-lived
+# AWS credentials are stored anywhere. The tag value being audited is
+# a repository secret, never committed to this repo, so no client
+# name appears in this workflow file or its logs.
+#
+# One-time AWS-side setup required before this can run (not part of
+# this repo): an IAM OIDC identity provider for
+# token.actions.githubusercontent.com, and an IAM role trusting it
+# (scoped to this repo/branch) with the AWS-managed SecurityAudit
+# policy attached.
+#
+# Repository secrets required:
+#   AWS_AUDIT_ROLE_ARN   -- ARN of the IAM role to assume via OIDC
+#   AUDIT_PROJECT_TAG    -- "Key=Value" tag scoping the scan, e.g.
+#                           "Project=<tag-value>"
+# Repository variable required:
+#   AWS_REGION           -- region the audited resources live in
+
+name: Weekly compliance audit
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  audit:
+    name: Run scheduled audit
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_AUDIT_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Run audit
+        env:
+          AUDIT_PROJECT_TAG: ${{ secrets.AUDIT_PROJECT_TAG }}
+          AUDIT_OUTPUT_PATH: evidence-report.json
+        run: python scripts/run_scheduled_audit.py
+
+      - name: Upload evidence record
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-report-${{ github.run_id }}
+          path: backend/evidence-report.json
+          retention-days: 90

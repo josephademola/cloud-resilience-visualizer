@@ -75,3 +75,9 @@ CLAUDE_HANDOVER*.md
 # business, not this repo. Keep it locally for real, correctly-scoped
 # scans; app/mappings/loader.py tolerates its absence everywhere else.
 backend/app/mappings/confidential_controls.json
+
+# === Evidence reports produced by scripts/run_scheduled_audit.py ===
+# Output of a real, potentially client-scoped scan — never committed.
+# In CI this is uploaded as a workflow artifact instead, not to git.
+backend/evidence-report.json
+backend/*.evidence-report.json
