@@ -131,11 +131,12 @@ class TestFindingsEndpoint:
         resource_ids = {f["resource_id"] for f in data["findings"]}
         assert resource_ids == {"cloudres-fintech-uploads", "123456789012"}
 
-    def test_findings_have_framework_references_from_all_five_frameworks(self, client):
+    def test_findings_have_framework_references_from_all_seven_frameworks(self, client):
         response = client.get("/api/findings")
         data = response.json()
         expected = {
-            "nis2", "ncsc_caf", "mitre_attack", "cyber_essentials", "confidential",
+            "nis2", "ncsc_caf", "mitre_attack", "cyber_essentials",
+            "confidential", "iso27001", "dora",
         }
         for finding in data["findings"]:
             frameworks = {
@@ -167,7 +168,7 @@ class TestComplianceEndpoint:
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/json")
 
-    def test_response_has_five_frameworks_in_expected_order(self, client):
+    def test_response_has_seven_frameworks_in_expected_order(self, client):
         response = client.get("/api/compliance")
         data = response.json()
         framework_names = [fw["framework"] for fw in data["frameworks"]]
@@ -176,6 +177,8 @@ class TestComplianceEndpoint:
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
+            "iso27001",
+            "dora",
             "confidential",
         ]
 

@@ -1,0 +1,86 @@
+{
+  "_meta": {
+    "framework": "dora",
+    "framework_full_name": "EU Digital Operational Resilience Act (Regulation (EU) 2022/2554)",
+    "description": "Mapping of finding types to DORA Chapter II (ICT risk management) articles. High value for UK financial services roles, since DORA applies to EU financial entities and their critical ICT third-party providers.",
+    "source_url": "https://eur-lex.europa.eu/eli/reg/2022/2554/oj/eng",
+    "mapping_rationale": "Article titles (Article 9 'Protection and prevention', Article 10 'Detection', Article 12 'Backup policies and procedures, restoration and recovery procedures and methods') and the specific sub-paragraph quotes in audit_notes below were verified against DORA reference sources before this file was written, not generated from memory. EUR-Lex's own page for this regulation repeatedly truncated before reaching Chapter II in this session (a very long preamble precedes the articles), so sub-paragraph text was cross-checked against a secondary DORA reference site quoting the regulation article-by-article, rather than read directly off the Official Journal PDF. Article and paragraph numbers are accurate to that source; a human should spot-check the exact wording against the official Official Journal PDF before this mapping is relied on in front of a real auditor, the same caveat NIS2's mapping_rationale already carries for its own interpretive judgment calls.",
+    "audit_notes": {
+      "S3_PUBLIC_VIA_ACL": "Article 9(4)(c): 'implement access limitation policies restricting physical or logical access to necessary functions only'. An AllUsers ACL grant is the direct opposite of this.",
+      "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Article 9(4)(c), reused — PAB is exactly the access-limitation control this sub-paragraph describes, at the safety-net level rather than the individual-grant level.",
+      "S3_ENCRYPTION_DISABLED": "Article 9(4)(d): 'implement policies and protocols for strong authentication mechanisms... and protection measures of cryptographic keys whereby data is encrypted'. Encryption at rest is the data-protection half of this sub-paragraph.",
+      "S3_VERSIONING_DISABLED": "Article 12(1)(b): 'restoration and recovery procedures and methods'. Versioning is an object-level recovery mechanism.",
+      "S3_LOGGING_DISABLED": "Article 10(3): entities must allocate 'sufficient resources and capabilities to monitor user activity, the occurrence of ICT anomalies and ICT-related incidents'. Access logs are the raw material this monitoring depends on.",
+      "S3_LIFECYCLE_MISSING": "Article 12(1)(a): 'backup policies and procedures specifying the scope of the data that is subject to the backup and the minimum frequency'. A lifecycle policy is the retention-scope half of what this sub-paragraph requires be documented.",
+      "S3_TLS_NOT_ENFORCED": "Article 9(3)(a): ICT solutions must 'ensure the security of the means of transfer of data'. Deliberately mapped to a different sub-paragraph than S3_ENCRYPTION_DISABLED's 9(4)(d) — this one is specifically about data in transit, not at rest, and DORA's Article 9(3) addresses transfer security separately from Article 9(4)'s broader policy requirements.",
+      "KMS_KEY_ROTATION_DISABLED": "Article 9(4)(d), reused — 'protection measures of cryptographic keys' names key management directly.",
+      "KMS_KEY_PENDING_DELETION": "Article 12(1)(b), reused from S3_VERSIONING_DISABLED — a completed key deletion is the permanent failure of restoration and recovery for everything that key protected.",
+      "IAM_ROOT_ACCESS_KEYS_ACTIVE": "Article 9(4)(c), reused — root access keys are a standing credential with no restriction to necessary functions, the opposite of what this sub-paragraph requires.",
+      "IAM_ACCOUNT_MFA_NOT_ENABLED": "Article 9(4)(d): 'strong authentication mechanisms, based on relevant standards'. Direct, unambiguous match.",
+      "IAM_PASSWORD_POLICY_WEAK": "Article 9(4)(d), reused — password strength is part of the same authentication-mechanism requirement as MFA.",
+      "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "Article 9(4)(c), reused — an unrotated, long-lived credential is a standing access grant that has outlived any 'necessary functions only' justification.",
+      "ACCOUNT_CLOUDTRAIL_DISABLED": "Article 10(3), reused from S3_LOGGING_DISABLED as the account-wide instance — CloudTrail is the primary mechanism for monitoring user activity and ICT anomalies across the whole account.",
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Article 9(4)(c), reused — the account-wide instance of the same access-limitation requirement as the bucket-level finding."
+    }
+  },
+
+  "S3_PUBLIC_VIA_ACL": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "S3_ENCRYPTION_DISABLED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(d)", "label": "Strong authentication mechanisms and cryptographic key protection"}
+  ],
+
+  "S3_VERSIONING_DISABLED": [
+    {"framework": "dora", "reference_id": "Article 12(1)(b)", "label": "Restoration and recovery procedures and methods"}
+  ],
+
+  "S3_LOGGING_DISABLED": [
+    {"framework": "dora", "reference_id": "Article 10(3)", "label": "Monitoring user activity and ICT anomalies"}
+  ],
+
+  "S3_LIFECYCLE_MISSING": [
+    {"framework": "dora", "reference_id": "Article 12(1)(a)", "label": "Backup policies specifying data scope and minimum frequency"}
+  ],
+
+  "S3_TLS_NOT_ENFORCED": [
+    {"framework": "dora", "reference_id": "Article 9(3)(a)", "label": "Security of the means of transfer of data"}
+  ],
+
+  "KMS_KEY_ROTATION_DISABLED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(d)", "label": "Strong authentication mechanisms and cryptographic key protection"}
+  ],
+
+  "KMS_KEY_PENDING_DELETION": [
+    {"framework": "dora", "reference_id": "Article 12(1)(b)", "label": "Restoration and recovery procedures and methods"}
+  ],
+
+  "IAM_ROOT_ACCESS_KEYS_ACTIVE": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "IAM_ACCOUNT_MFA_NOT_ENABLED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(d)", "label": "Strong authentication mechanisms and cryptographic key protection"}
+  ],
+
+  "IAM_PASSWORD_POLICY_WEAK": [
+    {"framework": "dora", "reference_id": "Article 9(4)(d)", "label": "Strong authentication mechanisms and cryptographic key protection"}
+  ],
+
+  "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "ACCOUNT_CLOUDTRAIL_DISABLED": [
+    {"framework": "dora", "reference_id": "Article 10(3)", "label": "Monitoring user activity and ICT anomalies"}
+  ],
+
+  "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ]
+}

@@ -67,10 +67,10 @@ class TestScannerEndToEnd:
         ]
         assert logs_findings == []
 
-    def test_all_findings_map_to_all_five_frameworks(self):
+    def test_all_findings_map_to_all_seven_frameworks(self):
         # End-to-end proof that the mapping loader is stitching
         # references into every finding. If any finding has
-        # references from fewer than five frameworks, something is
+        # references from fewer than seven frameworks, something is
         # wrong: either a mapping file has lost an entry, or the
         # loader isn't combining across files correctly.
         expected_frameworks = {
@@ -79,6 +79,8 @@ class TestScannerEndToEnd:
             "mitre_attack",
             "cyber_essentials",
             "confidential",
+            "iso27001",
+            "dora",
         }
         for finding in FINDINGS:
             frameworks_present = {

@@ -1,0 +1,87 @@
+{
+  "_meta": {
+    "framework": "iso27001",
+    "framework_full_name": "ISO/IEC 27001:2022 Annex A",
+    "description": "Mapping of finding types to ISO/IEC 27001:2022 Annex A controls (93 controls across Organisational, People, Physical, and Technological themes). Only the Technological (A.8) and Organisational (A.5) controls that cloud misconfigurations actually touch are used here.",
+    "source_url": "https://www.iso.org/standard/27001",
+    "mapping_rationale": "Annex A control titles and numbers were independently verified against a current ISO 27001:2022 reference guide before this file was written (A.5.18, A.8.2, A.8.3, A.8.5, A.8.9, A.8.10, A.8.13, A.8.15, A.8.16, A.8.24 all confirmed). The full standard text itself is paywalled, unlike NIS2 (EUR-Lex, free) or NCSC CAF (ncsc.gov.uk, free) — the mapping here is based on each control's well-established scope and title, not a line-by-line reading of the paywalled clause text the way NIS2's mapping could be. Several controls are deliberately reused across multiple findings where ISO doesn't distinguish as finely as this tool's rules do (A.8.24 covers cryptography broadly, with no separate control for at-rest vs in-transit vs key-management, unlike NCSC CAF's B3.b/B3.c split).",
+    "audit_notes": {
+      "S3_PUBLIC_VIA_ACL": "A.8.3 (Information Access Restriction) — an AllUsers ACL grant is a direct, unambiguous failure of this control.",
+      "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "A.8.9 (Configuration Management) — PAB is a configuration setting; leaving it disabled is a configuration-management gap.",
+      "S3_ENCRYPTION_DISABLED": "A.8.24 (Use of Cryptography) — direct match, encryption at rest.",
+      "S3_VERSIONING_DISABLED": "A.8.13 (Information Backup) — versioning is an object-level recovery mechanism, the closest ISO control to what it provides.",
+      "S3_LOGGING_DISABLED": "A.8.15 (Logging) — direct match.",
+      "S3_LIFECYCLE_MISSING": "A.8.10 (Information Deletion) — a precise fit, not a stretch: this control is specifically about secure deletion once data is no longer required, which is exactly what a lifecycle policy automates.",
+      "S3_TLS_NOT_ENFORCED": "A.8.24 (Use of Cryptography), reused from S3_ENCRYPTION_DISABLED. ISO does not split this control by at-rest vs in-transit the way NCSC CAF's B3.b/B3.c does.",
+      "KMS_KEY_ROTATION_DISABLED": "A.8.24 (Use of Cryptography), reused. Key rotation is a cryptographic key management practice, squarely inside this control's scope.",
+      "KMS_KEY_PENDING_DELETION": "A.8.13 (Information Backup), reused from S3_VERSIONING_DISABLED — a completed deletion is a permanent loss of the ability to recover data, the same outcome this control exists to prevent.",
+      "IAM_ROOT_ACCESS_KEYS_ACTIVE": "A.8.2 (Privileged Access Rights) — root is the account's highest privilege level; this control governs exactly that.",
+      "IAM_ACCOUNT_MFA_NOT_ENABLED": "A.8.5 (Secure Authentication) — direct match.",
+      "IAM_PASSWORD_POLICY_WEAK": "A.8.5 (Secure Authentication), reused — password strength is part of the same control as MFA.",
+      "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "A.5.18 (Access Rights), deliberately different from IAM_ROOT_ACCESS_KEYS_ACTIVE's A.8.2. A.5.18 covers the provisioning, review, and revocation of access rights over time — credential lifecycle for a regular user, not root's privileged-access control.",
+      "ACCOUNT_CLOUDTRAIL_DISABLED": "A.8.15 (Logging), reused from S3_LOGGING_DISABLED as the account-wide instance. A.8.16 (Monitoring Activities) added as secondary, since CloudTrail is the data source account-wide monitoring depends on.",
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "A.8.9 (Configuration Management), reused from S3_PUBLIC_ACCESS_BLOCK_DISABLED as the account-wide instance of the same control."
+    }
+  },
+
+  "S3_PUBLIC_VIA_ACL": [
+    {"framework": "iso27001", "reference_id": "A.8.3", "label": "Information Access Restriction"}
+  ],
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.9", "label": "Configuration Management"}
+  ],
+
+  "S3_ENCRYPTION_DISABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.24", "label": "Use of Cryptography"}
+  ],
+
+  "S3_VERSIONING_DISABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.13", "label": "Information Backup"}
+  ],
+
+  "S3_LOGGING_DISABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.15", "label": "Logging"}
+  ],
+
+  "S3_LIFECYCLE_MISSING": [
+    {"framework": "iso27001", "reference_id": "A.8.10", "label": "Information Deletion"}
+  ],
+
+  "S3_TLS_NOT_ENFORCED": [
+    {"framework": "iso27001", "reference_id": "A.8.24", "label": "Use of Cryptography"}
+  ],
+
+  "KMS_KEY_ROTATION_DISABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.24", "label": "Use of Cryptography"}
+  ],
+
+  "KMS_KEY_PENDING_DELETION": [
+    {"framework": "iso27001", "reference_id": "A.8.13", "label": "Information Backup"}
+  ],
+
+  "IAM_ROOT_ACCESS_KEYS_ACTIVE": [
+    {"framework": "iso27001", "reference_id": "A.8.2", "label": "Privileged Access Rights"}
+  ],
+
+  "IAM_ACCOUNT_MFA_NOT_ENABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.5", "label": "Secure Authentication"}
+  ],
+
+  "IAM_PASSWORD_POLICY_WEAK": [
+    {"framework": "iso27001", "reference_id": "A.8.5", "label": "Secure Authentication"}
+  ],
+
+  "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": [
+    {"framework": "iso27001", "reference_id": "A.5.18", "label": "Access Rights"}
+  ],
+
+  "ACCOUNT_CLOUDTRAIL_DISABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.15", "label": "Logging"},
+    {"framework": "iso27001", "reference_id": "A.8.16", "label": "Monitoring Activities"}
+  ],
+
+  "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.9", "label": "Configuration Management"}
+  ]
+}
