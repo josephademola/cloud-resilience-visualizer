@@ -24,14 +24,15 @@ Design notes:
   meaningful gain. In Phase 6 the mock read is replaced with real
   boto3 calls — the endpoint contract stays the same.
 
-- ConfidentialClient's control catalogue (confidential_controls.json) is
-  client-confidential and is not committed to this repo. _scan_all()
-  strips its framework references from findings, and
-  build_compliance_view() omits its dashboard section entirely,
-  unless project_tag is explicitly "Project=ConfidentialClient". The
-  mapping file also simply won't exist wherever it wasn't placed
-  locally — app.mappings.loader skips a missing mapping file rather
-  than crashing, so this degrades safely in any environment.
+- A confidential client's control catalogue (confidential_controls.json)
+  is not committed to this repo. _scan_all() strips its framework
+  references from findings, and build_compliance_view() omits its
+  dashboard section entirely, unless project_tag matches the tag
+  value configured via the CONFIDENTIAL_PROJECT_TAG environment
+  variable (never committed — set per-deployment). The mapping file
+  also simply won't exist wherever it wasn't placed locally —
+  app.mappings.loader skips a missing mapping file rather than
+  crashing, so this degrades safely in any environment.
 """
 
 from __future__ import annotations
@@ -113,7 +114,7 @@ def _load_aws_data(project_tag: str | None = None) -> dict:
     USE_LIVE_AWS=true -> real AWS via boto3
     otherwise         -> mock_aws.json
 
-    project_tag (Phase 9a Feature 1, e.g. "Project=ConfidentialClient") is
+    project_tag (Phase 9a Feature 1, e.g. "Project=<tag-value>") is
     passed through to fetch_aws_data() in live mode, which queries
     the Resource Groups Tagging API for it. mock_aws.json's
     resourcegroupstaggingapi section is static regardless of what was
@@ -146,11 +147,24 @@ def _get_topology(project_tag: str | None = None) -> dict:
 
 
 def _is_confidential_scope(project_tag: str | None) -> bool:
-    """True only when the scan is explicitly scoped to ConfidentialClient."""
+    """
+    True only when the scan is explicitly scoped to the confidential
+    client's tagged project.
+
+    The tag value that unlocks this is read from the
+    CONFIDENTIAL_PROJECT_TAG environment variable rather than hardcoded,
+    so no client's name ever needs to appear in this repo's source or
+    history — it's set per-deployment (e.g. in Render's dashboard) and
+    defaults to a placeholder that matches the demo/test fixture data
+    when unset.
+    """
     if not project_tag:
         return False
     _, _, tag_value = project_tag.partition("=")
-    return tag_value == "ConfidentialClient"
+    configured_value = os.environ.get(
+        "CONFIDENTIAL_PROJECT_TAG", "ConfidentialClient"
+    )
+    return tag_value == configured_value
 
 
 def _scan_all(topology: dict, project_tag: str | None = None) -> list[Finding]:
@@ -162,11 +176,12 @@ def _scan_all(topology: dict, project_tag: str | None = None) -> list[Finding]:
     topology is safe — order here is scanner-registration order, not
     resource order, and determines nothing about correctness.
 
-    ConfidentialClient's control catalogue is client-confidential: its
-    framework references are stripped from every finding unless the
-    scan is explicitly scoped to Project=ConfidentialClient. An unscoped
-    scan, or one scoped to a different tagged project, must never
-    surface another client's internal control mappings.
+    The confidential client's control catalogue is client-confidential:
+    its framework references are stripped from every finding unless
+    the scan is explicitly scoped to that client's tagged project (see
+    _is_confidential_scope). An unscoped scan, or one scoped to a
+    different tagged project, must never surface another client's
+    internal control mappings.
     """
     findings = (
         scan_s3_buckets(topology)
@@ -192,7 +207,7 @@ _PROJECT_TAG_QUERY = Query(
     None,
     description=(
         'Optional "Key=Value" tag filter (Phase 9a Feature 1), e.g. '
-        '"Project=ConfidentialClient". Scopes the scan to resources '
+        '"Project=<tag-value>". Scopes the scan to resources '
         "carrying that tag, plus account-wide findings, which always "
         "apply regardless of scope."
     ),

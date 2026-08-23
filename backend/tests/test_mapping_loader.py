@@ -1,8 +1,13 @@
 """
 Unit tests for app.mappings.loader.
 
-The loader reads all seven framework JSON files and provides a single
-lookup by finding_type_id. These tests verify:
+The loader reads every framework JSON file present in app/mappings/
+and provides a single lookup by finding_type_id. Six files are always
+committed to the repo; a seventh (confidential_controls.json) is
+gitignored and only present on machines where it was placed locally
+(see docs/design_decisions.md #11) — the loader tolerates its
+absence, and these tests treat "seven" as a possible bonus, not a
+guarantee. These tests verify:
 
   - Known finding types return references from every framework that
     maps them (the "combining" behaviour).
@@ -32,21 +37,27 @@ class TestGetFrameworkReferences:
         refs = get_framework_references("S3_PUBLIC_VIA_ACL")
         assert len(refs) > 0
 
-    def test_combines_references_from_all_seven_frameworks(self):
-        # S3_PUBLIC_VIA_ACL has entries in all seven mapping files.
-        # The loader must combine them so a downstream reader sees
-        # all seven framework names.
+    def test_combines_references_from_all_six_public_frameworks(self):
+        # S3_PUBLIC_VIA_ACL has entries in all six publicly-committed
+        # mapping files. The loader must combine them so a downstream
+        # reader sees all six framework names. Deliberately a subset
+        # check, not an exact-equality one: confidential_controls.json
+        # is gitignored and client-confidential (see
+        # docs/design_decisions.md #11) — it exists on this developer's
+        # machine but not in CI's fresh checkout, so whether
+        # "confidential" is ALSO present is environment-dependent and
+        # not part of this test's contract. The six public frameworks
+        # being present always is the actual guarantee.
         refs = get_framework_references("S3_PUBLIC_VIA_ACL")
         frameworks_present = {r.framework for r in refs}
-        assert frameworks_present == {
+        assert {
             "nis2",
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
-            "confidential",
             "iso27001",
             "dora",
-        }
+        }.issubset(frameworks_present)
 
     def test_returns_empty_tuple_for_unknown_finding_type(self):
         # An ID that doesn't exist in any mapping file should give

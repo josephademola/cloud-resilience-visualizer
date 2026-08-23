@@ -86,7 +86,7 @@ function renderScoreCards(frameworks) {
         cyber_essentials: "Cyber Essentials",
         iso27001: "ISO 27001",
         dora: "DORA",
-        confidential: "ConfidentialClient",
+        confidential: "Confidential Client",
     };
 
     const cards = frameworks.map(fw => {

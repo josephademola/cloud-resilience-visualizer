@@ -9,10 +9,33 @@ client would see, so these tests exercise the full stack (HTTP layer
 """
 
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.api.main import app, _is_confidential_scope, _scan_all
+
+
+# confidential_controls.json is gitignored and client-confidential —
+# present on machines where it was placed locally, absent in CI's
+# fresh checkout. Tests that assert POSITIVE inclusion of the
+# confidential framework can only pass where the file actually has
+# data to attach, so they're skipped rather than failed when it's
+# missing. Tests that assert the framework's ABSENCE don't need this
+# guard — they pass either way.
+_CONFIDENTIAL_MAPPING_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "app" / "mappings" / "confidential_controls.json"
+)
+_confidential_mapping_available = _CONFIDENTIAL_MAPPING_PATH.exists()
+_requires_confidential_mapping = pytest.mark.skipif(
+    not _confidential_mapping_available,
+    reason=(
+        "confidential_controls.json not present in this environment "
+        "(expected in CI — it's gitignored, client-confidential)"
+    ),
+)
 
 
 @pytest.fixture(autouse=True)
@@ -133,7 +156,7 @@ class TestFindingsEndpoint:
 
     def test_findings_have_framework_references_from_all_six_public_frameworks(self, client):
         # ConfidentialClient is excluded from an unscoped scan — see
-        # TestConfidentialClientConfidentiality below.
+        # TestConfidentialFrameworkConfidentiality below.
         response = client.get("/api/findings")
         data = response.json()
         expected = {
@@ -152,7 +175,7 @@ class TestFindingsEndpoint:
 
 
 # --- _is_confidential_scope / _scan_all --------------------------------
-class TestIsConfidentialClientScope:
+class TestIsConfidentialScope:
 
     def test_true_for_project_confidential(self):
         assert _is_confidential_scope("Project=ConfidentialClient") is True
@@ -174,7 +197,7 @@ class TestIsConfidentialClientScope:
         assert _is_confidential_scope("Team=ConfidentialClient") is True
 
 
-class TestScanAllStripsConfidentialClient:
+class TestScanAllStripsConfidential:
 
     def _topology_with_root_keys_active(self):
         return {
@@ -206,6 +229,7 @@ class TestScanAllStripsConfidentialClient:
         # stripping everything, just the one confidential framework.
         assert "nis2" in frameworks
 
+    @_requires_confidential_mapping
     def test_keeps_confidential_when_scoped_to_confidential(self):
         findings = _scan_all(
             self._topology_with_root_keys_active(), "Project=ConfidentialClient"
@@ -222,15 +246,16 @@ class TestScanAllStripsConfidentialClient:
         assert "confidential" not in frameworks
 
 
-# --- ConfidentialClient confidentiality -------------------------------------
-class TestConfidentialClientConfidentiality:
+# --- Confidential framework confidentiality ---------------------------
+class TestConfidentialFrameworkConfidentiality:
     """
-    ConfidentialClient's control catalogue is client-confidential. It must
-    only ever appear when the scan is explicitly scoped to
-    Project=ConfidentialClient — never on an unscoped scan, and never on a
-    scan scoped to a different tagged project.
+    The confidential client's control catalogue must only ever appear
+    when the scan is explicitly scoped to Project=ConfidentialClient
+    — never on an unscoped scan, and never on a scan scoped to a
+    different tagged project.
     """
 
+    @_requires_confidential_mapping
     def test_confidential_appears_when_scoped_to_confidential(self, client):
         response = client.get("/api/findings?project_tag=Project=ConfidentialClient")
         data = response.json()
@@ -290,7 +315,7 @@ class TestComplianceEndpoint:
 
     def test_response_has_six_frameworks_by_default(self, client):
         # ConfidentialClient is client-confidential and must not appear on
-        # an unscoped scan — see TestConfidentialClientConfidentiality.
+        # an unscoped scan — see TestConfidentialFrameworkConfidentiality.
         response = client.get("/api/compliance")
         data = response.json()
         framework_names = [fw["framework"] for fw in data["frameworks"]]

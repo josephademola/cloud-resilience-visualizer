@@ -16,9 +16,9 @@ Design notes:
   hardcoded here rather than read from the mapping files. There are
   seven of them, they're stable, and pulling them into a separate
   configuration file would be over-engineering. Adding a framework
-  (ConfidentialClient, then ISO 27001 and DORA) means updating both this
-  file and the mapping loader — the change surface is small and both
-  places are obvious to a maintainer.
+  (a confidential client baseline, then ISO 27001 and DORA) means
+  updating both this file and the mapping loader — the change surface
+  is small and both places are obvious to a maintainer.
 
 - unit_label per framework is deliberately different. NIS2 has
   'articles', CAF has 'outcomes', MITRE has 'techniques enabled'
@@ -42,8 +42,9 @@ from app.models.finding import Finding
 
 # Framework display order for the compliance dashboard. NIS2 first
 # (broadest EU coverage), then the other EU/UK published standards,
-# ConfidentialClient last of all — it's an engagement-specific control
-# catalogue, not a published external standard like the other six.
+# the confidential client baseline last of all — it's an
+# engagement-specific control catalogue, not a published external
+# standard like the other six.
 _FRAMEWORK_ORDER = (
     "nis2",
     "ncsc_caf",
@@ -82,7 +83,7 @@ _FRAMEWORK_META = {
         "unit_label": "articles failing",
     },
     "confidential": {
-        "full_name": "ConfidentialClient Internal Control Baseline",
+        "full_name": "Confidential Client Control Baseline",
         "unit_label": "controls failing",
     },
 }
@@ -98,13 +99,14 @@ def build_compliance_view(
     include_confidential defaults to False — fail-closed, the same
     semantic every protection signal in this codebase uses. Callers
     must explicitly pass True, and only after confirming the scan is
-    actually scoped to Project=ConfidentialClient. ConfidentialClient's control
-    catalogue is client-confidential — it must never appear in an
-    unscoped scan's dashboard, or one scoped to a different tagged
-    project, and a caller that forgets to pass this parameter should
-    get the safe behaviour, not the exposing one. The section is
-    omitted entirely rather than shown empty, so an unrelated scan
-    doesn't even reveal that a "ConfidentialClient" framework exists.
+    actually scoped to the confidential client's tagged project. That
+    client's control catalogue is client-confidential — it must never
+    appear in an unscoped scan's dashboard, or one scoped to a
+    different tagged project, and a caller that forgets to pass this
+    parameter should get the safe behaviour, not the exposing one.
+    The section is omitted entirely rather than shown empty, so an
+    unrelated scan doesn't even reveal that a "confidential" framework
+    exists.
 
     Return shape:
         {

@@ -559,7 +559,7 @@ function renderFrameworkRefs(groups) {
         cyber_essentials: "Cyber Essentials",
         iso27001: "ISO 27001",
         dora: "DORA",
-        confidential: "ConfidentialClient",
+        confidential: "Confidential Client",
     };
     const parts = [];
     for (const key of frameworkOrder) {

@@ -71,7 +71,7 @@ def build_evidence_record(
                          (pass sts.get_caller_identity()['Arn'] in live mode)
         data_source   -- 'mock' or 'live' — records which data path was used
         project_tag   -- optional "Key=Value" tag the scan was scoped to
-                         (Phase 9a Feature 4, e.g. "Project=ConfidentialClient").
+                         (Phase 9a Feature 4, e.g. "Project=<tag-value>").
                          None when the scan covered the whole account.
                          Recorded in scope, not as a new top-level key,
                          since it describes what was scanned, the same

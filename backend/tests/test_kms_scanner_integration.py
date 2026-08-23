@@ -41,13 +41,19 @@ class TestKmsScannerEndToEnd:
         assert severities["KMS_KEY_ROTATION_DISABLED"] == "high"
         assert severities["KMS_KEY_PENDING_DELETION"] == "critical"
 
-    def test_all_findings_map_to_all_seven_frameworks(self):
+    def test_all_findings_map_to_all_six_public_frameworks(self):
+        # Subset check, not exact equality: confidential_controls.json
+        # is gitignored and only present on machines where it was
+        # placed locally (docs/design_decisions.md #11), so whether
+        # "confidential" is ALSO present is environment-dependent.
+        # These scanner functions are called directly here, bypassing
+        # main.py's scope-gating entirely -- that confidentiality
+        # guarantee is tested in test_api.py instead.
         expected_frameworks = {
             "nis2",
             "ncsc_caf",
             "mitre_attack",
             "cyber_essentials",
-            "confidential",
             "iso27001",
             "dora",
         }
@@ -55,7 +61,7 @@ class TestKmsScannerEndToEnd:
             frameworks_present = {
                 r.framework for r in finding.framework_references
             }
-            assert frameworks_present == expected_frameworks, (
+            assert expected_frameworks.issubset(frameworks_present), (
                 f"{finding.finding_type_id} missing frameworks: "
                 f"{expected_frameworks - frameworks_present}"
             )

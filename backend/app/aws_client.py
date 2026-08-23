@@ -55,7 +55,7 @@ def fetch_aws_data(project_tag: str | None = None) -> dict[str, Any]:
 
     Args:
         project_tag: Optional "Key=Value" tag filter (Phase 9a
-            Feature 1, e.g. "Project=ConfidentialClient"). When given, the
+            Feature 1, e.g. "Project=<tag-value>"). When given, the
             Resource Groups Tagging API is queried for matching
             resources and the result is included under
             "resourcegroupstaggingapi" for aws_normalizer.
