@@ -1,24 +1,48 @@
 # Cloud Resilience Visualizer — scheduled compliance audit
 #
 # Runs a real (non-mock) scan against a tagged AWS project on a
-# weekly schedule and uploads the resulting evidence record as a
-# workflow artifact. Authenticates to AWS via OIDC — no long-lived
-# AWS credentials are stored anywhere. The tag value being audited is
-# a repository secret, never committed to this repo, so no client
-# name appears in this workflow file or its logs.
+# weekly schedule and uploads the resulting evidence record straight
+# to a private S3 bucket in the same AWS account — never to a GitHub
+# Actions artifact. This repo is public, and GitHub Actions artifacts
+# on a public repo are downloadable by any GitHub account, not just
+# collaborators — a real client's security posture must never pass
+# through that surface. Authenticates to AWS via OIDC; no long-lived
+# AWS credentials are stored anywhere. The tag value being audited,
+# and the confidential control-catalogue file, are repository
+# secrets, never committed to this repo, so no client name or
+# real-account data appears anywhere in this repo or its logs.
 #
 # One-time AWS-side setup required before this can run (not part of
-# this repo): an IAM OIDC identity provider for
-# token.actions.githubusercontent.com, and an IAM role trusting it
-# (scoped to this repo/branch) with the AWS-managed SecurityAudit
-# policy attached.
+# this repo):
+#   1. An IAM OIDC identity provider for
+#      token.actions.githubusercontent.com.
+#   2. An IAM role (CRV-SecurityAudit-ReadOnly) trusting it, scoped to
+#      this repo/branch, with the AWS-managed SecurityAudit policy
+#      attached (read-only).
+#   3. A private S3 bucket (block all public access, default
+#      encryption on) and one additional inline policy on that same
+#      role granting s3:PutObject scoped only to that bucket's ARN --
+#      nothing else. The role's read access to the rest of the
+#      account stays exactly SecurityAudit, unchanged.
 #
 # Repository secrets required:
-#   AWS_AUDIT_ROLE_ARN   -- ARN of the IAM role to assume via OIDC
-#   AUDIT_PROJECT_TAG    -- "Key=Value" tag scoping the scan, e.g.
-#                           "Project=<tag-value>"
-# Repository variable required:
+#   AWS_AUDIT_ROLE_ARN       -- ARN of the IAM role to assume via OIDC
+#   AUDIT_PROJECT_TAG        -- "Key=Value" tag scoping the scan, e.g.
+#                               "Project=<tag-value>"
+#   CONFIDENTIAL_PROJECT_TAG -- (optional) the tag VALUE (not
+#                               "Key=Value") that unlocks the
+#                               confidential framework -- see
+#                               app/api/main.py's _is_confidential_scope
+#   CONFIDENTIAL_CONTROLS_JSON -- (optional) full JSON content of
+#                               confidential_controls.json. Written to
+#                               disk only for the duration of this
+#                               job; never committed. Omit both this
+#                               and CONFIDENTIAL_PROJECT_TAG if this
+#                               engagement has no confidential
+#                               framework to include.
+# Repository variables required:
 #   AWS_REGION           -- region the audited resources live in
+#   EVIDENCE_S3_BUCKET   -- name of the private S3 bucket to upload to
 
 name: Weekly compliance audit
 
@@ -60,15 +84,23 @@ jobs:
           role-to-assume: ${{ secrets.AWS_AUDIT_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - name: Write confidential control catalogue (if configured)
+        if: ${{ secrets.CONFIDENTIAL_CONTROLS_JSON != '' }}
+        env:
+          CONFIDENTIAL_CONTROLS_JSON: ${{ secrets.CONFIDENTIAL_CONTROLS_JSON }}
+        run: |
+          printf '%s' "$CONFIDENTIAL_CONTROLS_JSON" > app/mappings/confidential_controls.json
+
       - name: Run audit
         env:
           AUDIT_PROJECT_TAG: ${{ secrets.AUDIT_PROJECT_TAG }}
+          CONFIDENTIAL_PROJECT_TAG: ${{ secrets.CONFIDENTIAL_PROJECT_TAG }}
           AUDIT_OUTPUT_PATH: evidence-report.json
         run: python scripts/run_scheduled_audit.py
 
-      - name: Upload evidence record
-        uses: actions/upload-artifact@v4
-        with:
-          name: evidence-report-${{ github.run_id }}
-          path: backend/evidence-report.json
-          retention-days: 90
+      - name: Upload evidence record to private S3
+        env:
+          BUCKET: ${{ vars.EVIDENCE_S3_BUCKET }}
+        run: |
+          aws s3 cp evidence-report.json \
+            "s3://$BUCKET/evidence-reports/$(date -u +%Y/%m/%d)-${{ github.run_id }}.json"
