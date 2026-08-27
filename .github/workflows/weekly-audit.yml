@@ -85,11 +85,16 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Write confidential control catalogue (if configured)
-        if: ${{ secrets.CONFIDENTIAL_CONTROLS_JSON != '' }}
         env:
           CONFIDENTIAL_CONTROLS_JSON: ${{ secrets.CONFIDENTIAL_CONTROLS_JSON }}
         run: |
-          printf '%s' "$CONFIDENTIAL_CONTROLS_JSON" > app/mappings/confidential_controls.json
+          # The "secrets" context isn't available in step-level "if:"
+          # conditions at all (GitHub Actions restriction) -- so the
+          # optionality is handled here in the shell instead, via the
+          # "env" context, which is allowed everywhere.
+          if [ -n "$CONFIDENTIAL_CONTROLS_JSON" ]; then
+            printf '%s' "$CONFIDENTIAL_CONTROLS_JSON" > app/mappings/confidential_controls.json
+          fi
 
       - name: Run audit
         env:
