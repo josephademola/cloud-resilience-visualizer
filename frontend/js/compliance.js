@@ -43,7 +43,7 @@ async function activateComplianceView() {
 
 
 async function fetchCompliance() {
-    const response = await fetch(COMPLIANCE_API_URL, {
+    const response = await fetch(withProjectTag(COMPLIANCE_API_URL), {
         headers: { "X-API-Key": API_KEY },
     });
     if (!response.ok) {
@@ -67,7 +67,7 @@ function renderDownloadBar() {
     // the PDF inline. No JS click handler needed.
     return `
         <div class="download-bar">
-            <a href="${API_BASE}/api/report" class="download-btn" download>
+            <a href="${withProjectTag(`${API_BASE}/api/report`)}" class="download-btn" download>
                 <i class="ti ti-download"></i>
                 Download PDF report
             </a>

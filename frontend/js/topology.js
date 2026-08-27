@@ -26,6 +26,16 @@ const API_BASE = "https://cloud-resilience-visualizer.onrender.com";
 // a build-time environment variable or a config endpoint.
 const API_KEY = "crv-prod-2026-joseph";
 
+// Phase 9a Feature 1's tag-based scoping (?project_tag=Key=Value on
+// the backend) has no UI control of its own — it's read from this
+// page's OWN url, e.g. bookmarking
+// index.html?project_tag=Project=SomeTag shows that project's scan
+// instead of the whole account. Read once at load; changing scope
+// means loading a different URL, not a live in-page toggle. Never
+// hardcoded here — whatever tag value is being audited only ever
+// lives in whoever's browser URL bar is looking at it.
+const PROJECT_TAG = new URLSearchParams(window.location.search).get("project_tag");
+
 // Module-level state, populated at init.
 let FINDINGS = [];
 
@@ -89,8 +99,17 @@ function switchView(viewName) {
 
 // ---- Data loading ----
 
+// Appends ?project_tag=<value> to an API path when PROJECT_TAG is
+// set, URL-encoded so the tag's own "=" (e.g. "Project=SomeTag")
+// survives as a single query value rather than being parsed as two.
+function withProjectTag(path) {
+    if (!PROJECT_TAG) return path;
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}project_tag=${encodeURIComponent(PROJECT_TAG)}`;
+}
+
 async function fetchTopology() {
-    const response = await fetch(`${API_BASE}/api/topology`, {
+    const response = await fetch(withProjectTag(`${API_BASE}/api/topology`), {
         headers: { "X-API-Key": API_KEY },
     });
     if (!response.ok) {
@@ -104,7 +123,7 @@ async function fetchFindings() {
     // unavailable we proceed with an empty list rather than break
     // the whole page. Topology is required; findings are optional.
     try {
-        const response = await fetch(`${API_BASE}/api/findings`, {
+        const response = await fetch(withProjectTag(`${API_BASE}/api/findings`), {
             headers: { "X-API-Key": API_KEY },
         });
         if (!response.ok) {
@@ -422,8 +441,12 @@ function updateStatus(topology) {
     const findingText = findingCount === 0
         ? "no findings"
         : `${findingCount} finding${findingCount === 1 ? "" : "s"}`;
+    // textContent, not innerHTML, below -- the browser never
+    // interprets this as markup, so PROJECT_TAG (which came from this
+    // page's own URL) needs no escaping here.
+    const scopeText = PROJECT_TAG ? ` · scoped to ${PROJECT_TAG}` : "";
     const statusEl = document.getElementById("status");
-    statusEl.textContent = `${total} resources · ${findingText}`;
+    statusEl.textContent = `${total} resources · ${findingText}${scopeText}`;
     statusEl.classList.add("status-loaded");
 }
 
