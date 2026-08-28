@@ -1014,6 +1014,7 @@ class TestNormalizeIamUsers:
                         }
                     ],
                     "arn": "arn:aws:iam::123456789012:user/svc-account",
+                    "has_console_login": False,
                 },
             }
         ]
@@ -1051,6 +1052,43 @@ class TestNormalizeIamUsers:
 
     def test_returns_empty_list_when_no_users(self):
         assert _normalize_iam_users({}) == []
+
+    def test_has_console_login_true_when_login_profile_present(self):
+        iam_data = {
+            "list_users": {"Users": [{"UserName": "console-user"}]},
+            "user_details": {
+                "console-user": {
+                    "get_login_profile": {
+                        "LoginProfile": {"UserName": "console-user"}
+                    }
+                }
+            },
+        }
+        nodes = _normalize_iam_users(iam_data)
+        assert nodes[0]["properties"]["has_console_login"] is True
+
+    def test_has_console_login_false_when_error_marker_present(self):
+        iam_data = {
+            "list_users": {"Users": [{"UserName": "programmatic-user"}]},
+            "user_details": {
+                "programmatic-user": {
+                    "get_login_profile": {"_error": "NoSuchEntityException"}
+                }
+            },
+        }
+        nodes = _normalize_iam_users(iam_data)
+        assert nodes[0]["properties"]["has_console_login"] is False
+
+    def test_has_console_login_false_when_key_entirely_missing(self):
+        # Detection signal, fail-open: absent data must never be
+        # interpreted as "console login exists" just because it isn't
+        # an explicit error marker either.
+        iam_data = {
+            "list_users": {"Users": [{"UserName": "no-detail-user"}]},
+            "user_details": {"no-detail-user": {}},
+        }
+        nodes = _normalize_iam_users(iam_data)
+        assert nodes[0]["properties"]["has_console_login"] is False
 
 
 # --- _normalize_security_groups --------------------------------------

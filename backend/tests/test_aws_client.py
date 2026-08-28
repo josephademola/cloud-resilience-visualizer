@@ -169,6 +169,32 @@ class TestFetchAwsData:
         assert len(key_metadata) == 1
         assert key_metadata[0]["Status"] == "Active"
 
+    def test_user_details_has_login_profile_error_marker_when_no_console_access(
+        self, moto_aws
+    ):
+        iam = boto3.client("iam", region_name="eu-west-2")
+        iam.create_user(UserName="test-user-programmatic-only")
+
+        data = fetch_aws_data()
+        login_profile = data["iam"]["user_details"][
+            "test-user-programmatic-only"
+        ]["get_login_profile"]
+        assert "_error" in login_profile
+
+    def test_user_details_reflects_created_console_login_profile(self, moto_aws):
+        iam = boto3.client("iam", region_name="eu-west-2")
+        iam.create_user(UserName="test-user-with-console-login")
+        iam.create_login_profile(
+            UserName="test-user-with-console-login", Password="Sup3rSecret!23"
+        )
+
+        data = fetch_aws_data()
+        login_profile = data["iam"]["user_details"][
+            "test-user-with-console-login"
+        ]["get_login_profile"]
+        assert "_error" not in login_profile
+        assert login_profile["LoginProfile"]["UserName"] == "test-user-with-console-login"
+
     def test_cloudtrail_section_has_describe_trails_and_trail_status(self, moto_aws):
         data = fetch_aws_data()
         assert "describe_trails" in data["cloudtrail"]

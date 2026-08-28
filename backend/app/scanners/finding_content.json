@@ -100,6 +100,13 @@
     "remediation": "Rotate the key: create a new access key for the user, update every script, application, or CI pipeline that references the old one, verify nothing is still using it (check CloudTrail for recent activity on the old key), then deactivate and delete the old key. In the AWS Console: IAM -> Users -> the user -> Security credentials tab -> Access keys. From the CLI: `aws iam create-access-key --user-name <name>` followed later by `aws iam delete-access-key --user-name <name> --access-key-id <old-key-id>`. If the key isn't actually needed any more, delete it outright rather than rotating it — the best-rotated key is one that doesn't exist."
   },
 
+  "IAM_CONSOLE_LOGIN_ENABLED": {
+    "title": "IAM user has a console login profile",
+    "severity": "medium",
+    "description": "This user has a password configured for console access, giving it two separate ways into the account (password login and, potentially, access keys) instead of one. Every IAM user in this account is a service or application identity used by code, not a person sitting at a keyboard -- a console login profile on a credential like this is attack surface nobody needs: a leaked or guessed password becomes a direct path into the AWS Console, bypassing whatever discipline governs the programmatic access keys. Programmatic-only credentials should stay programmatic-only.",
+    "remediation": "Delete the console login profile so this identity can only be used programmatically. In the AWS Console: IAM -> Users -> the user -> Security credentials tab -> Console sign-in -> Manage -> Disable, or delete the login profile outright. From the CLI: `aws iam delete-login-profile --user-name <name>`. Confirm nothing legitimately depends on console access for this identity before removing it -- if a person actually needs console access, that person should have their own IAM user or federated identity, not share this one."
+  },
+
   "ACCOUNT_CLOUDTRAIL_DISABLED": {
     "title": "No active CloudTrail trail logging the account",
     "severity": "critical",

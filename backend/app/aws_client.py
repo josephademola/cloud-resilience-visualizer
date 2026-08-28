@@ -191,10 +191,13 @@ def _fetch_kms_key_details(kms) -> dict[str, dict]:
 
 def _fetch_iam_user_details(iam) -> dict[str, dict]:
     """
-    For each IAM user in the account, fetch their access key
-    metadata. Per-user errors are captured as '_error' markers
-    rather than propagated, same tolerance as per-bucket and per-key
-    detail calls.
+    For each IAM user in the account, fetch their access key metadata
+    and console login profile. Per-user errors are captured as
+    '_error' markers rather than propagated, same tolerance as
+    per-bucket and per-key detail calls. get_login_profile specifically
+    raises NoSuchEntityException for a user with no console access,
+    which is the expected/good state for a programmatic-only service
+    account -- not a real error, just how boto3 represents "absent".
     """
     users_response = iam.list_users()
     details: dict[str, dict] = {}
@@ -204,6 +207,9 @@ def _fetch_iam_user_details(iam) -> dict[str, dict]:
         details[username] = {
             "list_access_keys": _safe_call(
                 iam.list_access_keys, UserName=username
+            ),
+            "get_login_profile": _safe_call(
+                iam.get_login_profile, UserName=username
             ),
         }
     return details

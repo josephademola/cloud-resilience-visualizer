@@ -19,6 +19,7 @@
       "IAM_ACCOUNT_MFA_NOT_ENABLED": "User Access Control, reused. MFA is a core expectation of this theme — Cyber Essentials' own guidance explicitly names MFA as part of what User Access Control means in practice.",
       "IAM_PASSWORD_POLICY_WEAK": "User Access Control, reused again. Cyber Essentials' own technical requirements for this theme explicitly include password-based authentication standards, so this is as direct a fit as the other three IAM findings.",
       "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "User Access Control, fifth use. Credential rotation and removal of stale access is one of the theme's core expectations, alongside strong passwords and MFA.",
+      "IAM_CONSOLE_LOGIN_ENABLED": "User Access Control, sixth use. Restricting each identity to only the access methods it actually needs is squarely this theme's territory — a service account with an unneeded console login profile has more access than its role requires.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "Secure Configuration, reused for the same reason as S3_LOGGING_DISABLED: Cyber Essentials has no monitoring/logging theme in its five-theme baseline, so this is the nearest fit rather than a precise one.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Secure Configuration, same reference as S3_PUBLIC_ACCESS_BLOCK_DISABLED. Same control, wider scope."
     }
@@ -74,6 +75,10 @@
   ],
 
   "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": [
+    {"framework": "cyber_essentials", "reference_id": "user_access_control", "label": "User Access Control"}
+  ],
+
+  "IAM_CONSOLE_LOGIN_ENABLED": [
     {"framework": "cyber_essentials", "reference_id": "user_access_control", "label": "User Access Control"}
   ],
 

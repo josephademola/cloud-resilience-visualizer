@@ -16,6 +16,7 @@ from app.scanners.iam_scanner import (
     _check_account_mfa,
     _check_password_policy,
     _check_access_key_age,
+    _check_console_login_profile,
     scan_iam,
 )
 
@@ -31,14 +32,14 @@ def _account(account_id: str = "123456789012", **props) -> dict:
     }
 
 
-def _iam_user(username: str = "test-user", access_keys=None) -> dict:
+def _iam_user(username: str = "test-user", access_keys=None, **extra_props) -> dict:
     """Build a minimal iam_user-shaped topology node dict."""
     return {
         "id": username,
         "type": "iam_user",
         "name": username,
         "parent_id": None,
-        "properties": {"access_keys": access_keys or []},
+        "properties": {"access_keys": access_keys or [], **extra_props},
     }
 
 
@@ -216,6 +217,36 @@ class TestCheckAccessKeyAge:
         assert finding.severity == Severity.MEDIUM
         assert finding.resource_id == "legacy-svc-account"
         assert finding.title == "IAM access key older than 90 days"
+        assert len(finding.framework_references) > 0
+
+
+# --- _check_console_login_profile --------------------------------------
+class TestCheckConsoleLoginProfile:
+
+    def test_returns_finding_when_console_login_enabled(self):
+        user = _iam_user(has_console_login=True)
+        finding = _check_console_login_profile(user)
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_CONSOLE_LOGIN_ENABLED"
+
+    def test_returns_none_when_console_login_disabled(self):
+        user = _iam_user(has_console_login=False)
+        assert _check_console_login_profile(user) is None
+
+    def test_returns_none_when_property_missing(self):
+        # Detection signal, not a protection signal: missing data
+        # means we don't know, so we don't invent a login profile out
+        # of its absence. Same semantic as is_public_via_acl.
+        user = _iam_user()
+        assert _check_console_login_profile(user) is None
+
+    def test_finding_has_medium_severity_and_correct_shape(self):
+        user = _iam_user("app-service-account", has_console_login=True)
+        finding = _check_console_login_profile(user)
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.MEDIUM
+        assert finding.resource_id == "app-service-account"
+        assert finding.title == "IAM user has a console login profile"
         assert len(finding.framework_references) > 0
 
 

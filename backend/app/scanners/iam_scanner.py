@@ -9,13 +9,14 @@ Current rules:
     - Root user does not have MFA enabled       -> HIGH
     - Account password policy is weak/missing  -> MEDIUM
     - Active access key older than 90 days     -> MEDIUM
+    - User has a console login profile         -> MEDIUM
 
 Design notes:
 
 - Two different node shapes, two different rule groups. The first
   three rules walk the single 'account' node in the topology (see
   aws_normalizer._normalize_account) — facts about the whole AWS
-  account, not any specific resource. The fourth rule walks
+  account, not any specific resource. The remaining rules walk
   'iam_user' nodes instead (see aws_normalizer._normalize_iam_users),
   one per IAM user, the same per-resource shape as S3 buckets or KMS
   keys. scan_iam() dispatches on node type to the matching rule group.
@@ -73,6 +74,7 @@ def scan_iam(topology: dict[str, Any]) -> list[Finding]:
     )
     user_rules = (
         _check_access_key_age,
+        _check_console_login_profile,
     )
 
     for node in topology.get("nodes", []):
@@ -158,6 +160,27 @@ def _check_access_key_age(user: dict[str, Any]) -> Finding | None:
             return _build_finding("IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS", user["id"])
 
     return None
+
+
+def _check_console_login_profile(user: dict[str, Any]) -> Finding | None:
+    """
+    A user must not have a console login profile.
+
+    Not every IAM user needs to be programmatic-only in general, but
+    every user this scanner sees is a service/application identity
+    (this codebase has no concept of a human-operator IAM user
+    distinct from a service account), so a console login profile
+    existing at all is unexpected attack surface -- password-based
+    console access on a credential that should only ever be used by
+    code. has_console_login is a detection signal, not a protection
+    signal: missing data means we don't know, and we don't invent a
+    login profile out of that absence, same semantic as
+    is_public_via_acl.
+    """
+    props = user.get("properties", {})
+    if not props.get("has_console_login", False):
+        return None
+    return _build_finding("IAM_CONSOLE_LOGIN_ENABLED", user["id"])
 
 
 def _parse_iso_datetime(value: Any) -> datetime | None:

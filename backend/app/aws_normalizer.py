@@ -484,10 +484,38 @@ def _normalize_iam_users(iam_data: dict[str, Any]) -> list[TopologyNode]:
             "properties": {
                 "access_keys": access_keys,
                 "arn": user.get("Arn"),
+                "has_console_login": _has_console_login(
+                    details.get("get_login_profile", {})
+                ),
             },
         })
 
     return nodes
+
+
+def _has_console_login(login_profile_response: dict[str, Any]) -> bool:
+    """
+    Return True if the user has a console login profile (password
+    access), False if they're programmatic-only.
+
+    A detection signal, not a protection signal (see the module-level
+    "Missing-property semantics" convention this codebase follows
+    throughout): missing/absent data means "not detected", not
+    "detected" -- checking for the presence of "LoginProfile"
+    specifically (rather than the ABSENCE of "_error") is what makes
+    that hold. An empty dict (user_details entry missing this key
+    entirely, e.g. an older data source or a failed detail fetch)
+    must resolve to False here, the same as a real
+    {"_error": "NoSuchEntityException"} response does -- both mean
+    "no evidence of a login profile", never "assume one exists".
+
+    Real boto3 get_login_profile() raises NoSuchEntityException when
+    a user has never had console access configured -- that's the
+    good, expected state for a service account, not an error. Our
+    mock represents that the same way it represents every other
+    "raises when absent" boto3 call: {"_error": "NoSuchEntityException"}.
+    """
+    return "LoginProfile" in login_profile_response
 
 
 def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
