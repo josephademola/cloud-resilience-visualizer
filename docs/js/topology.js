@@ -743,6 +743,7 @@ function isBadProperty(key, value) {
     if (key === "tls_enforced" && value === false) return true;
     if (key === "key_rotation_enabled" && value === false) return true;
     if (key === "key_state" && value === "PendingDeletion") return true;
+    if (key === "key_policy_overly_broad" && value === true) return true;
     if (key === "root_access_keys_present" && value === true) return true;
     if (key === "has_console_login" && value === true) return true;
     if (key === "account_mfa_enabled" && value === false) return true;

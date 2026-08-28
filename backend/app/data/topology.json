@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-28T04:38:23.195747+00:00",
+    "generated_at": "2026-08-28T05:26:06.638344+00:00",
     "node_count": 12,
     "security_group_count": 3
   },
@@ -152,6 +152,7 @@
         "key_rotation_enabled": false,
         "arn": "arn:aws:kms:eu-west-2:123456789012:key/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
         "has_alias": true,
+        "key_policy_overly_broad": false,
         "has_any_tags": true
       }
     },

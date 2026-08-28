@@ -8,6 +8,8 @@ Current rules:
     - Key rotation not enabled                 -> HIGH
     - Key scheduled for deletion                -> CRITICAL
     - Key has no alias pointing to it           -> LOW
+    - Key policy grants an unconditioned
+      wildcard principal                        -> HIGH
 
 Design notes:
 
@@ -43,6 +45,15 @@ Design notes:
   generalisable stand-in for "does this key's alias still correctly
   target it". An alias that got silently repointed to a different
   key would show up as this key having none.
+
+- key_policy_overly_broad is a detection signal, not a protection
+  signal: missing/unparseable policy data means we don't know, and we
+  don't invent a wildcard grant out of that absence, same semantic as
+  key_state. Every key policy legitimately includes a root-account
+  grant ({"AWS": "arn:...:root"}) -- that's a specific principal, not
+  a wildcard, and isn't what this flags. Only an Allow statement
+  granting "*" or {"AWS": "*"} with no Condition narrowing it back
+  down counts.
 """
 
 from __future__ import annotations
@@ -64,6 +75,7 @@ def scan_kms_keys(topology: dict[str, Any]) -> list[Finding]:
         _check_key_rotation,
         _check_pending_deletion,
         _check_has_alias,
+        _check_key_policy_overly_broad,
     )
 
     for node in topology.get("nodes", []):
@@ -103,6 +115,14 @@ def _check_has_alias(key: dict[str, Any]) -> Finding | None:
     if props.get("has_alias", False):
         return None
     return _build_finding("KMS_KEY_MISSING_ALIAS", key["id"])
+
+
+def _check_key_policy_overly_broad(key: dict[str, Any]) -> Finding | None:
+    """Key policy must not grant an unconditioned wildcard principal."""
+    props = key.get("properties", {})
+    if not props.get("key_policy_overly_broad", False):
+        return None
+    return _build_finding("KMS_KEY_POLICY_OVERLY_BROAD", key["id"])
 
 
 # ---- Shared finding constructor ----

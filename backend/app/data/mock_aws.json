@@ -423,6 +423,9 @@
         },
         "get_key_rotation_status": {
           "KeyRotationEnabled": false
+        },
+        "get_key_policy": {
+          "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"EnableRootAccess\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::123456789012:root\"},\"Action\":\"kms:*\",\"Resource\":\"*\"}]}"
         }
       },
       "aws/s3": {

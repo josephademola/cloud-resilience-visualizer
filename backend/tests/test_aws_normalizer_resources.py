@@ -754,6 +754,7 @@ class TestNormalizeKmsKeys:
                     "key_rotation_enabled": False,
                     "arn": "arn:aws:kms:eu-west-2:123456789012:key/key-1",
                     "has_alias": False,
+                    "key_policy_overly_broad": False,
                 },
             }
         ]

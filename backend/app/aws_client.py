@@ -180,11 +180,14 @@ def _fetch_bucket_details(s3) -> dict[str, dict]:
 
 def _fetch_kms_key_details(kms) -> dict[str, dict]:
     """
-    For each KMS key in the account, fetch its metadata and rotation
-    status. Per-key errors are captured as '_error' markers rather
-    than propagated, same tolerance as per-bucket S3 detail calls —
-    for example, get_key_rotation_status raises for asymmetric or
-    HMAC keys, which don't support rotation at all.
+    For each KMS key in the account, fetch its metadata, rotation
+    status, and key policy. Per-key errors are captured as '_error'
+    markers rather than propagated, same tolerance as per-bucket S3
+    detail calls — for example, get_key_rotation_status raises for
+    asymmetric or HMAC keys, which don't support rotation at all.
+
+    Every KMS key has exactly one policy, always named "default" —
+    unlike IAM, KMS doesn't support multiple named policies per key.
     """
     keys_response = kms.list_keys()
     details: dict[str, dict] = {}
@@ -195,6 +198,9 @@ def _fetch_kms_key_details(kms) -> dict[str, dict]:
             "describe_key": _safe_call(kms.describe_key, KeyId=key_id),
             "get_key_rotation_status": _safe_call(
                 kms.get_key_rotation_status, KeyId=key_id
+            ),
+            "get_key_policy": _safe_call(
+                kms.get_key_policy, KeyId=key_id, PolicyName="default"
             ),
         }
     return details

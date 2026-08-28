@@ -12,6 +12,7 @@ from app.scanners.kms_scanner import (
     _check_key_rotation,
     _check_pending_deletion,
     _check_has_alias,
+    _check_key_policy_overly_broad,
     scan_kms_keys,
 )
 
@@ -116,6 +117,41 @@ class TestCheckHasAlias:
         assert finding.severity == Severity.LOW
         assert finding.resource_id == "unlabelled-key"
         assert finding.title == "KMS key has no alias pointing to it"
+        assert len(finding.framework_references) > 0
+
+
+# --- _check_key_policy_overly_broad --------------------------------------
+class TestCheckKeyPolicyOverlyBroad:
+
+    def test_returns_finding_when_policy_overly_broad(self):
+        finding = _check_key_policy_overly_broad(
+            _kms_key(key_policy_overly_broad=True)
+        )
+        assert finding is not None
+        assert finding.finding_type_id == "KMS_KEY_POLICY_OVERLY_BROAD"
+
+    def test_returns_none_when_policy_not_overly_broad(self):
+        finding = _check_key_policy_overly_broad(
+            _kms_key(key_policy_overly_broad=False)
+        )
+        assert finding is None
+
+    def test_returns_none_when_property_missing(self):
+        # Detection signal, not a protection signal: missing/unparsed
+        # policy data means we don't know, so we don't invent a
+        # wildcard grant out of that absence, same semantic as
+        # key_state.
+        finding = _check_key_policy_overly_broad(_kms_key())
+        assert finding is None
+
+    def test_finding_has_high_severity_and_correct_shape(self):
+        finding = _check_key_policy_overly_broad(
+            _kms_key("wide-open-key", key_policy_overly_broad=True)
+        )
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.HIGH
+        assert finding.resource_id == "wide-open-key"
+        assert finding.title == "KMS key policy grants an unconditioned wildcard principal"
         assert len(finding.framework_references) > 0
 
 

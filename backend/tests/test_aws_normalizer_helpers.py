@@ -18,6 +18,7 @@ from app.aws_normalizer import (
     _is_bucket_lifecycle_configured,
     _has_enabled_lifecycle_rule,
     _is_tls_enforced,
+    _has_overly_broad_key_policy_principal,
     S3_ALL_USERS_URI,
 )
 
@@ -265,3 +266,67 @@ class TestIsTlsEnforced:
 
     def test_returns_false_when_policy_is_unparseable(self):
         assert _is_tls_enforced({"Policy": "not valid json"}) is False
+
+
+# --- _has_overly_broad_key_policy_principal --------------------------------
+class TestHasOverlyBroadKeyPolicyPrincipal:
+
+    _ROOT_ONLY_POLICY = (
+        '{"Version":"2012-10-17","Statement":[{"Sid":"EnableRootAccess",'
+        '"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::123456789012:root"},'
+        '"Action":"kms:*","Resource":"*"}]}'
+    )
+
+    def test_returns_false_for_root_only_policy(self):
+        # The standard baseline every KMS key policy legitimately has
+        # -- a specific account ARN, not a wildcard.
+        assert _has_overly_broad_key_policy_principal(
+            {"Policy": self._ROOT_ONLY_POLICY}
+        ) is False
+
+    def test_returns_true_for_bare_wildcard_principal(self):
+        policy = (
+            '{"Version":"2012-10-17","Statement":[{"Effect":"Allow",'
+            '"Principal":"*","Action":"kms:Decrypt","Resource":"*"}]}'
+        )
+        assert _has_overly_broad_key_policy_principal({"Policy": policy}) is True
+
+    def test_returns_true_for_aws_wildcard_principal(self):
+        policy = (
+            '{"Version":"2012-10-17","Statement":[{"Effect":"Allow",'
+            '"Principal":{"AWS":"*"},"Action":"kms:Decrypt","Resource":"*"}]}'
+        )
+        assert _has_overly_broad_key_policy_principal({"Policy": policy}) is True
+
+    def test_returns_false_when_wildcard_has_a_condition(self):
+        # A Condition is a legitimate way to narrow "*" back down
+        # (e.g. restricting to an AWS Organization) -- only an
+        # UNCONDITIONED wildcard is flagged.
+        policy = (
+            '{"Version":"2012-10-17","Statement":[{"Effect":"Allow",'
+            '"Principal":{"AWS":"*"},"Action":"kms:Decrypt","Resource":"*",'
+            '"Condition":{"StringEquals":{"aws:PrincipalOrgID":"o-example"}}}]}'
+        )
+        assert _has_overly_broad_key_policy_principal({"Policy": policy}) is False
+
+    def test_returns_false_when_wildcard_is_in_a_deny_statement(self):
+        # A Deny with a wildcard principal RESTRICTS access, it
+        # doesn't grant it -- only Allow statements are checked.
+        policy = (
+            '{"Version":"2012-10-17","Statement":[{"Effect":"Deny",'
+            '"Principal":"*","Action":"kms:Decrypt","Resource":"*"}]}'
+        )
+        assert _has_overly_broad_key_policy_principal({"Policy": policy}) is False
+
+    def test_returns_false_when_error_marker_present(self):
+        assert _has_overly_broad_key_policy_principal(
+            {"_error": "NotFoundException"}
+        ) is False
+
+    def test_returns_false_when_policy_is_unparseable(self):
+        assert _has_overly_broad_key_policy_principal(
+            {"Policy": "not valid json"}
+        ) is False
+
+    def test_returns_false_when_policy_key_missing(self):
+        assert _has_overly_broad_key_policy_principal({}) is False

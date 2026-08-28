@@ -572,6 +572,7 @@ def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
             continue
 
         rotation = details.get("get_key_rotation_status", {})
+        key_policy = details.get("get_key_policy", {})
 
         nodes.append({
             "id": key_id,
@@ -583,10 +584,61 @@ def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
                 "key_rotation_enabled": rotation.get("KeyRotationEnabled", False),
                 "arn": key.get("KeyArn"),
                 "has_alias": key_id in aliased_key_ids,
+                "key_policy_overly_broad": _has_overly_broad_key_policy_principal(
+                    key_policy
+                ),
             },
         })
 
     return nodes
+
+
+def _has_overly_broad_key_policy_principal(
+    key_policy_response: dict[str, Any],
+) -> bool:
+    """
+    Return True if the key policy grants an Allow statement to "*"
+    (or {"AWS": "*"}) without a Condition narrowing it back down.
+
+    Real boto3 get_key_policy() returns the policy as a JSON-encoded
+    string under "Policy" -- same shape as get_bucket_policy(), parsed
+    the same way _is_tls_enforced() parses an S3 bucket policy.
+
+    Every KMS key policy legitimately includes a baseline statement
+    granting the account's root user full access
+    ({"AWS": "arn:...:root"}) -- that's a specific account, not a
+    broad principal, and isn't what this checks for. What this flags
+    is "*" or {"AWS": "*"} specifically: literally any AWS principal
+    (or, for a bare "*", anyone at all, unauthenticated). A Condition
+    is a legitimate way to narrow "*" back down safely (e.g.
+    restricting it to a specific AWS Organization via
+    aws:PrincipalOrgID) -- only an UNCONDITIONED wildcard is flagged.
+    """
+    if "_error" in key_policy_response:
+        return False
+    policy_json = key_policy_response.get("Policy")
+    if not policy_json:
+        return False
+    try:
+        policy = json.loads(policy_json)
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+    for statement in policy.get("Statement", []):
+        if statement.get("Effect") != "Allow":
+            continue
+        if statement.get("Condition"):
+            continue
+        principal = statement.get("Principal")
+        if principal == "*":
+            return True
+        if isinstance(principal, dict):
+            aws_principal = principal.get("AWS")
+            if aws_principal == "*" or (
+                isinstance(aws_principal, list) and "*" in aws_principal
+            ):
+                return True
+    return False
 
 
 # AWS's well-known URI representing "anyone on the internet."

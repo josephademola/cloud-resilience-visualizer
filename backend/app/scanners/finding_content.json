@@ -128,6 +128,13 @@
     "remediation": "Create an alias that describes what the key protects: in the AWS Console, KMS -> Customer managed keys -> select the key -> Aliases -> Add alias, or from the CLI, `aws kms create-alias --alias-name alias/<descriptive-name> --target-key-id <key-id>`. If an alias was recently repointed away from this key on purpose, confirm that was intentional and that whatever used to reference this key by its old alias has been updated to use the key ID or ARN directly, or a new alias, instead."
   },
 
+  "KMS_KEY_POLICY_OVERLY_BROAD": {
+    "title": "KMS key policy grants an unconditioned wildcard principal",
+    "severity": "high",
+    "description": "This key's policy has an Allow statement whose Principal is \"*\" or {\"AWS\": \"*\"}, with no Condition narrowing it back down. Read literally, that grants the permitted actions to every AWS principal in existence -- or, for a bare \"*\", to anyone at all, authenticated or not. This is distinct from the standard root-account grant every key policy legitimately has ({\"AWS\": \"arn:...:root\"}), which names one specific account, not a wildcard. If this key protects sensitive data, an unconditioned wildcard here can mean any AWS account -- not just this one -- can use it to decrypt, and depending on the actions granted, manage or delete it too.",
+    "remediation": "Scope the Principal down to the specific account(s), roles, or services that actually need this access. In the AWS Console: KMS -> Customer managed keys -> select the key -> Key policy -> Edit -> replace the wildcard principal with specific ARNs, or add a Condition (e.g. aws:PrincipalOrgID to restrict it to your AWS Organization) if broader access is genuinely required. From the CLI: `aws kms put-key-policy --key-id <key-id> --policy-name default --policy <updated-policy-json>`. Check CloudTrail for recent cross-account Decrypt/Encrypt calls against this key before narrowing access, in case something legitimate currently depends on the broad grant."
+  },
+
   "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": {
     "title": "IAM user has more than one active access key",
     "severity": "low",

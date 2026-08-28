@@ -17,6 +17,7 @@
       "S3_TLS_NOT_ENFORCED": "Article 9(3)(a): ICT solutions must 'ensure the security of the means of transfer of data'. Deliberately mapped to a different sub-paragraph than S3_ENCRYPTION_DISABLED's 9(4)(d) — this one is specifically about data in transit, not at rest, and DORA's Article 9(3) addresses transfer security separately from Article 9(4)'s broader policy requirements.",
       "KMS_KEY_ROTATION_DISABLED": "Article 9(4)(d), reused — 'protection measures of cryptographic keys' names key management directly.",
       "KMS_KEY_MISSING_ALIAS": "Article 8(1), first use of this article in the file — DORA's general ICT asset identification duty ('identify, classify and adequately document all ICT... information assets and ICT assets'), a genuinely closer fit than stretching Article 9(4)(d)'s authentication/key-protection scope to cover asset labelling.",
+      "KMS_KEY_POLICY_OVERLY_BROAD": "Article 9(4)(c), the same access-limitation reference used for the other 'more access than necessary' findings in this file. A wildcard key-policy principal is the clearest possible failure of 'access limitation... restricting access to necessary functions'.",
       "KMS_KEY_PENDING_DELETION": "Article 12(1)(b), reused from S3_VERSIONING_DISABLED — a completed key deletion is the permanent failure of restoration and recovery for everything that key protected.",
       "IAM_ROOT_ACCESS_KEYS_ACTIVE": "Article 9(4)(c), reused — root access keys are a standing credential with no restriction to necessary functions, the opposite of what this sub-paragraph requires.",
       "IAM_ACCOUNT_MFA_NOT_ENABLED": "Article 9(4)(d): 'strong authentication mechanisms, based on relevant standards'. Direct, unambiguous match.",
@@ -72,6 +73,10 @@
 
   "KMS_KEY_MISSING_ALIAS": [
     {"framework": "dora", "reference_id": "Article 8(1)", "label": "Identification and classification of ICT assets"}
+  ],
+
+  "KMS_KEY_POLICY_OVERLY_BROAD": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
   ],
 
   "KMS_KEY_PENDING_DELETION": [

@@ -364,7 +364,7 @@ class TestFetchAwsData:
         assert key_id in listed_key_ids
         assert listed_key_ids == detail_key_ids
 
-    def test_key_details_has_both_kms_calls(self, moto_aws):
+    def test_key_details_has_all_three_kms_calls(self, moto_aws):
         kms = boto3.client("kms", region_name="eu-west-2")
         created = kms.create_key(Description="test-key")
         key_id = created["KeyMetadata"]["KeyId"]
@@ -373,6 +373,7 @@ class TestFetchAwsData:
         assert set(data["kms"]["key_details"][key_id].keys()) == {
             "describe_key",
             "get_key_rotation_status",
+            "get_key_policy",
         }
         # Confirm the shape the normaliser actually reads is present.
         assert "KeyMetadata" in data["kms"]["key_details"][key_id]["describe_key"]

@@ -17,6 +17,7 @@
       "S3_TLS_NOT_ENFORCED": "A.8.24 (Use of Cryptography), reused from S3_ENCRYPTION_DISABLED. ISO does not split this control by at-rest vs in-transit the way NCSC CAF's B3.b/B3.c does.",
       "KMS_KEY_ROTATION_DISABLED": "A.8.24 (Use of Cryptography), reused. Key rotation is a cryptographic key management practice, squarely inside this control's scope.",
       "KMS_KEY_MISSING_ALIAS": "A.5.9 (Inventory of information and other associated assets), first use of this control in the file. Its actual text requires 'an inventory of information and other associated assets, including owners' -- an unaliased key is precisely an asset that can't be identified in an inventory by purpose, a cleaner fit than stretching A.8.24's cryptography-use scope to cover naming/labelling.",
+      "KMS_KEY_POLICY_OVERLY_BROAD": "A.8.3 (Information Access Restriction), the same control S3_PUBLIC_VIA_ACL maps to. A wildcard key-policy principal is an access-restriction failure on cryptographic material rather than a bucket, but the control is identical.",
       "KMS_KEY_PENDING_DELETION": "A.8.13 (Information Backup), reused from S3_VERSIONING_DISABLED — a completed deletion is a permanent loss of the ability to recover data, the same outcome this control exists to prevent.",
       "IAM_ROOT_ACCESS_KEYS_ACTIVE": "A.8.2 (Privileged Access Rights) — root is the account's highest privilege level; this control governs exactly that.",
       "IAM_ACCOUNT_MFA_NOT_ENABLED": "A.8.5 (Secure Authentication) — direct match.",
@@ -72,6 +73,10 @@
 
   "KMS_KEY_MISSING_ALIAS": [
     {"framework": "iso27001", "reference_id": "A.5.9", "label": "Inventory of Information and Other Associated Assets"}
+  ],
+
+  "KMS_KEY_POLICY_OVERLY_BROAD": [
+    {"framework": "iso27001", "reference_id": "A.8.3", "label": "Information Access Restriction"}
   ],
 
   "KMS_KEY_PENDING_DELETION": [
