@@ -532,11 +532,26 @@ def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
     setting; including them would let the rotation-disabled rule
     flag a control nobody can actually act on. See
     docs/design_decisions.md #9.
+
+    has_alias is computed from the account-wide list_aliases response
+    (not per-key -- KMS has no "list aliases for this key" API, only
+    "list every alias in the account", each carrying the KeyId it
+    targets) rather than a specific expected alias name, since this
+    codebase never hardcodes resource names. A key having zero
+    aliases pointing to it is the generalisable, environment-agnostic
+    version of "does this key's alias still correctly target it" --
+    if an alias got repointed elsewhere, this key would show up with
+    none.
     """
     nodes: list[TopologyNode] = []
 
     key_list = kms_data.get("list_keys", {}).get("Keys", [])
     key_details = kms_data.get("key_details", {})
+    aliased_key_ids = {
+        alias["TargetKeyId"]
+        for alias in kms_data.get("list_aliases", {}).get("Aliases", [])
+        if alias.get("TargetKeyId")
+    }
 
     for key in key_list:
         key_id = key.get("KeyId")
@@ -561,6 +576,7 @@ def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:
                 "key_state": metadata.get("KeyState"),
                 "key_rotation_enabled": rotation.get("KeyRotationEnabled", False),
                 "arn": key.get("KeyArn"),
+                "has_alias": key_id in aliased_key_ids,
             },
         })
 

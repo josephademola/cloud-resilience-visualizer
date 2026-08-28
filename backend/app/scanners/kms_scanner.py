@@ -7,6 +7,7 @@ each rule that fails.
 Current rules:
     - Key rotation not enabled                 -> HIGH
     - Key scheduled for deletion                -> CRITICAL
+    - Key has no alias pointing to it           -> LOW
 
 Design notes:
 
@@ -30,6 +31,18 @@ Design notes:
       (don't flag), same semantic as is_public_via_acl. An unknown
       state is not evidence of a pending deletion; inventing one out
       of missing data would be a false positive.
+    * has_alias is a protection-adjacent signal: missing -> fail
+      closed (flag it), same semantic as key_rotation_enabled. If we
+      can't confirm a key has an alias, we don't assume it does.
+
+- has_alias is computed account-wide in the normaliser (KMS has no
+  per-key "list aliases" API, only "list every alias in the account
+  and see which key each one targets") rather than checking for one
+  specific expected alias name -- this codebase never hardcodes
+  resource names, so "zero aliases point to this key" is the
+  generalisable stand-in for "does this key's alias still correctly
+  target it". An alias that got silently repointed to a different
+  key would show up as this key having none.
 """
 
 from __future__ import annotations
@@ -50,6 +63,7 @@ def scan_kms_keys(topology: dict[str, Any]) -> list[Finding]:
     rules = (
         _check_key_rotation,
         _check_pending_deletion,
+        _check_has_alias,
     )
 
     for node in topology.get("nodes", []):
@@ -81,6 +95,14 @@ def _check_pending_deletion(key: dict[str, Any]) -> Finding | None:
     if props.get("key_state") != "PendingDeletion":
         return None
     return _build_finding("KMS_KEY_PENDING_DELETION", key["id"])
+
+
+def _check_has_alias(key: dict[str, Any]) -> Finding | None:
+    """A customer-managed key should have at least one alias pointing to it."""
+    props = key.get("properties", {})
+    if props.get("has_alias", False):
+        return None
+    return _build_finding("KMS_KEY_MISSING_ALIAS", key["id"])
 
 
 # ---- Shared finding constructor ----

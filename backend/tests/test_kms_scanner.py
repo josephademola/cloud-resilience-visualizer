@@ -11,6 +11,7 @@ from app.models.finding import Finding, Severity
 from app.scanners.kms_scanner import (
     _check_key_rotation,
     _check_pending_deletion,
+    _check_has_alias,
     scan_kms_keys,
 )
 
@@ -89,6 +90,35 @@ class TestCheckPendingDeletion:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_has_alias ------------------------------------------------
+class TestCheckHasAlias:
+
+    def test_returns_finding_when_no_alias(self):
+        finding = _check_has_alias(_kms_key(has_alias=False))
+        assert finding is not None
+        assert finding.finding_type_id == "KMS_KEY_MISSING_ALIAS"
+
+    def test_returns_none_when_alias_present(self):
+        finding = _check_has_alias(_kms_key(has_alias=True))
+        assert finding is None
+
+    def test_produces_finding_when_property_missing_fail_closed(self):
+        # has_alias is a protection-adjacent signal, same fail-closed
+        # semantic as key_rotation_enabled: if we can't confirm the
+        # key has an alias, we don't assume it does.
+        finding = _check_has_alias(_kms_key())
+        assert finding is not None
+        assert finding.finding_type_id == "KMS_KEY_MISSING_ALIAS"
+
+    def test_finding_has_low_severity_and_correct_shape(self):
+        finding = _check_has_alias(_kms_key("unlabelled-key", has_alias=False))
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.LOW
+        assert finding.resource_id == "unlabelled-key"
+        assert finding.title == "KMS key has no alias pointing to it"
+        assert len(finding.framework_references) > 0
+
+
 # --- scan_kms_keys ---------------------------------------------------
 class TestScanKmsKeys:
 
@@ -117,7 +147,9 @@ class TestScanKmsKeys:
 
     def test_returns_zero_findings_for_rotated_key(self):
         topology = {
-            "nodes": [_kms_key("rotated-key", key_rotation_enabled=True)]
+            "nodes": [
+                _kms_key("rotated-key", key_rotation_enabled=True, has_alias=True)
+            ]
         }
         assert scan_kms_keys(topology) == []
 
@@ -126,13 +158,16 @@ class TestScanKmsKeys:
         # both never had rotation enabled and has since been
         # scheduled for deletion. Both rules fire on the same
         # resource, mirroring the S3 scanner's stacked-findings
-        # pattern on the uploads bucket.
+        # pattern on the uploads bucket. has_alias=True here since
+        # this test is specifically about the rotation/deletion pair,
+        # not the separate alias rule -- see TestCheckHasAlias for that.
         topology = {
             "nodes": [
                 _kms_key(
                     "doomed-key",
                     key_rotation_enabled=False,
                     key_state="PendingDeletion",
+                    has_alias=True,
                 )
             ]
         }
@@ -147,8 +182,8 @@ class TestScanKmsKeys:
     def test_scans_multiple_keys_independently(self):
         topology = {
             "nodes": [
-                _kms_key("rotated", key_rotation_enabled=True),
-                _kms_key("unrotated", key_rotation_enabled=False),
+                _kms_key("rotated", key_rotation_enabled=True, has_alias=True),
+                _kms_key("unrotated", key_rotation_enabled=False, has_alias=True),
             ]
         }
         findings = scan_kms_keys(topology)

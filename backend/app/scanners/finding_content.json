@@ -107,6 +107,13 @@
     "remediation": "Delete the console login profile so this identity can only be used programmatically. In the AWS Console: IAM -> Users -> the user -> Security credentials tab -> Console sign-in -> Manage -> Disable, or delete the login profile outright. From the CLI: `aws iam delete-login-profile --user-name <name>`. Confirm nothing legitimately depends on console access for this identity before removing it -- if a person actually needs console access, that person should have their own IAM user or federated identity, not share this one."
   },
 
+  "KMS_KEY_MISSING_ALIAS": {
+    "title": "KMS key has no alias pointing to it",
+    "severity": "low",
+    "description": "This customer-managed key has no alias associated with it. Aliases exist precisely so that infrastructure code, IAM policies, and operators can reference a key by a stable, human-readable name (alias/whatever-this-key-is-for) instead of a raw key ID or ARN that reveals nothing about the key's purpose. A key with no alias is harder to identify safely during an incident, easier to reference by the wrong ID by mistake, and if an alias that used to point here was ever moved to a different key, this is exactly what that drift looks like from the outside.",
+    "remediation": "Create an alias that describes what the key protects: in the AWS Console, KMS -> Customer managed keys -> select the key -> Aliases -> Add alias, or from the CLI, `aws kms create-alias --alias-name alias/<descriptive-name> --target-key-id <key-id>`. If an alias was recently repointed away from this key on purpose, confirm that was intentional and that whatever used to reference this key by its old alias has been updated to use the key ID or ARN directly, or a new alias, instead."
+  },
+
   "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": {
     "title": "IAM user has more than one active access key",
     "severity": "low",

@@ -96,6 +96,7 @@ def fetch_aws_data(project_tag: str | None = None) -> dict[str, Any]:
         "kms": {
             "list_keys": _strip_metadata(kms.list_keys()),
             "key_details": _fetch_kms_key_details(kms),
+            "list_aliases": _strip_metadata(kms.list_aliases()),
         },
         "iam": {
             "account_id": account_id,

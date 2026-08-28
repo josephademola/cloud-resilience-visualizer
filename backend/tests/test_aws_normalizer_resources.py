@@ -750,6 +750,7 @@ class TestNormalizeKmsKeys:
                     "key_state": "Enabled",
                     "key_rotation_enabled": False,
                     "arn": "arn:aws:kms:eu-west-2:123456789012:key/key-1",
+                    "has_alias": False,
                 },
             }
         ]
@@ -818,6 +819,54 @@ class TestNormalizeKmsKeys:
 
     def test_returns_empty_list_when_no_keys(self):
         assert _normalize_kms_keys({}) == []
+
+    def test_has_alias_true_when_alias_targets_this_key(self):
+        kms_data = {
+            "list_keys": {"Keys": [{"KeyId": "key-1"}]},
+            "key_details": {
+                "key-1": {
+                    "describe_key": {
+                        "KeyMetadata": {"KeyId": "key-1", "KeyManager": "CUSTOMER"}
+                    },
+                }
+            },
+            "list_aliases": {
+                "Aliases": [{"AliasName": "alias/my-key", "TargetKeyId": "key-1"}]
+            },
+        }
+        nodes = _normalize_kms_keys(kms_data)
+        assert nodes[0]["properties"]["has_alias"] is True
+
+    def test_has_alias_false_when_no_alias_targets_this_key(self):
+        kms_data = {
+            "list_keys": {"Keys": [{"KeyId": "key-1"}]},
+            "key_details": {
+                "key-1": {
+                    "describe_key": {
+                        "KeyMetadata": {"KeyId": "key-1", "KeyManager": "CUSTOMER"}
+                    },
+                }
+            },
+            "list_aliases": {
+                "Aliases": [{"AliasName": "alias/other-key", "TargetKeyId": "key-2"}]
+            },
+        }
+        nodes = _normalize_kms_keys(kms_data)
+        assert nodes[0]["properties"]["has_alias"] is False
+
+    def test_has_alias_false_when_list_aliases_entirely_missing(self):
+        kms_data = {
+            "list_keys": {"Keys": [{"KeyId": "key-1"}]},
+            "key_details": {
+                "key-1": {
+                    "describe_key": {
+                        "KeyMetadata": {"KeyId": "key-1", "KeyManager": "CUSTOMER"}
+                    },
+                }
+            },
+        }
+        nodes = _normalize_kms_keys(kms_data)
+        assert nodes[0]["properties"]["has_alias"] is False
 
 
 # --- _normalize_account --------------------------------------------------

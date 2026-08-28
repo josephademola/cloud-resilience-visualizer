@@ -110,6 +110,19 @@ class TestFetchAwsData:
         data = fetch_aws_data()
         assert "list_keys" in data["kms"]
         assert "key_details" in data["kms"]
+        assert "list_aliases" in data["kms"]
+
+    def test_kms_section_list_aliases_reflects_created_alias(self, moto_aws):
+        kms = boto3.client("kms", region_name="eu-west-2")
+        key = kms.create_key()
+        key_id = key["KeyMetadata"]["KeyId"]
+        kms.create_alias(AliasName="alias/test-key", TargetKeyId=key_id)
+
+        data = fetch_aws_data()
+        aliases = data["kms"]["list_aliases"]["Aliases"]
+        matching = [a for a in aliases if a["AliasName"] == "alias/test-key"]
+        assert len(matching) == 1
+        assert matching[0]["TargetKeyId"] == key_id
 
     def test_iam_section_has_account_id_and_summary(self, moto_aws):
         # The normaliser reads both account_id (for the node's id)

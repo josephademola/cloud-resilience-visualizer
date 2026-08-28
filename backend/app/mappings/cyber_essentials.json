@@ -14,6 +14,7 @@
       "S3_LIFECYCLE_MISSING": "Secure Configuration only. No retention-specific theme exists in the five-theme baseline; a lifecycle policy is a bucket-level configuration setting, so this is the same nearest-fit reasoning as the other two.",
       "S3_TLS_NOT_ENFORCED": "Secure Configuration only. A bucket policy enforcing TLS is a configuration setting, same as the other S3 findings; Cyber Essentials' baseline does not separate transit encryption into its own theme.",
       "KMS_KEY_ROTATION_DISABLED": "Secure Configuration only. Key rotation is a configuration setting on the key, same reasoning as every other finding in this file; Cyber Essentials has no cryptography-specific theme.",
+      "KMS_KEY_MISSING_ALIAS": "Secure Configuration, reused. Cyber Essentials' five themes don't have anything more specific than this for asset labelling/identification, and Secure Configuration is the closest available catch-all, same as it already is for most findings in this file.",
       "KMS_KEY_PENDING_DELETION": "Secure Configuration only, for lack of a better theme. This finding is really an operational/incident-response matter more than a configuration one, but Cyber Essentials' five-theme baseline has no closer fit.",
       "IAM_ROOT_ACCESS_KEYS_ACTIVE": "User Access Control, primary this time rather than secondary as it was for S3_PUBLIC_VIA_ACL. Root credential management is squarely what this theme covers.",
       "IAM_ACCOUNT_MFA_NOT_ENABLED": "User Access Control, reused. MFA is a core expectation of this theme — Cyber Essentials' own guidance explicitly names MFA as part of what User Access Control means in practice.",
@@ -56,6 +57,10 @@
   ],
 
   "KMS_KEY_ROTATION_DISABLED": [
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
+  ],
+
+  "KMS_KEY_MISSING_ALIAS": [
     {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ],
 
