@@ -408,28 +408,33 @@ function labelClassName(node) {
 function nodeLabelHtml(node) {
     const iconClass = iconForType(node);
     const iconHtml = iconClass ? `<i class="ti ${iconClass}"></i>` : "";
+    // Leaflet's divIcon sets this string as innerHTML directly, so
+    // every value from node data -- live-scanned OR loaded from a
+    // file -- must be escaped here, same as everywhere else in this
+    // file that builds HTML from resource data.
+    const name = escapeHtml(node.name);
 
     switch (node.type) {
         case "vpc":
-            return `VPC · ${node.name} · ${node.properties.cidr_block}`;
+            return `VPC · ${name} · ${escapeHtml(node.properties.cidr_block)}`;
         case "subnet":
-            return `${node.properties.tier === "public" ? "Public" : "Private"} subnet · ${node.properties.cidr_block}`;
+            return `${node.properties.tier === "public" ? "Public" : "Private"} subnet · ${escapeHtml(node.properties.cidr_block)}`;
         case "internet_gateway":
             return `${iconHtml}<span>Internet gateway</span>`;
         case "ec2_instance":
-            return `${iconHtml}<span>${node.name} · ${node.properties.instance_type || ""}</span>`;
+            return `${iconHtml}<span>${name} · ${escapeHtml(node.properties.instance_type || "")}</span>`;
         case "rds_instance":
-            return `${iconHtml}<span>${node.name} · ${node.properties.engine}</span>`;
+            return `${iconHtml}<span>${name} · ${escapeHtml(node.properties.engine)}</span>`;
         case "s3_bucket":
-            return `${iconHtml}<span>${node.name}</span>`;
+            return `${iconHtml}<span>${name}</span>`;
         case "kms_key":
-            return `${iconHtml}<span>${node.name}</span>`;
+            return `${iconHtml}<span>${name}</span>`;
         case "account":
-            return `${iconHtml}<span>${node.name}</span>`;
+            return `${iconHtml}<span>${name}</span>`;
         case "iam_user":
-            return `${iconHtml}<span>${node.name}</span>`;
+            return `${iconHtml}<span>${name}</span>`;
         default:
-            return node.name;
+            return name;
     }
 }
 
@@ -671,8 +676,9 @@ function renderFrameworkRefs(groups) {
     const parts = [];
     for (const key of frameworkOrder) {
         if (!groups[key]) continue;
+        const label = frameworkShortLabel(key, frameworkLabels[key]);
         parts.push(`<div class="framework-group">`);
-        parts.push(`<div class="framework-name">${frameworkLabels[key]}</div>`);
+        parts.push(`<div class="framework-name">${escapeHtml(label)}</div>`);
         for (const ref of groups[key]) {
             parts.push(`<div class="framework-ref">`
                 + `<span class="framework-ref-id">${escapeHtml(ref.reference_id)}</span>`
@@ -682,6 +688,18 @@ function renderFrameworkRefs(groups) {
         parts.push(`</div>`);
     }
     return parts.join("");
+}
+
+// Looks up the confidential framework's real display name from
+// COMPLIANCE_CACHE (compliance.js, populated once the Compliance tab
+// has been visited, or immediately when a report file is loaded via
+// loadSnapshotFile) instead of the generic default here -- same
+// dynamic-label mechanism as compliance.js's score cards. Falls back
+// to the hardcoded default when compliance data hasn't loaded yet.
+function frameworkShortLabel(key, fallback) {
+    const fw = COMPLIANCE_CACHE
+        && COMPLIANCE_CACHE.frameworks.find(f => f.framework === key);
+    return (fw && fw.framework_short_name) || fallback;
 }
 
 
