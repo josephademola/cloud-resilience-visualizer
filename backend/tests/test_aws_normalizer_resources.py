@@ -621,6 +621,8 @@ class TestNormalizeS3Buckets:
                     "is_public_via_acl": False,
                     "public_access_block_fully_enabled": True,
                     "encryption_enabled": True,
+                    "encryption_algorithm": "AES256",
+                    "encryption_kms_key_id": None,
                     "versioning_enabled": True,
                     "logging_enabled": True,
                     "lifecycle_configured": True,

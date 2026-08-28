@@ -25,6 +25,7 @@ from app.scanners.s3_scanner import (
     _check_public_via_acl,
     _check_public_access_block,
     _check_encryption,
+    _check_encryption_uses_dedicated_kms_key,
     _check_versioning,
     _check_logging,
     _check_lifecycle,
@@ -159,6 +160,60 @@ class TestCheckEncryption:
         assert finding.severity == Severity.HIGH
         assert finding.resource_id == "plaintext-bucket"
         assert finding.title == "Server-side encryption not configured"
+        assert len(finding.framework_references) > 0
+
+
+# --- _check_encryption_uses_dedicated_kms_key ---------------------------
+class TestCheckEncryptionUsesDedicatedKmsKey:
+
+    def test_returns_none_when_not_encrypted_at_all(self):
+        # _check_encryption already covers "no encryption" -- this
+        # rule only has an opinion about WHICH encryption is used,
+        # not whether any is, so it must stay silent here.
+        finding = _check_encryption_uses_dedicated_kms_key(
+            _bucket(encryption_enabled=False)
+        )
+        assert finding is None
+
+    def test_returns_finding_for_sse_s3(self):
+        finding = _check_encryption_uses_dedicated_kms_key(
+            _bucket(encryption_enabled=True, encryption_algorithm="AES256")
+        )
+        assert finding is not None
+        assert finding.finding_type_id == "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY"
+
+    def test_returns_finding_for_sse_kms_without_explicit_key_id(self):
+        # SSEAlgorithm is aws:kms but no KMSMasterKeyID was specified
+        # -- AWS falls back to the shared account-default key
+        # (alias/aws/s3) in this case, not a dedicated one.
+        finding = _check_encryption_uses_dedicated_kms_key(
+            _bucket(encryption_enabled=True, encryption_algorithm="aws:kms")
+        )
+        assert finding is not None
+        assert finding.finding_type_id == "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY"
+
+    def test_returns_none_for_sse_kms_with_explicit_customer_key(self):
+        finding = _check_encryption_uses_dedicated_kms_key(
+            _bucket(
+                encryption_enabled=True,
+                encryption_algorithm="aws:kms",
+                encryption_kms_key_id="arn:aws:kms:eu-west-2:123456789012:key/abc",
+            )
+        )
+        assert finding is None
+
+    def test_finding_has_low_severity_and_correct_shape(self):
+        finding = _check_encryption_uses_dedicated_kms_key(
+            _bucket(
+                "shared-key-bucket",
+                encryption_enabled=True,
+                encryption_algorithm="AES256",
+            )
+        )
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.LOW
+        assert finding.resource_id == "shared-key-bucket"
+        assert finding.title == "Bucket not encrypted with a dedicated KMS key"
         assert len(finding.framework_references) > 0
 
 
@@ -307,7 +362,7 @@ class TestScanS3Buckets:
         assert all(f.resource_id == "leaky" for f in findings)
 
     def test_returns_zero_findings_for_fully_secure_bucket(self):
-        # All seven checks pass -> no findings.
+        # All eight checks pass -> no findings.
         topology = {
             "nodes": [
                 _bucket(
@@ -315,6 +370,8 @@ class TestScanS3Buckets:
                     is_public_via_acl=False,
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
+                    encryption_algorithm="aws:kms",
+                    encryption_kms_key_id="arn:aws:kms:eu-west-2:123456789012:key/dedicated",
                     versioning_enabled=True,
                     logging_enabled=True,
                     lifecycle_configured=True,
@@ -369,6 +426,8 @@ class TestScanS3Buckets:
                     is_public_via_acl=False,
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
+                    encryption_algorithm="aws:kms",
+                    encryption_kms_key_id="arn:aws:kms:eu-west-2:123456789012:key/dedicated",
                     versioning_enabled=True,
                     logging_enabled=True,
                     lifecycle_configured=True,
@@ -379,6 +438,8 @@ class TestScanS3Buckets:
                     is_public_via_acl=True,
                     public_access_block_fully_enabled=True,
                     encryption_enabled=True,
+                    encryption_algorithm="aws:kms",
+                    encryption_kms_key_id="arn:aws:kms:eu-west-2:123456789012:key/dedicated",
                     versioning_enabled=True,
                     logging_enabled=True,
                     lifecycle_configured=True,

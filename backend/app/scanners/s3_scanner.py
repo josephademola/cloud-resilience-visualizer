@@ -8,6 +8,9 @@ Current rules:
     - Public via ACL (AllUsers grant)          -> CRITICAL
     - Public Access Block not fully enabled    -> MEDIUM
     - Server-side encryption not configured    -> HIGH
+    - Encrypted, but not with a dedicated KMS
+      key (SSE-S3, or the AWS-managed default
+      key rather than a customer-managed one)  -> LOW
     - Versioning not enabled                   -> MEDIUM
     - Access logging not enabled               -> LOW
     - Lifecycle policy not configured          -> LOW
@@ -59,6 +62,7 @@ def scan_s3_buckets(topology: dict[str, Any]) -> list[Finding]:
         _check_public_via_acl,
         _check_public_access_block,
         _check_encryption,
+        _check_encryption_uses_dedicated_kms_key,
         _check_versioning,
         _check_logging,
         _check_lifecycle,
@@ -104,6 +108,29 @@ def _check_encryption(bucket: dict[str, Any]) -> Finding | None:
     if props.get("encryption_enabled", False):
         return None
     return _build_finding("S3_ENCRYPTION_DISABLED", bucket["id"])
+
+
+def _check_encryption_uses_dedicated_kms_key(bucket: dict[str, Any]) -> Finding | None:
+    """
+    If encrypted, a bucket should use a dedicated customer-managed
+    KMS key -- not SSE-S3, and not SSE-KMS with the AWS-managed
+    default key implied by omitting a key ID.
+
+    Skipped entirely when encryption isn't enabled at all --
+    _check_encryption already covers that case, and this rule only
+    has an opinion about WHICH encryption is used, not whether any is.
+    A customer-managed key can be revoked, its policy scoped, its
+    usage tracked in CloudTrail, and its rotation controlled; SSE-S3
+    and the shared AWS-managed default key offer none of that.
+    """
+    props = bucket.get("properties", {})
+    if not props.get("encryption_enabled", False):
+        return None
+    if props.get("encryption_algorithm") == "aws:kms" and props.get(
+        "encryption_kms_key_id"
+    ):
+        return None
+    return _build_finding("S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY", bucket["id"])
 
 
 def _check_versioning(bucket: dict[str, Any]) -> Finding | None:

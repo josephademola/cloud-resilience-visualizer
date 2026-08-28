@@ -9,6 +9,7 @@
       "S3_PUBLIC_VIA_ACL": "Two themes. User Access Control is primary — an AllUsers grant is a direct failure of access control. Secure Configuration is secondary — the bucket was configured insecurely at creation or through subsequent changes.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Secure Configuration only. PAB is a bucket-level configuration setting; the theme covers exactly this case.",
       "S3_ENCRYPTION_DISABLED": "Secure Configuration only. Encryption at rest is a default AWS bucket configuration; a bucket without it has been configured (or left configured) insecurely.",
+      "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "Secure Configuration, reused. Using the weaker default key option instead of a dedicated one is still a configuration choice within this theme's scope.",
       "S3_VERSIONING_DISABLED": "Secure Configuration only. Cyber Essentials has no dedicated backup or resilience theme, so this is mapped to the same theme as the other S3 findings: versioning is a bucket-level configuration setting, and its absence is a configuration gap rather than a control from a different theme.",
       "S3_LOGGING_DISABLED": "Secure Configuration only, for the same reason as versioning: Cyber Essentials has no monitoring or logging theme in its five-theme baseline, so this is the nearest fit rather than a precise one.",
       "S3_LIFECYCLE_MISSING": "Secure Configuration only. No retention-specific theme exists in the five-theme baseline; a lifecycle policy is a bucket-level configuration setting, so this is the same nearest-fit reasoning as the other two.",
@@ -38,6 +39,10 @@
   ],
 
   "S3_ENCRYPTION_DISABLED": [
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
+  ],
+
+  "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": [
     {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ],
 

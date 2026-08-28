@@ -9,6 +9,7 @@
       "S3_PUBLIC_VIA_ACL": "A.8.3 (Information Access Restriction) — an AllUsers ACL grant is a direct, unambiguous failure of this control.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "A.8.9 (Configuration Management) — PAB is a configuration setting; leaving it disabled is a configuration-management gap.",
       "S3_ENCRYPTION_DISABLED": "A.8.24 (Use of Cryptography) — direct match, encryption at rest.",
+      "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "A.8.24, reused. Cryptographic key management -- not just whether encryption is used but how the key behind it is managed -- is squarely inside this control's scope.",
       "S3_VERSIONING_DISABLED": "A.8.13 (Information Backup) — versioning is an object-level recovery mechanism, the closest ISO control to what it provides.",
       "S3_LOGGING_DISABLED": "A.8.15 (Logging) — direct match.",
       "S3_LIFECYCLE_MISSING": "A.8.10 (Information Deletion) — a precise fit, not a stretch: this control is specifically about secure deletion once data is no longer required, which is exactly what a lifecycle policy automates.",
@@ -37,6 +38,10 @@
   ],
 
   "S3_ENCRYPTION_DISABLED": [
+    {"framework": "iso27001", "reference_id": "A.8.24", "label": "Use of Cryptography"}
+  ],
+
+  "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": [
     {"framework": "iso27001", "reference_id": "A.8.24", "label": "Use of Cryptography"}
   ],
 

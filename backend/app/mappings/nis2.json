@@ -9,6 +9,7 @@
       "S3_PUBLIC_VIA_ACL": "21(2)(i) is the primary requirement — an AllUsers grant is a direct failure of access control policies. This mapping is unambiguous.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Two references. 21(2)(e) covers security in ongoing system maintenance — PAB is a configuration choice that lives here. 21(2)(f) covers assessing the effectiveness of measures — PAB is one of the mechanisms by which an organisation ensures its access controls remain effective under future changes.",
       "S3_ENCRYPTION_DISABLED": "21(2)(h) explicitly names cryptography and encryption. This mapping is unambiguous — NIS2 requires organisations to have policies for encryption use, and absent encryption on stored data is a direct policy gap.",
+      "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "21(2)(h) reused. Which key manages the encryption is still a cryptography-and-encryption policy matter, even once encryption itself is confirmed on — this finding is about the quality of that policy, not its presence.",
       "S3_VERSIONING_DISABLED": "21(2)(c) is a direct match — the sub-paragraph explicitly names backup management and disaster recovery. S3 versioning is exactly this: an object-level recovery mechanism against accidental or malicious deletion and overwrite. This mapping is unambiguous.",
       "S3_LOGGING_DISABLED": "21(2)(b) covers incident handling. Access logs are the raw material incident handling depends on: without them, there is no way to answer 'what was accessed' during an investigation. This mapping is direct.",
       "S3_LIFECYCLE_MISSING": "Weakest mapping in this file. NIS2 has no sub-paragraph naming data retention specifically, so this is mapped to 21(2)(a) — policies on risk analysis and the security of network and information systems — as the general policy catch-all: the gap is the absence of a documented retention policy, not a named technical control. Flagged here rather than forced to look as clean as the other S3 mappings.",
@@ -50,6 +51,14 @@
   ],
 
   "S3_ENCRYPTION_DISABLED": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(h)",
+      "label": "Policies and procedures regarding the use of cryptography and encryption"
+    }
+  ],
+
+  "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": [
     {
       "framework": "nis2",
       "reference_id": "Article 21(2)(h)",

@@ -9,6 +9,7 @@
       "S3_PUBLIC_VIA_ACL": "Article 9(4)(c): 'implement access limitation policies restricting physical or logical access to necessary functions only'. An AllUsers ACL grant is the direct opposite of this.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Article 9(4)(c), reused — PAB is exactly the access-limitation control this sub-paragraph describes, at the safety-net level rather than the individual-grant level.",
       "S3_ENCRYPTION_DISABLED": "Article 9(4)(d): 'implement policies and protocols for strong authentication mechanisms... and protection measures of cryptographic keys whereby data is encrypted'. Encryption at rest is the data-protection half of this sub-paragraph.",
+      "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "Article 9(4)(d), reused — 'protection measures of cryptographic keys' names key management directly, which is exactly what this finding is about.",
       "S3_VERSIONING_DISABLED": "Article 12(1)(b): 'restoration and recovery procedures and methods'. Versioning is an object-level recovery mechanism.",
       "S3_LOGGING_DISABLED": "Article 10(3): entities must allocate 'sufficient resources and capabilities to monitor user activity, the occurrence of ICT anomalies and ICT-related incidents'. Access logs are the raw material this monitoring depends on.",
       "S3_LIFECYCLE_MISSING": "Article 12(1)(a): 'backup policies and procedures specifying the scope of the data that is subject to the backup and the minimum frequency'. A lifecycle policy is the retention-scope half of what this sub-paragraph requires be documented.",
@@ -37,6 +38,10 @@
   ],
 
   "S3_ENCRYPTION_DISABLED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(d)", "label": "Strong authentication mechanisms and cryptographic key protection"}
+  ],
+
+  "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": [
     {"framework": "dora", "reference_id": "Article 9(4)(d)", "label": "Strong authentication mechanisms and cryptographic key protection"}
   ],
 

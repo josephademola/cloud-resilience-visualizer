@@ -30,6 +30,13 @@
     "remediation": "Enable server-side encryption on the bucket. In the AWS Console: S3 -> the bucket -> Properties tab -> Default encryption -> Edit -> choose 'Server-side encryption with Amazon S3 managed keys (SSE-S3)' for AES256, or 'Server-side encryption with AWS KMS keys (SSE-KMS)' for compliance-sensitive data -> Save. From the AWS CLI: `aws s3api put-bucket-encryption --bucket <name> --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"AES256\"}}]}'`. New objects uploaded after this change will be encrypted automatically; existing objects need to be copied over themselves (aws s3 cp) to acquire the new encryption."
   },
 
+  "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": {
+    "title": "Bucket not encrypted with a dedicated KMS key",
+    "severity": "low",
+    "description": "This bucket is encrypted, but not with a customer-managed KMS key created specifically for it -- it's using either SSE-S3 (Amazon's own managed key, AES256) or SSE-KMS with the account's shared AWS-managed default key (aws/s3). Both protect data at rest, but neither gives you the controls a dedicated customer-managed key does: you can't write a key policy scoping who's allowed to decrypt, you can't disable or schedule deletion of the key independently of the bucket, and CloudTrail can't show you who used the key to decrypt what, since the AWS-managed key is shared across every bucket that defaults to it, not specific to this one.",
+    "remediation": "Create (or reuse) a customer-managed KMS key dedicated to this bucket's data, then point the bucket's default encryption at it. In the AWS Console: KMS -> Create key (if needed), then S3 -> the bucket -> Properties -> Default encryption -> Edit -> 'Server-side encryption with AWS KMS keys (SSE-KMS)' -> choose the customer-managed key -> Save. From the CLI: `aws s3api put-bucket-encryption --bucket <name> --server-side-encryption-configuration '{\"Rules\":[{\"ApplyServerSideEncryptionByDefault\":{\"SSEAlgorithm\":\"aws:kms\",\"KMSMasterKeyID\":\"<key-arn>\"}}]}'`."
+  },
+
   "S3_VERSIONING_DISABLED": {
     "title": "Bucket versioning not enabled",
     "severity": "medium",

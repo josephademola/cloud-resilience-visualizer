@@ -735,6 +735,7 @@ function isBadProperty(key, value) {
     if (key === "is_public_via_acl" && value === true) return true;
     if (key === "public_access_block_fully_enabled" && value === false) return true;
     if (key === "encryption_enabled" && value === false) return true;
+    if (key === "encryption_algorithm" && value === "AES256") return true;
     if (key === "versioning_enabled" && value === false) return true;
     if (key === "logging_enabled" && value === false) return true;
     if (key === "lifecycle_configured" && value === false) return true;

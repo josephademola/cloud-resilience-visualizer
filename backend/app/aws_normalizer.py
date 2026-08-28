@@ -644,6 +644,29 @@ def _is_bucket_encryption_enabled(encryption_response: dict[str, Any]) -> bool:
     return len(rules) > 0
 
 
+def _get_encryption_default(
+    encryption_response: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Return the first rule's ApplyServerSideEncryptionByDefault block,
+    or {} if there's no encryption configured at all (error marker or
+    an empty Rules list).
+
+    Only the first rule is read because that's the one S3 actually
+    applies as the bucket's default -- get_bucket_encryption() can
+    only ever return at most one rule in practice, but reading [0]
+    defensively rather than assuming makes that explicit.
+    """
+    if "_error" in encryption_response:
+        return {}
+    rules = encryption_response.get(
+        "ServerSideEncryptionConfiguration", {}
+    ).get("Rules", [])
+    if not rules:
+        return {}
+    return rules[0].get("ApplyServerSideEncryptionByDefault", {})
+
+
 def _is_bucket_versioning_enabled(versioning_response: dict[str, Any]) -> bool:
     """
     Return True if bucket versioning is enabled.
@@ -754,6 +777,8 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
         lifecycle = details.get("get_bucket_lifecycle_configuration", {})
         policy = details.get("get_bucket_policy", {})
 
+        encryption_default = _get_encryption_default(encryption)
+
         nodes.append({
             "id": name,
             "type": "s3_bucket",
@@ -764,6 +789,8 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
                 "is_public_via_acl": _is_bucket_public_via_acl(acl),
                 "public_access_block_fully_enabled": _is_pab_fully_enabled(pab),
                 "encryption_enabled": _is_bucket_encryption_enabled(encryption),
+                "encryption_algorithm": encryption_default.get("SSEAlgorithm"),
+                "encryption_kms_key_id": encryption_default.get("KMSMasterKeyID"),
                 "versioning_enabled": _is_bucket_versioning_enabled(versioning),
                 "logging_enabled": _is_bucket_logging_enabled(logging_config),
                 "lifecycle_configured": _is_bucket_lifecycle_configured(lifecycle),
