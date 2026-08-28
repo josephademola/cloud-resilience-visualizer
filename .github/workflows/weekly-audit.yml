@@ -94,6 +94,9 @@ jobs:
           # "env" context, which is allowed everywhere.
           if [ -n "$CONFIDENTIAL_CONTROLS_JSON" ]; then
             printf '%s' "$CONFIDENTIAL_CONTROLS_JSON" > app/mappings/confidential_controls.json
+            echo "confidential_controls.json written ($(wc -c < app/mappings/confidential_controls.json) bytes)"
+          else
+            echo "CONFIDENTIAL_CONTROLS_JSON secret is empty or unset -- skipping write"
           fi
 
       - name: Run audit

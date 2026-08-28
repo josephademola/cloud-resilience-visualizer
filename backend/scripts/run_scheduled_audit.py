@@ -97,8 +97,21 @@ def main() -> None:
     output_path = Path(os.environ.get("AUDIT_OUTPUT_PATH", "evidence-report.json"))
     output_path.write_text(json.dumps(record, indent=2), encoding="utf-8")
 
+    confidential_scope = _is_confidential_scope(project_tag)
+    mapping_path = (
+        Path(__file__).resolve().parent.parent
+        / "app" / "mappings" / "confidential_controls.json"
+    )
+    # Diagnostic only -- a boolean and a file-existence check, neither
+    # of which reveals the actual tag value, secret contents, or any
+    # finding. Safe for the public workflow log.
+    print(
+        f"Confidential scope matched: {confidential_scope} | "
+        f"confidential_controls.json present: {mapping_path.exists()}"
+    )
+
     compliance = build_compliance_view(
-        findings, include_confidential=_is_confidential_scope(project_tag)
+        findings, include_confidential=confidential_scope
     )
     snapshot = {
         "schema_version": "1.0",
