@@ -107,6 +107,13 @@
     "remediation": "Delete the console login profile so this identity can only be used programmatically. In the AWS Console: IAM -> Users -> the user -> Security credentials tab -> Console sign-in -> Manage -> Disable, or delete the login profile outright. From the CLI: `aws iam delete-login-profile --user-name <name>`. Confirm nothing legitimately depends on console access for this identity before removing it -- if a person actually needs console access, that person should have their own IAM user or federated identity, not share this one."
   },
 
+  "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": {
+    "title": "IAM user has more than one active access key",
+    "severity": "low",
+    "description": "This user has two or more Active access keys at the same time. AWS allows this deliberately so a key rotation can overlap briefly -- create the replacement, migrate everything to it, then deactivate the old one -- but a scan can't tell 'mid-rotation, about to be cleaned up' apart from 'rotation started and never finished'. Every extra live credential is another copy of long-term access sitting somewhere, another thing that can leak, and another key an attacker only needs to find one of.",
+    "remediation": "Confirm which key is actually in use, then deactivate and delete the other one: `aws iam list-access-keys --user-name <name>` to see both, check recent usage with `aws iam get-access-key-last-used --access-key-id <id>` for each, then `aws iam update-access-key --user-name <name> --access-key-id <old-id> --status Inactive` followed by `aws iam delete-access-key --user-name <name> --access-key-id <old-id>` once you're confident nothing still depends on it."
+  },
+
   "ACCOUNT_CLOUDTRAIL_DISABLED": {
     "title": "No active CloudTrail trail logging the account",
     "severity": "critical",

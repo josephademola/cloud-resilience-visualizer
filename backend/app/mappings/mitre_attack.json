@@ -20,6 +20,7 @@
       "IAM_PASSWORD_POLICY_WEAK": "T1110 (Brute Force), a new technique for this file rather than a third T1078.004 reuse. The distinction matters: T1078.004 describes a credential being usable once an attacker already has it, whereas T1110 describes the mechanism that gets them a working credential in the first place — a weak or absent length policy is what makes passwords guessable or crackable at all.",
       "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "T1078.004 a third time, but under a different tactic than the previous two: Persistence rather than Initial Access. T1078 legitimately spans both. Root's active keys and missing MFA are about a credential existing and being usable right now; an old, unrotated key is specifically about how long a valid credential persists as a foothold once an attacker has it, which is what Persistence describes.",
       "IAM_CONSOLE_LOGIN_ENABLED": "T1078.004 a fourth time, back under Initial Access like the MFA finding. A password-based console login profile on an identity that should be programmatic-only is a second, unnecessary way in for exactly this technique — a valid cloud account credential an attacker could obtain by guessing or phishing a password, a path that shouldn't exist for this identity at all.",
+      "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "T1078.004 a fifth time, under Persistence like the access-key-age finding. Two simultaneously valid credentials for one identity double the number of standing footholds an attacker who compromises either one gets to keep using.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "T1562.008 (Disable or Modify Cloud Logs), reused from S3_LOGGING_DISABLED — but this time as the clean fit that mapping was documented as lacking. S3_LOGGING_DISABLED's audit note called the technique imperfect because it describes an attacker actively disabling logs, not logs having never existed. Here the two collapse into the same thing: CloudTrail not logging, whether because it was disabled or never configured, is exactly what this technique describes at the account level. The technique this file's PAB correction and S3 logging note were both implicitly reaching for.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "T1580, the same corrected mapping S3_PUBLIC_ACCESS_BLOCK_DISABLED uses (originally the wrong T1078.004, fixed to T1580). Same reasoning at account scope: an attacker in reconnaissance can discover public buckets across the whole account more easily when this safety net is off, not just on one bucket."
     }
@@ -79,6 +80,10 @@
 
   "IAM_CONSOLE_LOGIN_ENABLED": [
     {"framework": "mitre_attack", "reference_id": "T1078.004", "label": "Valid Accounts: Cloud Accounts (Initial Access tactic)"}
+  ],
+
+  "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": [
+    {"framework": "mitre_attack", "reference_id": "T1078.004", "label": "Valid Accounts: Cloud Accounts (Persistence tactic)"}
   ],
 
   "ACCOUNT_CLOUDTRAIL_DISABLED": [

@@ -10,6 +10,7 @@ Current rules:
     - Account password policy is weak/missing  -> MEDIUM
     - Active access key older than 90 days     -> MEDIUM
     - User has a console login profile         -> MEDIUM
+    - User has more than one active access key -> LOW
 
 Design notes:
 
@@ -75,6 +76,7 @@ def scan_iam(topology: dict[str, Any]) -> list[Finding]:
     user_rules = (
         _check_access_key_age,
         _check_console_login_profile,
+        _check_multiple_active_keys,
     )
 
     for node in topology.get("nodes", []):
@@ -181,6 +183,31 @@ def _check_console_login_profile(user: dict[str, Any]) -> Finding | None:
     if not props.get("has_console_login", False):
         return None
     return _build_finding("IAM_CONSOLE_LOGIN_ENABLED", user["id"])
+
+
+def _check_multiple_active_keys(user: dict[str, Any]) -> Finding | None:
+    """
+    A user should have at most one Active access key in steady state.
+
+    AWS supports up to two access keys per user specifically to allow
+    a brief overlap during rotation (create the new key, migrate
+    everything to it, then deactivate/delete the old one) -- so two
+    active keys is a normal TRANSIENT state, not inherently a
+    misconfiguration. What this rule actually flags is a scan finding
+    two active keys with no rotation in progress to explain it: the
+    scanner has no way to distinguish "mid-rotation" from "someone
+    just never finished cleaning up", so this is intentionally a
+    low-severity nudge to go check, not a critical alarm. A detection
+    signal like is_public_via_acl: no access_keys data means nothing
+    to count, not a finding.
+    """
+    props = user.get("properties", {})
+    active_count = sum(
+        1 for key in props.get("access_keys", []) if key.get("status") == "Active"
+    )
+    if active_count <= 1:
+        return None
+    return _build_finding("IAM_MULTIPLE_ACTIVE_ACCESS_KEYS", user["id"])
 
 
 def _parse_iso_datetime(value: Any) -> datetime | None:

@@ -20,6 +20,7 @@
       "IAM_PASSWORD_POLICY_WEAK": "A.8.5 (Secure Authentication), reused — password strength is part of the same control as MFA.",
       "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "A.5.18 (Access Rights), deliberately different from IAM_ROOT_ACCESS_KEYS_ACTIVE's A.8.2. A.5.18 covers the provisioning, review, and revocation of access rights over time — credential lifecycle for a regular user, not root's privileged-access control.",
       "IAM_CONSOLE_LOGIN_ENABLED": "A.5.18 (Access Rights) reused from the access-key-age finding rather than A.8.5 (Secure Authentication) — the question here isn't whether the authentication mechanism is strong, it's whether this identity should have been provisioned a console-login access right at all, which is exactly what A.5.18 governs.",
+      "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "A.5.18 (Access Rights) reused again. Two live access rights of the same kind for one identity is exactly the provisioning-and-review question this control covers — has an access grant outlived its purpose.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "A.8.15 (Logging), reused from S3_LOGGING_DISABLED as the account-wide instance. A.8.16 (Monitoring Activities) added as secondary, since CloudTrail is the data source account-wide monitoring depends on.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "A.8.9 (Configuration Management), reused from S3_PUBLIC_ACCESS_BLOCK_DISABLED as the account-wide instance of the same control."
     }
@@ -78,6 +79,10 @@
   ],
 
   "IAM_CONSOLE_LOGIN_ENABLED": [
+    {"framework": "iso27001", "reference_id": "A.5.18", "label": "Access Rights"}
+  ],
+
+  "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": [
     {"framework": "iso27001", "reference_id": "A.5.18", "label": "Access Rights"}
   ],
 

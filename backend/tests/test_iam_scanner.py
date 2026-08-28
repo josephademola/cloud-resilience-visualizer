@@ -17,6 +17,7 @@ from app.scanners.iam_scanner import (
     _check_password_policy,
     _check_access_key_age,
     _check_console_login_profile,
+    _check_multiple_active_keys,
     scan_iam,
 )
 
@@ -247,6 +248,59 @@ class TestCheckConsoleLoginProfile:
         assert finding.severity == Severity.MEDIUM
         assert finding.resource_id == "app-service-account"
         assert finding.title == "IAM user has a console login profile"
+        assert len(finding.framework_references) > 0
+
+
+# --- _check_multiple_active_keys ----------------------------------------
+class TestCheckMultipleActiveKeys:
+
+    def test_returns_none_for_a_single_active_key(self):
+        user = _iam_user(access_keys=[
+            {"access_key_id": "AKIA1", "status": "Active", "create_date": "2024-01-01T00:00:00+00:00"},
+        ])
+        assert _check_multiple_active_keys(user) is None
+
+    def test_returns_none_for_zero_active_keys(self):
+        user = _iam_user(access_keys=[
+            {"access_key_id": "AKIA1", "status": "Inactive", "create_date": "2024-01-01T00:00:00+00:00"},
+        ])
+        assert _check_multiple_active_keys(user) is None
+
+    def test_returns_none_for_no_access_keys_at_all(self):
+        assert _check_multiple_active_keys(_iam_user(access_keys=[])) is None
+
+    def test_returns_finding_when_two_keys_are_active(self):
+        user = _iam_user(access_keys=[
+            {"access_key_id": "AKIA-OLD", "status": "Active", "create_date": "2024-01-01T00:00:00+00:00"},
+            {"access_key_id": "AKIA-NEW", "status": "Active", "create_date": "2024-06-01T00:00:00+00:00"},
+        ])
+        finding = _check_multiple_active_keys(user)
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS"
+
+    def test_ignores_inactive_keys_when_counting(self):
+        # One active, one inactive -- not a violation, this is the
+        # normal steady state, including right after a rotation
+        # finishes and the old key gets deactivated.
+        user = _iam_user(access_keys=[
+            {"access_key_id": "AKIA-ACTIVE", "status": "Active", "create_date": "2024-06-01T00:00:00+00:00"},
+            {"access_key_id": "AKIA-RETIRED", "status": "Inactive", "create_date": "2024-01-01T00:00:00+00:00"},
+        ])
+        assert _check_multiple_active_keys(user) is None
+
+    def test_finding_has_low_severity_and_correct_shape(self):
+        user = _iam_user(
+            "app-service-account",
+            access_keys=[
+                {"access_key_id": "AKIA1", "status": "Active", "create_date": "2024-01-01T00:00:00+00:00"},
+                {"access_key_id": "AKIA2", "status": "Active", "create_date": "2024-06-01T00:00:00+00:00"},
+            ],
+        )
+        finding = _check_multiple_active_keys(user)
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.LOW
+        assert finding.resource_id == "app-service-account"
+        assert finding.title == "IAM user has more than one active access key"
         assert len(finding.framework_references) > 0
 
 

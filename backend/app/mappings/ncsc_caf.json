@@ -20,6 +20,7 @@
       "IAM_PASSWORD_POLICY_WEAK": "B2.a again, fourth use. Still the correct outcome, not just the convenient one: a weak or missing password policy is exactly the same 'identity verification and authentication' gap as the previous three findings, applied to the password mechanism specifically rather than MFA or key management.",
       "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "B2.a, fifth use. Credential lifecycle management — rotating a credential before it becomes a long-lived liability — is part of authentication management just as much as the credential's existence or strength is.",
       "IAM_CONSOLE_LOGIN_ENABLED": "B2.a, sixth use. Whether an identity has a password-based console login at all is an authentication-and-authorisation configuration decision, the same category as MFA, password strength, and key rotation already mapped here.",
+      "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "B2.a, seventh use. Two simultaneously live credentials for the same identity is a question of how many valid ways this identity can authenticate at once — squarely inside this outcome's territory.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "C1.a reused from S3_LOGGING_DISABLED, and the stronger case: CloudTrail is the account-wide monitoring capability C1.a describes, not one bucket's slice of it.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "B4.a, the same reference S3_PUBLIC_ACCESS_BLOCK_DISABLED uses. Same control, account scope instead of bucket scope — the mapping doesn't change because the blast radius does."
     }
@@ -79,6 +80,10 @@
   ],
 
   "IAM_CONSOLE_LOGIN_ENABLED": [
+    {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
+  ],
+
+  "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": [
     {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
   ],
 
