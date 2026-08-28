@@ -29,6 +29,7 @@ from app.scanners.s3_scanner import (
     _check_versioning,
     _check_logging,
     _check_lifecycle,
+    _check_lifecycle_rule_disabled,
     _check_tls_enforced,
     scan_s3_buckets,
 )
@@ -303,6 +304,45 @@ class TestCheckLifecycle:
         assert len(finding.framework_references) > 0
 
 
+# --- _check_lifecycle_rule_disabled --------------------------------------
+class TestCheckLifecycleRuleDisabled:
+
+    def test_returns_none_when_no_lifecycle_configured_at_all(self):
+        # S3_LIFECYCLE_MISSING already owns this case -- this rule
+        # only has an opinion about a CONFIGURED rule's Status.
+        finding = _check_lifecycle_rule_disabled(
+            _bucket(lifecycle_configured=False)
+        )
+        assert finding is None
+
+    def test_returns_finding_when_configured_but_all_rules_disabled(self):
+        finding = _check_lifecycle_rule_disabled(
+            _bucket(lifecycle_configured=True, lifecycle_rule_enabled=False)
+        )
+        assert finding is not None
+        assert finding.finding_type_id == "S3_LIFECYCLE_RULE_DISABLED"
+
+    def test_returns_none_when_configured_and_enabled(self):
+        finding = _check_lifecycle_rule_disabled(
+            _bucket(lifecycle_configured=True, lifecycle_rule_enabled=True)
+        )
+        assert finding is None
+
+    def test_finding_has_low_severity_and_correct_shape(self):
+        finding = _check_lifecycle_rule_disabled(
+            _bucket(
+                "dormant-rule-bucket",
+                lifecycle_configured=True,
+                lifecycle_rule_enabled=False,
+            )
+        )
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.LOW
+        assert finding.resource_id == "dormant-rule-bucket"
+        assert finding.title == "Lifecycle rule configured but disabled"
+        assert len(finding.framework_references) > 0
+
+
 # --- _check_tls_enforced -------------------------------------------------
 class TestCheckTlsEnforced:
 
@@ -362,7 +402,7 @@ class TestScanS3Buckets:
         assert all(f.resource_id == "leaky" for f in findings)
 
     def test_returns_zero_findings_for_fully_secure_bucket(self):
-        # All eight checks pass -> no findings.
+        # All nine checks pass -> no findings.
         topology = {
             "nodes": [
                 _bucket(
@@ -375,6 +415,7 @@ class TestScanS3Buckets:
                     versioning_enabled=True,
                     logging_enabled=True,
                     lifecycle_configured=True,
+                    lifecycle_rule_enabled=True,
                     tls_enforced=True,
                 )
             ]
@@ -431,6 +472,7 @@ class TestScanS3Buckets:
                     versioning_enabled=True,
                     logging_enabled=True,
                     lifecycle_configured=True,
+                    lifecycle_rule_enabled=True,
                     tls_enforced=True,
                 ),
                 _bucket(
@@ -443,6 +485,7 @@ class TestScanS3Buckets:
                     versioning_enabled=True,
                     logging_enabled=True,
                     lifecycle_configured=True,
+                    lifecycle_rule_enabled=True,
                     tls_enforced=True,
                 ),
             ]

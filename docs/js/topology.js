@@ -739,6 +739,7 @@ function isBadProperty(key, value) {
     if (key === "versioning_enabled" && value === false) return true;
     if (key === "logging_enabled" && value === false) return true;
     if (key === "lifecycle_configured" && value === false) return true;
+    if (key === "lifecycle_rule_enabled" && value === false) return true;
     if (key === "tls_enforced" && value === false) return true;
     if (key === "key_rotation_enabled" && value === false) return true;
     if (key === "key_state" && value === "PendingDeletion") return true;

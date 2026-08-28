@@ -14,6 +14,7 @@ Current rules:
     - Versioning not enabled                   -> MEDIUM
     - Access logging not enabled               -> LOW
     - Lifecycle policy not configured          -> LOW
+    - Lifecycle policy configured but disabled -> LOW
     - TLS not enforced by bucket policy        -> MEDIUM
 
 Design notes:
@@ -66,6 +67,7 @@ def scan_s3_buckets(topology: dict[str, Any]) -> list[Finding]:
         _check_versioning,
         _check_logging,
         _check_lifecycle,
+        _check_lifecycle_rule_disabled,
         _check_tls_enforced,
     )
 
@@ -155,6 +157,23 @@ def _check_lifecycle(bucket: dict[str, Any]) -> Finding | None:
     if props.get("lifecycle_configured", False):
         return None
     return _build_finding("S3_LIFECYCLE_MISSING", bucket["id"])
+
+
+def _check_lifecycle_rule_disabled(bucket: dict[str, Any]) -> Finding | None:
+    """
+    If a lifecycle rule exists, at least one must actually be Enabled.
+
+    Skipped entirely when no rule exists at all -- S3_LIFECYCLE_MISSING
+    already owns that case. This rule only has an opinion about
+    whether a CONFIGURED lifecycle policy is actually switched on, not
+    whether one exists.
+    """
+    props = bucket.get("properties", {})
+    if not props.get("lifecycle_configured", False):
+        return None
+    if props.get("lifecycle_rule_enabled", False):
+        return None
+    return _build_finding("S3_LIFECYCLE_RULE_DISABLED", bucket["id"])
 
 
 def _check_tls_enforced(bucket: dict[str, Any]) -> Finding | None:

@@ -13,6 +13,7 @@
       "S3_VERSIONING_DISABLED": "A.8.13 (Information Backup) — versioning is an object-level recovery mechanism, the closest ISO control to what it provides.",
       "S3_LOGGING_DISABLED": "A.8.15 (Logging) — direct match.",
       "S3_LIFECYCLE_MISSING": "A.8.10 (Information Deletion) — a precise fit, not a stretch: this control is specifically about secure deletion once data is no longer required, which is exactly what a lifecycle policy automates.",
+      "S3_LIFECYCLE_RULE_DISABLED": "A.8.10, reused. A disabled deletion rule means the required deletion isn't actually happening — the same gap the control names, just caused by a switched-off rule instead of a missing one.",
       "S3_TLS_NOT_ENFORCED": "A.8.24 (Use of Cryptography), reused from S3_ENCRYPTION_DISABLED. ISO does not split this control by at-rest vs in-transit the way NCSC CAF's B3.b/B3.c does.",
       "KMS_KEY_ROTATION_DISABLED": "A.8.24 (Use of Cryptography), reused. Key rotation is a cryptographic key management practice, squarely inside this control's scope.",
       "KMS_KEY_MISSING_ALIAS": "A.5.9 (Inventory of information and other associated assets), first use of this control in the file. Its actual text requires 'an inventory of information and other associated assets, including owners' -- an unaliased key is precisely an asset that can't be identified in an inventory by purpose, a cleaner fit than stretching A.8.24's cryptography-use scope to cover naming/labelling.",
@@ -54,6 +55,10 @@
   ],
 
   "S3_LIFECYCLE_MISSING": [
+    {"framework": "iso27001", "reference_id": "A.8.10", "label": "Information Deletion"}
+  ],
+
+  "S3_LIFECYCLE_RULE_DISABLED": [
     {"framework": "iso27001", "reference_id": "A.8.10", "label": "Information Deletion"}
   ],
 

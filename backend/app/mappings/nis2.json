@@ -13,6 +13,7 @@
       "S3_VERSIONING_DISABLED": "21(2)(c) is a direct match — the sub-paragraph explicitly names backup management and disaster recovery. S3 versioning is exactly this: an object-level recovery mechanism against accidental or malicious deletion and overwrite. This mapping is unambiguous.",
       "S3_LOGGING_DISABLED": "21(2)(b) covers incident handling. Access logs are the raw material incident handling depends on: without them, there is no way to answer 'what was accessed' during an investigation. This mapping is direct.",
       "S3_LIFECYCLE_MISSING": "Weakest mapping in this file. NIS2 has no sub-paragraph naming data retention specifically, so this is mapped to 21(2)(a) — policies on risk analysis and the security of network and information systems — as the general policy catch-all: the gap is the absence of a documented retention policy, not a named technical control. Flagged here rather than forced to look as clean as the other S3 mappings.",
+      "S3_LIFECYCLE_RULE_DISABLED": "21(2)(a), reused. A disabled rule means the retention policy exists on paper but isn't actually being enforced — the same policy-vs-practice gap 21(2)(a) already covers for the missing-rule case.",
       "S3_TLS_NOT_ENFORCED": "21(2)(h) is reused deliberately, not by oversight — the same sub-paragraph already used for S3_ENCRYPTION_DISABLED. NIS2's cryptography clause does not distinguish encryption at rest from encryption in transit, and TLS enforcement is encryption policy applied to data in motion rather than data at rest.",
       "KMS_KEY_ROTATION_DISABLED": "21(2)(h) again — key rotation is a cryptography and encryption policy matter as directly as any finding in this file. First non-S3 finding mapped, same clause as the two S3 cryptography findings above.",
       "KMS_KEY_MISSING_ALIAS": "21(2)(i) rather than (h) — an unaliased key is an asset-management gap (can this key be identified and tracked), not a cryptography-policy gap (is the cryptography itself sound). Deliberately mapped away from the other KMS findings for that reason.",
@@ -83,6 +84,14 @@
   ],
 
   "S3_LIFECYCLE_MISSING": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(a)",
+      "label": "Policies on risk analysis and information system security"
+    }
+  ],
+
+  "S3_LIFECYCLE_RULE_DISABLED": [
     {
       "framework": "nis2",
       "reference_id": "Article 21(2)(a)",

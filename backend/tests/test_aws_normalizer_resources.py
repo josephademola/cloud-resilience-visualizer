@@ -626,6 +626,7 @@ class TestNormalizeS3Buckets:
                     "versioning_enabled": True,
                     "logging_enabled": True,
                     "lifecycle_configured": True,
+                    "lifecycle_rule_enabled": True,
                     "tls_enforced": True,
                     "arn": "arn:aws:s3:::secure-logs",
                 },

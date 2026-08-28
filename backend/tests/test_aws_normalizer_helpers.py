@@ -16,6 +16,7 @@ from app.aws_normalizer import (
     _is_bucket_versioning_enabled,
     _is_bucket_logging_enabled,
     _is_bucket_lifecycle_configured,
+    _has_enabled_lifecycle_rule,
     _is_tls_enforced,
     S3_ALL_USERS_URI,
 )
@@ -207,6 +208,34 @@ class TestIsBucketLifecycleConfigured:
 
     def test_returns_false_when_rules_empty(self):
         assert _is_bucket_lifecycle_configured({"Rules": []}) is False
+
+
+# --- _has_enabled_lifecycle_rule -------------------------------------------
+class TestHasEnabledLifecycleRule:
+
+    def test_returns_true_when_a_rule_is_enabled(self):
+        lifecycle = {"Rules": [{"ID": "expire-old", "Status": "Enabled"}]}
+        assert _has_enabled_lifecycle_rule(lifecycle) is True
+
+    def test_returns_false_when_all_rules_disabled(self):
+        lifecycle = {"Rules": [{"ID": "expire-old", "Status": "Disabled"}]}
+        assert _has_enabled_lifecycle_rule(lifecycle) is False
+
+    def test_returns_true_when_at_least_one_of_several_rules_is_enabled(self):
+        lifecycle = {
+            "Rules": [
+                {"ID": "old-disabled-rule", "Status": "Disabled"},
+                {"ID": "current-rule", "Status": "Enabled"},
+            ]
+        }
+        assert _has_enabled_lifecycle_rule(lifecycle) is True
+
+    def test_returns_false_when_error_marker_present(self):
+        lifecycle = {"_error": "NoSuchLifecycleConfiguration"}
+        assert _has_enabled_lifecycle_rule(lifecycle) is False
+
+    def test_returns_false_when_rules_empty(self):
+        assert _has_enabled_lifecycle_rule({"Rules": []}) is False
 
 
 # --- _is_tls_enforced -----------------------------------------------------

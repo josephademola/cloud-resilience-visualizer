@@ -709,6 +709,27 @@ def _is_bucket_lifecycle_configured(lifecycle_response: dict[str, Any]) -> bool:
     return len(rules) > 0
 
 
+def _has_enabled_lifecycle_rule(lifecycle_response: dict[str, Any]) -> bool:
+    """
+    Return True if at least one of the bucket's lifecycle rules has
+    Status == "Enabled".
+
+    A rule can exist but be switched off (Status: "Disabled") --
+    created once, then disabled during testing or a migration and
+    never re-enabled. _is_bucket_lifecycle_configured() alone can't
+    tell that apart from a genuinely active rule, since it only
+    checks whether any rule exists at all. No specific expiration-day
+    threshold is checked here (e.g. "expire within N days") since
+    that number is engagement-specific configuration this codebase
+    has no generic way to know -- same reasoning as not hardcoding an
+    expected KMS alias name or ARN elsewhere in this module.
+    """
+    if "_error" in lifecycle_response:
+        return False
+    rules = lifecycle_response.get("Rules", [])
+    return any(rule.get("Status") == "Enabled" for rule in rules)
+
+
 def _is_tls_enforced(policy_response: dict[str, Any]) -> bool:
     """
     Return True if the bucket policy denies non-TLS (plain HTTP) access.
@@ -794,6 +815,7 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
                 "versioning_enabled": _is_bucket_versioning_enabled(versioning),
                 "logging_enabled": _is_bucket_logging_enabled(logging_config),
                 "lifecycle_configured": _is_bucket_lifecycle_configured(lifecycle),
+                "lifecycle_rule_enabled": _has_enabled_lifecycle_rule(lifecycle),
                 "tls_enforced": _is_tls_enforced(policy),
                 "arn": f"arn:aws:s3:::{name}",
             },

@@ -58,6 +58,13 @@
     "remediation": "Add a lifecycle rule appropriate to the data in the bucket. In the AWS Console: S3 -> the bucket -> Management tab -> Lifecycle rules -> Create lifecycle rule -> set an expiration (and, for versioned buckets, a noncurrent version expiration) -> Save. From the AWS CLI: `aws s3api put-bucket-lifecycle-configuration --bucket <name> --lifecycle-configuration '{\"Rules\":[{\"ID\":\"expire-old-objects\",\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"\"},\"Expiration\":{\"Days\":365}}]}'`. Set the expiration window to match the organisation's actual data retention policy rather than an arbitrary default."
   },
 
+  "S3_LIFECYCLE_RULE_DISABLED": {
+    "title": "Lifecycle rule configured but disabled",
+    "severity": "low",
+    "description": "This bucket has a lifecycle rule, but every rule on it has Status set to Disabled -- none of them are actually doing anything. A disabled rule is easy to miss on a quick review, since the configuration itself looks present and correct; only the Status field gives it away. This is arguably a worse position than having no rule at all, since it can create a false sense of confidence that retention is being managed when it isn't.",
+    "remediation": "Re-enable the rule if it should be active, or remove it if it's no longer needed. In the AWS Console: S3 -> the bucket -> Management tab -> Lifecycle rules -> select the rule -> Edit -> set Status to Enabled -> Save. From the CLI, re-submit the same rule configuration with `\"Status\": \"Enabled\"` via `aws s3api put-bucket-lifecycle-configuration`."
+  },
+
   "S3_TLS_NOT_ENFORCED": {
     "title": "Bucket policy does not enforce TLS",
     "severity": "medium",

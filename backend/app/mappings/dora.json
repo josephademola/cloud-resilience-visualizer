@@ -13,6 +13,7 @@
       "S3_VERSIONING_DISABLED": "Article 12(1)(b): 'restoration and recovery procedures and methods'. Versioning is an object-level recovery mechanism.",
       "S3_LOGGING_DISABLED": "Article 10(3): entities must allocate 'sufficient resources and capabilities to monitor user activity, the occurrence of ICT anomalies and ICT-related incidents'. Access logs are the raw material this monitoring depends on.",
       "S3_LIFECYCLE_MISSING": "Article 12(1)(a): 'backup policies and procedures specifying the scope of the data that is subject to the backup and the minimum frequency'. A lifecycle policy is the retention-scope half of what this sub-paragraph requires be documented.",
+      "S3_LIFECYCLE_RULE_DISABLED": "Article 12(1)(a), reused. A documented policy that isn't actually enforced (Status: Disabled) doesn't satisfy this sub-paragraph any more than having no policy at all.",
       "S3_TLS_NOT_ENFORCED": "Article 9(3)(a): ICT solutions must 'ensure the security of the means of transfer of data'. Deliberately mapped to a different sub-paragraph than S3_ENCRYPTION_DISABLED's 9(4)(d) — this one is specifically about data in transit, not at rest, and DORA's Article 9(3) addresses transfer security separately from Article 9(4)'s broader policy requirements.",
       "KMS_KEY_ROTATION_DISABLED": "Article 9(4)(d), reused — 'protection measures of cryptographic keys' names key management directly.",
       "KMS_KEY_MISSING_ALIAS": "Article 8(1), first use of this article in the file — DORA's general ICT asset identification duty ('identify, classify and adequately document all ICT... information assets and ICT assets'), a genuinely closer fit than stretching Article 9(4)(d)'s authentication/key-protection scope to cover asset labelling.",
@@ -54,6 +55,10 @@
   ],
 
   "S3_LIFECYCLE_MISSING": [
+    {"framework": "dora", "reference_id": "Article 12(1)(a)", "label": "Backup policies specifying data scope and minimum frequency"}
+  ],
+
+  "S3_LIFECYCLE_RULE_DISABLED": [
     {"framework": "dora", "reference_id": "Article 12(1)(a)", "label": "Backup policies specifying data scope and minimum frequency"}
   ],
 
