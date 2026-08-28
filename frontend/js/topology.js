@@ -36,8 +36,15 @@ const API_KEY = "crv-prod-2026-joseph";
 // lives in whoever's browser URL bar is looking at it.
 const PROJECT_TAG = new URLSearchParams(window.location.search).get("project_tag");
 
-// Module-level state, populated at init.
+// Module-level state, populated at init (live) or by loadSnapshotFile
+// (archived report loaded from disk).
 let FINDINGS = [];
+let MAP = null;
+
+// Set only when viewing a report loaded from a file instead of a live
+// scan — { generated_at, project_tag } from the snapshot's own top
+// level. null means "viewing live data", which is the default.
+let LOADED_SNAPSHOT_META = null;
 
 
 // ---- Entry point ----
@@ -56,22 +63,87 @@ async function init() {
         btn.addEventListener("click", () => switchView(btn.dataset.view));
     });
 
+    setupSnapshotLoader();
+
     try {
         // Fetch topology and findings in parallel — they're independent.
         const [topology, findings] = await Promise.all([
             fetchTopology(),
             fetchFindings(),
         ]);
-        FINDINGS = findings;
-
-        const map = createMap();
-        renderTopology(map, topology);
-        updateStatus(topology);
+        renderFromData(topology, findings);
     } catch (err) {
         console.error("Failed to render topology:", err);
         const statusEl = document.getElementById("status");
         statusEl.textContent = "Cannot reach API — is the backend server running on port 8000?";
         statusEl.classList.add("status-error");
+    }
+}
+
+// Shared by the live init() path and loadSnapshotFile() below --
+// (re)creates the map and renders it, so loading a file after the
+// live view already rendered replaces it cleanly rather than drawing
+// on top of the existing layers.
+function renderFromData(topology, findings) {
+    if (MAP) {
+        MAP.remove();
+    }
+    MAP = createMap();
+    renderTopology(MAP, topology);
+    FINDINGS = findings;
+    updateStatus(topology);
+}
+
+// "Load report file" button: reads a full-snapshot.json (produced by
+// scripts/run_scheduled_audit.py, downloaded from wherever it was
+// archived to, e.g. a private S3 bucket) straight off local disk via
+// the browser's File API. Nothing is uploaded anywhere -- this is
+// pure client-side rendering of a file the user already has, using
+// the exact same rendering code as the live view.
+function setupSnapshotLoader() {
+    const button = document.getElementById("load-report-btn");
+    const input = document.getElementById("snapshot-file-input");
+    button.addEventListener("click", () => input.click());
+    input.addEventListener("change", async () => {
+        const file = input.files[0];
+        input.value = ""; // allow re-selecting the same file later
+        if (!file) return;
+        try {
+            await loadSnapshotFile(file);
+        } catch (err) {
+            console.error("Failed to load report file:", err);
+            alert("Could not load that file as a CRV report:\n" + err.message);
+        }
+    });
+}
+
+async function loadSnapshotFile(file) {
+    const text = await file.text();
+    const snapshot = JSON.parse(text);
+
+    if (!snapshot.topology || !snapshot.findings || !snapshot.compliance) {
+        throw new Error(
+            "This doesn't look like a CRV snapshot file (missing " +
+            "topology, findings, or compliance)."
+        );
+    }
+
+    LOADED_SNAPSHOT_META = {
+        generated_at: snapshot.generated_at || null,
+        project_tag: snapshot.project_tag || null,
+    };
+
+    renderFromData(snapshot.topology, snapshot.findings.findings || []);
+
+    // compliance.js's cache -- setting it here means switching to the
+    // Compliance tab renders instantly from this file instead of
+    // trying to fetch live data.
+    COMPLIANCE_CACHE = snapshot.compliance;
+    if (document.getElementById("compliance-view").classList.contains("view-active")) {
+        renderComplianceDashboard(
+            document.getElementById("compliance-dashboard"),
+            COMPLIANCE_CACHE
+        );
     }
 }
 
@@ -441,12 +513,24 @@ function updateStatus(topology) {
     const findingText = findingCount === 0
         ? "no findings"
         : `${findingCount} finding${findingCount === 1 ? "" : "s"}`;
-    // textContent, not innerHTML, below -- the browser never
-    // interprets this as markup, so PROJECT_TAG (which came from this
-    // page's own URL) needs no escaping here.
-    const scopeText = PROJECT_TAG ? ` · scoped to ${PROJECT_TAG}` : "";
     const statusEl = document.getElementById("status");
-    statusEl.textContent = `${total} resources · ${findingText}${scopeText}`;
+
+    // textContent, not innerHTML, below -- the browser never
+    // interprets this as markup, so values from a URL or a loaded
+    // file need no escaping here.
+    if (LOADED_SNAPSHOT_META) {
+        const when = LOADED_SNAPSHOT_META.generated_at
+            ? new Date(LOADED_SNAPSHOT_META.generated_at).toLocaleString()
+            : "unknown time";
+        const scopeText = LOADED_SNAPSHOT_META.project_tag
+            ? ` · scoped to ${LOADED_SNAPSHOT_META.project_tag}`
+            : "";
+        statusEl.textContent =
+            `Archived report · generated ${when} · ${total} resources · ${findingText}${scopeText}`;
+    } else {
+        const scopeText = PROJECT_TAG ? ` · scoped to ${PROJECT_TAG}` : "";
+        statusEl.textContent = `${total} resources · ${findingText}${scopeText}`;
+    }
     statusEl.classList.add("status-loaded");
 }
 

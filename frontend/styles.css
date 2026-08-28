@@ -225,6 +225,17 @@ body {
 }
 
 
+/* "Load report file" header button -- reuses .download-btn's look,
+   but needs flex-shrink:0/white-space:nowrap here since it sits
+   between .app-nav (flex:1) and .app-status (margin-left:auto),
+   both of which compete for space and would otherwise squeeze this
+   button down to the point of wrapping its own label. */
+#load-report-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+
 /* ---- Status indicator (live connection pill) ---- */
 
 .app-status {

@@ -33,6 +33,12 @@
             <button class="nav-btn" data-view="compliance">Compliance</button>
         </nav>
 
+        <input type="file" id="snapshot-file-input" accept="application/json" hidden>
+        <button id="load-report-btn" class="download-btn" type="button">
+            <i class="ti ti-file-upload"></i>
+            Load report file
+        </button>
+
         <div class="app-status" id="status" role="status" aria-live="polite">
             Loading...
         </div>

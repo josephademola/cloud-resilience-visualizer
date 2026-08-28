@@ -101,11 +101,13 @@ jobs:
           AUDIT_PROJECT_TAG: ${{ secrets.AUDIT_PROJECT_TAG }}
           CONFIDENTIAL_PROJECT_TAG: ${{ secrets.CONFIDENTIAL_PROJECT_TAG }}
           AUDIT_OUTPUT_PATH: evidence-report.json
+          SNAPSHOT_OUTPUT_PATH: full-snapshot.json
         run: python scripts/run_scheduled_audit.py
 
-      - name: Upload evidence record to private S3
+      - name: Upload evidence record and full snapshot to private S3
         env:
           BUCKET: ${{ vars.EVIDENCE_S3_BUCKET }}
         run: |
-          aws s3 cp evidence-report.json \
-            "s3://$BUCKET/evidence-reports/$(date -u +%Y/%m/%d)-${{ github.run_id }}.json"
+          DEST="s3://$BUCKET/evidence-reports/$(date -u +%Y/%m/%d)-${{ github.run_id }}"
+          aws s3 cp evidence-report.json "$DEST-evidence.json"
+          aws s3 cp full-snapshot.json "$DEST-snapshot.json"
