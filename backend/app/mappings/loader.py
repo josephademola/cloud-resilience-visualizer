@@ -69,6 +69,42 @@ def get_framework_references(
     return tuple(refs)
 
 
+def get_confidential_framework_display_names() -> dict[str, str] | None:
+    """
+    Return display names for the confidential framework, read from
+    confidential_controls.json's own _meta block: {"full_name": ...}
+    and/or {"short_name": ...}. Returns None if the file doesn't
+    exist or specifies neither.
+
+    This is how a client-specific label (e.g. "Acme Corp Internal
+    Control Baseline") can appear in a real scan's own output without
+    that name ever appearing in this repo's code — the label lives
+    entirely in the gitignored mapping file's own content, which
+    compliance.py falls back away from when this returns None (mock
+    mode, CI, or any environment where the file isn't present). See
+    docs/design_decisions.md #11.
+    """
+    path = _MAPPINGS_DIR / "confidential_controls.json"
+    if not path.exists():
+        return None
+
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+
+    meta = data.get("_meta", {})
+    full_name = meta.get("framework_full_name")
+    short_name = meta.get("framework_short_name")
+    if not full_name and not short_name:
+        return None
+
+    names: dict[str, str] = {}
+    if full_name:
+        names["full_name"] = full_name
+    if short_name:
+        names["short_name"] = short_name
+    return names
+
+
 def _get_mappings() -> dict[str, list[FrameworkReference]]:
     """Return the cached mapping dict, loading from disk on first call."""
     global _MAPPINGS_CACHE

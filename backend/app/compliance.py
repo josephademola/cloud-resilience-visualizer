@@ -37,6 +37,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from app.mappings.loader import get_confidential_framework_display_names
 from app.models.finding import Finding
 
 
@@ -153,13 +154,30 @@ def build_compliance_view(
         failing_requirements = _group_findings_by_requirement(
             findings, framework_name
         )
-        frameworks_output.append({
+        entry = {
             "framework": framework_name,
             "framework_full_name": meta["full_name"],
             "unit_label": meta["unit_label"],
             "failing_count": len(failing_requirements),
             "failing_requirements": failing_requirements,
-        })
+        }
+
+        # The confidential framework's display name can be overridden
+        # by its own (gitignored) mapping file's _meta block -- e.g. a
+        # real engagement's control catalogue can call itself
+        # "Acme Corp Internal Control Baseline" in its own private
+        # content, without that name ever appearing in this repo's
+        # code. Falls back to the generic default above when the file
+        # doesn't exist or doesn't specify one (mock mode, CI, etc).
+        if framework_name == "confidential":
+            override = get_confidential_framework_display_names()
+            if override:
+                if override.get("full_name"):
+                    entry["framework_full_name"] = override["full_name"]
+                if override.get("short_name"):
+                    entry["framework_short_name"] = override["short_name"]
+
+        frameworks_output.append(entry)
 
     return {
         "metadata": {
