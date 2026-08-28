@@ -23,7 +23,8 @@
       "IAM_CONSOLE_LOGIN_ENABLED": "B2.a, sixth use. Whether an identity has a password-based console login at all is an authentication-and-authorisation configuration decision, the same category as MFA, password strength, and key rotation already mapped here.",
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "B2.a, seventh use. Two simultaneously live credentials for the same identity is a question of how many valid ways this identity can authenticate at once — squarely inside this outcome's territory.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "C1.a reused from S3_LOGGING_DISABLED, and the stronger case: CloudTrail is the account-wide monitoring capability C1.a describes, not one bucket's slice of it.",
-      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "B4.a, the same reference S3_PUBLIC_ACCESS_BLOCK_DISABLED uses. Same control, account scope instead of bucket scope — the mapping doesn't change because the blast radius does."
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "B4.a, the same reference S3_PUBLIC_ACCESS_BLOCK_DISABLED uses. Same control, account scope instead of bucket scope — the mapping doesn't change because the blast radius does.",
+      "RESOURCE_MISSING_TAGS": "A3.a (Asset Management), reused from KMS_KEY_MISSING_ALIAS. An untagged resource is exactly the 'everything required... is determined and understood' gap this outcome names, generalised across every taggable resource type instead of just KMS keys."
     }
   },
 
@@ -98,5 +99,9 @@
 
   "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
     {"framework": "ncsc_caf", "reference_id": "B4.a", "label": "Secure by design"}
+  ],
+
+  "RESOURCE_MISSING_TAGS": [
+    {"framework": "ncsc_caf", "reference_id": "A3.a", "label": "Asset Management"}
   ]
 }

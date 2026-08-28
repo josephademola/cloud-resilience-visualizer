@@ -58,16 +58,45 @@ class TestFetchAwsData:
     def test_returns_expected_top_level_shape(self, moto_aws):
         # Top-level keys must match mock_aws.json exactly so the
         # normaliser downstream can process either data source.
+        # resourcegroupstaggingapi is always present now (docs/
+        # design_decisions.md #12), not just on scoped scans.
         data = fetch_aws_data()
         assert set(data.keys()) == {
             "ec2", "rds", "s3", "kms", "iam", "cloudtrail", "s3control",
+            "resourcegroupstaggingapi",
         }
 
-    def test_omits_tagging_section_when_no_project_tag_given(self, moto_aws):
-        # No reason to make the extra API call on every unscoped
-        # scan (Phase 9a Feature 1).
+    def test_includes_tagging_section_even_when_no_project_tag_given(self, moto_aws):
+        # Always fetched now (docs/design_decisions.md #12) --
+        # aws_normalizer._apply_tag_presence needs the full,
+        # unfiltered picture of what's tagged on every scan, not just
+        # scoped ones, to power RESOURCE_MISSING_TAGS. That finding is
+        # specifically aimed at unscoped scans, so this section can no
+        # longer be skipped when project_tag is absent.
         data = fetch_aws_data()
-        assert "resourcegroupstaggingapi" not in data
+        assert "resourcegroupstaggingapi" in data
+        assert "get_resources" in data["resourcegroupstaggingapi"]
+
+    def test_unscoped_tagging_call_is_not_filtered_by_tag(self, moto_aws):
+        s3 = boto3.client("s3", region_name="eu-west-2")
+        s3.create_bucket(
+            Bucket="tagged-bucket",
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-2"},
+        )
+        s3.put_bucket_tagging(
+            Bucket="tagged-bucket",
+            Tagging={"TagSet": [{"Key": "Environment", "Value": "production"}]},
+        )
+
+        # No project_tag given -- the unscoped call must still surface
+        # this bucket's tags, since it isn't limited to one specific
+        # tag key/value the way a scoped call is.
+        data = fetch_aws_data()
+        mappings = data["resourcegroupstaggingapi"]["get_resources"][
+            "ResourceTagMappingList"
+        ]
+        tagged_arns = {m["ResourceARN"] for m in mappings}
+        assert "arn:aws:s3:::tagged-bucket" in tagged_arns
 
     def test_includes_tagging_section_when_project_tag_given(self, moto_aws):
         s3 = boto3.client("s3", region_name="eu-west-2")

@@ -23,7 +23,8 @@
       "IAM_CONSOLE_LOGIN_ENABLED": "21(2)(i) reused a third time. A console login profile on what should be a programmatic-only identity is an access-control-policy gap in the same family as root's active keys — an access method that exists without a legitimate asset-management justification.",
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "21(2)(i) reused a fourth time. Two live credential assets where one would do is the same asset-management gap as an unrotated key, just a duplication of it instead of an age problem.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "21(2)(b) reused from S3_LOGGING_DISABLED, and a stronger case than that one: CloudTrail is the account-wide audit log incident handling depends on, not just one bucket's access logs. If anything this is the cleanest possible match for this sub-paragraph in the whole file.",
-      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Same two references as S3_PUBLIC_ACCESS_BLOCK_DISABLED, reused deliberately rather than independently reasoned: this is the same control at account scope instead of bucket scope, not a different finding that happens to look similar."
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Same two references as S3_PUBLIC_ACCESS_BLOCK_DISABLED, reused deliberately rather than independently reasoned: this is the same control at account scope instead of bucket scope, not a different finding that happens to look similar.",
+      "RESOURCE_MISSING_TAGS": "21(2)(i), reused a fifth time. An untagged resource is the most literal possible asset-management gap this sub-paragraph names -- it can't be tracked, attributed, or scoped into a project's asset inventory at all."
     }
   },
 
@@ -178,6 +179,14 @@
       "framework": "nis2",
       "reference_id": "Article 21(2)(f)",
       "label": "Policies and procedures to assess the effectiveness of cybersecurity risk-management measures"
+    }
+  ],
+
+  "RESOURCE_MISSING_TAGS": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(i)",
+      "label": "Access control policies and asset management"
     }
   ]
 }

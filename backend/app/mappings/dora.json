@@ -23,7 +23,8 @@
       "IAM_CONSOLE_LOGIN_ENABLED": "Article 9(4)(c) reused a second time. A console login profile on a programmatic-only identity is an access method beyond what that identity's function requires — the same 'necessary functions only' test the access-key-age finding fails, applied to a different kind of excess access.",
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "Article 9(4)(c) reused a third time. A second simultaneously-active credential is a second standing access grant beyond what's necessary at any given moment outside an active rotation.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "Article 10(3), reused from S3_LOGGING_DISABLED as the account-wide instance — CloudTrail is the primary mechanism for monitoring user activity and ICT anomalies across the whole account.",
-      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Article 9(4)(c), reused — the account-wide instance of the same access-limitation requirement as the bucket-level finding."
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Article 9(4)(c), reused — the account-wide instance of the same access-limitation requirement as the bucket-level finding.",
+      "RESOURCE_MISSING_TAGS": "Article 8(1), reused from KMS_KEY_MISSING_ALIAS — the same ICT asset identification duty, generalised across every taggable resource type instead of just KMS keys."
     }
   },
 
@@ -97,5 +98,9 @@
 
   "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
     {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "RESOURCE_MISSING_TAGS": [
+    {"framework": "dora", "reference_id": "Article 8(1)", "label": "Identification and classification of ICT assets"}
   ]
 }

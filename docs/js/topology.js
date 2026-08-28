@@ -748,6 +748,7 @@ function isBadProperty(key, value) {
     if (key === "cloudtrail_logging_enabled" && value === false) return true;
     if (key === "account_s3_block_public_access_enabled" && value === false) return true;
     if (key === "publicly_accessible" && value === true) return true;
+    if (key === "has_any_tags" && value === false) return true;
     return false;
 }
 

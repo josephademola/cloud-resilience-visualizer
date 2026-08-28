@@ -23,7 +23,8 @@
       "IAM_CONSOLE_LOGIN_ENABLED": "User Access Control, sixth use. Restricting each identity to only the access methods it actually needs is squarely this theme's territory — a service account with an unneeded console login profile has more access than its role requires.",
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "User Access Control, seventh use. Minimising standing credentials to what's actually needed is the same expectation this theme already covers for stale and weak credentials, applied to duplicate live ones instead.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "Secure Configuration, reused for the same reason as S3_LOGGING_DISABLED: Cyber Essentials has no monitoring/logging theme in its five-theme baseline, so this is the nearest fit rather than a precise one.",
-      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Secure Configuration, same reference as S3_PUBLIC_ACCESS_BLOCK_DISABLED. Same control, wider scope."
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Secure Configuration, same reference as S3_PUBLIC_ACCESS_BLOCK_DISABLED. Same control, wider scope.",
+      "RESOURCE_MISSING_TAGS": "Secure Configuration, reused. Same reasoning as KMS_KEY_MISSING_ALIAS: Cyber Essentials has no asset-inventory-specific theme, and Secure Configuration is the closest available catch-all."
     }
   },
 
@@ -97,6 +98,10 @@
   ],
 
   "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
+  ],
+
+  "RESOURCE_MISSING_TAGS": [
     {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ]
 }

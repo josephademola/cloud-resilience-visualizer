@@ -5,10 +5,16 @@ app.aws_normalizer (Phase 9a Feature 1).
 get_tagged_resource_arns() reads the Resource Groups Tagging API
 shape and returns matching ARNs; filter_topology_by_tag() applies
 that set to a topology, keeping account-wide and not-yet-taggable
-node types regardless of scope.
+node types regardless of scope. _apply_tag_presence() sets
+has_any_tags on every taggable node in place, powering
+tagging_scanner.py's RESOURCE_MISSING_TAGS finding.
 """
 
-from app.aws_normalizer import get_tagged_resource_arns, filter_topology_by_tag
+from app.aws_normalizer import (
+    get_tagged_resource_arns,
+    filter_topology_by_tag,
+    _apply_tag_presence,
+)
 
 
 # --- get_tagged_resource_arns ---------------------------------------------
@@ -170,3 +176,84 @@ class TestFilterTopologyByTag:
         original_count = len(topology["nodes"])
         filter_topology_by_tag(topology, {"arn:aws:s3:::uploads"})
         assert len(topology["nodes"]) == original_count
+
+
+# --- _apply_tag_presence ---------------------------------------------------
+class TestApplyTagPresence:
+
+    def _node(self, node_id, node_type, arn):
+        return {
+            "id": node_id,
+            "type": node_type,
+            "properties": {"arn": arn},
+        }
+
+    def test_sets_true_when_resource_appears_with_tags(self):
+        nodes = [self._node("uploads", "s3_bucket", "arn:aws:s3:::uploads")]
+        aws_data = {
+            "resourcegroupstaggingapi": {
+                "get_resources": {
+                    "ResourceTagMappingList": [
+                        {
+                            "ResourceARN": "arn:aws:s3:::uploads",
+                            "Tags": [{"Key": "Environment", "Value": "production"}],
+                        },
+                    ]
+                }
+            }
+        }
+        _apply_tag_presence(nodes, aws_data)
+        assert nodes[0]["properties"]["has_any_tags"] is True
+
+    def test_sets_false_when_resource_arn_absent_from_response(self):
+        # This is the real-world case a truly untagged resource
+        # produces: it never appears in get_resources() at all.
+        nodes = [self._node("orphan-bucket", "s3_bucket", "arn:aws:s3:::orphan-bucket")]
+        aws_data = {
+            "resourcegroupstaggingapi": {
+                "get_resources": {
+                    "ResourceTagMappingList": [
+                        {
+                            "ResourceARN": "arn:aws:s3:::some-other-bucket",
+                            "Tags": [{"Key": "Environment", "Value": "production"}],
+                        },
+                    ]
+                }
+            }
+        }
+        _apply_tag_presence(nodes, aws_data)
+        assert nodes[0]["properties"]["has_any_tags"] is False
+
+    def test_sets_false_when_resourcegroupstaggingapi_key_entirely_missing(self):
+        nodes = [self._node("uploads", "s3_bucket", "arn:aws:s3:::uploads")]
+        _apply_tag_presence(nodes, {})
+        assert nodes[0]["properties"]["has_any_tags"] is False
+
+    def test_ignores_non_taggable_node_types(self):
+        nodes = [{"id": "vpc-1", "type": "vpc", "properties": {}}]
+        _apply_tag_presence(nodes, {})
+        assert "has_any_tags" not in nodes[0]["properties"]
+
+    def test_checks_all_three_taggable_types_independently(self):
+        nodes = [
+            self._node("bucket-1", "s3_bucket", "arn:aws:s3:::bucket-1"),
+            self._node("key-1", "kms_key", "arn:aws:kms:eu-west-2:123456789012:key/key-1"),
+            self._node("user-1", "iam_user", "arn:aws:iam::123456789012:user/user-1"),
+        ]
+        aws_data = {
+            "resourcegroupstaggingapi": {
+                "get_resources": {
+                    "ResourceTagMappingList": [
+                        {
+                            "ResourceARN": "arn:aws:s3:::bucket-1",
+                            "Tags": [{"Key": "Environment", "Value": "production"}],
+                        },
+                        # key-1 and user-1 deliberately absent -- untagged
+                    ]
+                }
+            }
+        }
+        _apply_tag_presence(nodes, aws_data)
+        assert nodes[0]["properties"]["has_any_tags"] is True
+        assert nodes[1]["properties"]["has_any_tags"] is False
+        assert nodes[2]["properties"]["has_any_tags"] is False

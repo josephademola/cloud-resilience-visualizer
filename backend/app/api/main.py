@@ -54,6 +54,7 @@ from app.scanners.s3_scanner import scan_s3_buckets
 from app.scanners.kms_scanner import scan_kms_keys
 from app.scanners.iam_scanner import scan_iam
 from app.scanners.account_scanner import scan_account
+from app.scanners.tagging_scanner import scan_tagging
 from app.compliance import build_compliance_view
 from fastapi.responses import Response
 
@@ -211,6 +212,7 @@ def _scan_all(topology: dict, project_tag: str | None = None) -> list[Finding]:
         + scan_kms_keys(topology)
         + scan_iam(topology)
         + scan_account(topology)
+        + scan_tagging(topology)
     )
 
     if _is_confidential_scope(project_tag):

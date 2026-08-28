@@ -53,6 +53,12 @@ logger = logging.getLogger(__name__)
 # signatures self-documenting. Reading `AwsData` in a parameter list
 # is clearer than the raw `dict[str, Any]`.
 AwsData = dict[str, Any]
+
+# The taggable, currently-scanned resource types (Phase 9a Feature 1).
+# Shared by filter_topology_by_tag() and _apply_tag_presence() so both
+# agree on exactly which node types carry an 'arn' property that maps
+# onto the Resource Groups Tagging API.
+TAGGABLE_NODE_TYPES = frozenset({"s3_bucket", "kms_key", "iam_user"})
 TopologyNode = dict[str, Any]
 SecurityGroup = dict[str, Any]
 
@@ -862,6 +868,8 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
     nodes.extend(_normalize_iam_users(iam_data))
     nodes.extend(_normalize_account(iam_data, cloudtrail_data, s3control_data))
 
+    _apply_tag_presence(nodes, aws_data)
+
     security_groups = _normalize_security_groups(ec2_data)
 
     return {
@@ -874,6 +882,43 @@ def normalize(aws_data: AwsData) -> dict[str, Any]:
         "nodes": nodes,
         "security_groups": security_groups,
     }
+
+
+def _apply_tag_presence(nodes: list[TopologyNode], aws_data: AwsData) -> None:
+    """
+    Set has_any_tags on every taggable node, in place, from the
+    Resource Groups Tagging API's get_resources() response.
+
+    A resource with zero tags never appears in get_resources() at
+    all (that's how the API behaves, not an artifact of this
+    codebase) -- so "this node's ARN isn't in the response" IS "this
+    resource has no tags", not missing/unknown data. That's why this
+    is a plain membership check rather than a fail-open/fail-closed
+    judgment call like the rest of this module's properties.
+
+    This runs unconditionally (every scan, scoped or not) because the
+    tag-presence finding (scanners/tagging_scanner.py) is specifically
+    aimed at UNSCOPED scans: a scoped scan already filters every
+    taggable node down to ones that matched the requested tag via
+    filter_topology_by_tag(), so they'd trivially all show
+    has_any_tags=True anyway. Only an unscoped scan sees the resources
+    this check actually exists to catch.
+    """
+    tagged_arns = {
+        mapping["ResourceARN"]
+        for mapping in (
+            aws_data.get("resourcegroupstaggingapi", {})
+            .get("get_resources", {})
+            .get("ResourceTagMappingList", [])
+        )
+        if mapping.get("ResourceARN") and mapping.get("Tags")
+    }
+
+    for node in nodes:
+        if node.get("type") not in TAGGABLE_NODE_TYPES:
+            continue
+        arn = node.get("properties", {}).get("arn")
+        node["properties"]["has_any_tags"] = arn in tagged_arns
 
 
 def get_tagged_resource_arns(
@@ -932,11 +977,9 @@ def filter_topology_by_tag(
     scanned resource types — are kept only if their 'arn' property is
     in tagged_arns.
     """
-    taggable_types = {"s3_bucket", "kms_key", "iam_user"}
-
     filtered_nodes = [
         node for node in topology.get("nodes", [])
-        if node.get("type") not in taggable_types
+        if node.get("type") not in TAGGABLE_NODE_TYPES
         or node.get("properties", {}).get("arn") in tagged_arns
     ]
 

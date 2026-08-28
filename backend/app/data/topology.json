@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-28T03:18:13.244592+00:00",
+    "generated_at": "2026-08-28T03:59:19.857221+00:00",
     "node_count": 12,
     "security_group_count": 3
   },
@@ -114,7 +114,8 @@
         "logging_enabled": true,
         "lifecycle_configured": true,
         "tls_enforced": true,
-        "arn": "arn:aws:s3:::cloudres-fintech-logs"
+        "arn": "arn:aws:s3:::cloudres-fintech-logs",
+        "has_any_tags": true
       }
     },
     {
@@ -131,7 +132,8 @@
         "logging_enabled": false,
         "lifecycle_configured": false,
         "tls_enforced": false,
-        "arn": "arn:aws:s3:::cloudres-fintech-uploads"
+        "arn": "arn:aws:s3:::cloudres-fintech-uploads",
+        "has_any_tags": true
       }
     },
     {
@@ -143,7 +145,8 @@
         "key_state": "PendingDeletion",
         "key_rotation_enabled": false,
         "arn": "arn:aws:kms:eu-west-2:123456789012:key/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
-        "has_alias": true
+        "has_alias": true,
+        "has_any_tags": true
       }
     },
     {
@@ -160,7 +163,8 @@
           }
         ],
         "arn": "arn:aws:iam::123456789012:user/cloudres-fintech-legacy-svc-account",
-        "has_console_login": false
+        "has_console_login": false,
+        "has_any_tags": true
       }
     },
     {

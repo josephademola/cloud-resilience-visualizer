@@ -121,6 +121,13 @@
     "remediation": "Confirm which key is actually in use, then deactivate and delete the other one: `aws iam list-access-keys --user-name <name>` to see both, check recent usage with `aws iam get-access-key-last-used --access-key-id <id>` for each, then `aws iam update-access-key --user-name <name> --access-key-id <old-id> --status Inactive` followed by `aws iam delete-access-key --user-name <name> --access-key-id <old-id>` once you're confident nothing still depends on it."
   },
 
+  "RESOURCE_MISSING_TAGS": {
+    "title": "Resource has no tags",
+    "severity": "low",
+    "description": "This resource has no tags at all. Tags are how resources get attributed to a project, an owner, or a cost centre, and how a tag-based security scan finds what belongs to which project in the first place. An untagged resource is invisible to any scan scoped to a specific project's tag -- not flagged, not skipped, genuinely absent from the results, indistinguishable from a resource that was never created. That's a real blind spot: something could sit here unmonitored indefinitely simply because nobody tagged it.",
+    "remediation": "Add at minimum a Project tag identifying which project or team owns this resource. In the AWS Console: select the resource -> Tags tab -> Manage tags -> Add tag. From the CLI, the exact command depends on the resource type, e.g. `aws s3api put-bucket-tagging`, `aws kms tag-resource`, or `aws iam tag-user`. If this resource genuinely belongs to no active project, consider whether it should still exist at all."
+  },
+
   "ACCOUNT_CLOUDTRAIL_DISABLED": {
     "title": "No active CloudTrail trail logging the account",
     "severity": "critical",

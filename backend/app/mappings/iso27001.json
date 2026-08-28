@@ -23,7 +23,8 @@
       "IAM_CONSOLE_LOGIN_ENABLED": "A.5.18 (Access Rights) reused from the access-key-age finding rather than A.8.5 (Secure Authentication) — the question here isn't whether the authentication mechanism is strong, it's whether this identity should have been provisioned a console-login access right at all, which is exactly what A.5.18 governs.",
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "A.5.18 (Access Rights) reused again. Two live access rights of the same kind for one identity is exactly the provisioning-and-review question this control covers — has an access grant outlived its purpose.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "A.8.15 (Logging), reused from S3_LOGGING_DISABLED as the account-wide instance. A.8.16 (Monitoring Activities) added as secondary, since CloudTrail is the data source account-wide monitoring depends on.",
-      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "A.8.9 (Configuration Management), reused from S3_PUBLIC_ACCESS_BLOCK_DISABLED as the account-wide instance of the same control."
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "A.8.9 (Configuration Management), reused from S3_PUBLIC_ACCESS_BLOCK_DISABLED as the account-wide instance of the same control.",
+      "RESOURCE_MISSING_TAGS": "A.5.9 (Inventory of Information and Other Associated Assets), reused from KMS_KEY_MISSING_ALIAS. The exact same inventory-and-ownership requirement, generalised across every taggable resource type instead of just KMS keys."
     }
   },
 
@@ -98,5 +99,9 @@
 
   "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
     {"framework": "iso27001", "reference_id": "A.8.9", "label": "Configuration Management"}
+  ],
+
+  "RESOURCE_MISSING_TAGS": [
+    {"framework": "iso27001", "reference_id": "A.5.9", "label": "Inventory of Information and Other Associated Assets"}
   ]
 }

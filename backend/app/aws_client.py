@@ -55,13 +55,17 @@ def fetch_aws_data(project_tag: str | None = None) -> dict[str, Any]:
 
     Args:
         project_tag: Optional "Key=Value" tag filter (Phase 9a
-            Feature 1, e.g. "Project=<tag-value>"). When given, the
-            Resource Groups Tagging API is queried for matching
-            resources and the result is included under
-            "resourcegroupstaggingapi" for aws_normalizer.
-            filter_topology_by_tag() to use. When omitted, that key
-            is left out entirely — no reason to make the extra API
-            call on every unscoped scan.
+            Feature 1, e.g. "Project=<tag-value>"). Used by
+            aws_normalizer.filter_topology_by_tag() to scope the
+            returned topology when given.
+
+    The Resource Groups Tagging API is always queried now (was
+    previously gated on project_tag being given, to skip the extra
+    API call on unscoped scans) -- aws_normalizer._apply_tag_presence
+    needs it on EVERY scan, not just scoped ones, to power the
+    RESOURCE_MISSING_TAGS finding (tagging_scanner.py), which is
+    specifically aimed at unscoped scans. See docs/design_decisions.md
+    #12.
     """
     ec2 = boto3.client("ec2")
     rds = boto3.client("rds")
@@ -118,16 +122,22 @@ def fetch_aws_data(project_tag: str | None = None) -> dict[str, Any]:
         },
     }
 
+    # Always fetched now (see docstring above): _apply_tag_presence
+    # needs the full picture of what's tagged and what isn't on every
+    # scan, not just scoped ones. When project_tag is given, still
+    # narrow the API-side filter to that tag for efficiency -- the
+    # untagged resources this call would otherwise also return aren't
+    # relevant to a scoped scan anyway (filter_topology_by_tag drops
+    # them, and _apply_tag_presence naturally reports them as
+    # untagged either way since their ARN just won't appear).
+    tagging = boto3.client("resourcegroupstaggingapi")
+    tag_filters = {}
     if project_tag:
         tag_key, _, tag_value = project_tag.partition("=")
-        tagging = boto3.client("resourcegroupstaggingapi")
-        data["resourcegroupstaggingapi"] = {
-            "get_resources": _strip_metadata(
-                tagging.get_resources(
-                    TagFilters=[{"Key": tag_key, "Values": [tag_value]}]
-                )
-            ),
-        }
+        tag_filters = {"TagFilters": [{"Key": tag_key, "Values": [tag_value]}]}
+    data["resourcegroupstaggingapi"] = {
+        "get_resources": _strip_metadata(tagging.get_resources(**tag_filters)),
+    }
 
     return data
 
