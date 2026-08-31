@@ -27,7 +27,9 @@
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "B2.a, seventh use. Two simultaneously live credentials for the same identity is a question of how many valid ways this identity can authenticate at once — squarely inside this outcome's territory.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "C1.a reused from S3_LOGGING_DISABLED, and the stronger case: CloudTrail is the account-wide monitoring capability C1.a describes, not one bucket's slice of it.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "B4.a, the same reference S3_PUBLIC_ACCESS_BLOCK_DISABLED uses. Same control, account scope instead of bucket scope — the mapping doesn't change because the blast radius does.",
-      "RESOURCE_MISSING_TAGS": "A3.a (Asset Management), reused from KMS_KEY_MISSING_ALIAS. An untagged resource is exactly the 'everything required... is determined and understood' gap this outcome names, generalised across every taggable resource type instead of just KMS keys."
+      "RESOURCE_MISSING_TAGS": "A3.a (Asset Management), reused from KMS_KEY_MISSING_ALIAS. An untagged resource is exactly the 'everything required... is determined and understood' gap this outcome names, generalised across every taggable resource type instead of just KMS keys.",
+      "IAM_USER_ADMIN_POLICY_ATTACHED": "B2.a, eighth use. Whether an identity has been authorised for full administrative control of the account is the most direct possible instance of this outcome's 'authorisation' language.",
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "B2.a, reused. An unconditioned Action:*/Resource:* grant is the same authorisation failure as IAM_USER_ADMIN_POLICY_ATTACHED reached by a different mechanism -- the outcome doesn't distinguish how excessive authorisation was granted, only that it was."
     }
   },
 
@@ -105,6 +107,14 @@
   ],
 
   "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": [
+    {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
+  ],
+
+  "IAM_USER_ADMIN_POLICY_ATTACHED": [
+    {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
+  ],
+
+  "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": [
     {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
   ],
 

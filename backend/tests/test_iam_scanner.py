@@ -18,6 +18,8 @@ from app.scanners.iam_scanner import (
     _check_access_key_age,
     _check_console_login_profile,
     _check_multiple_active_keys,
+    _check_admin_policy_attached,
+    _check_wildcard_policy_grant,
     scan_iam,
 )
 
@@ -301,6 +303,68 @@ class TestCheckMultipleActiveKeys:
         assert finding.severity == Severity.LOW
         assert finding.resource_id == "app-service-account"
         assert finding.title == "IAM user has more than one active access key"
+        assert len(finding.framework_references) > 0
+
+
+# --- _check_admin_policy_attached ---------------------------------------
+class TestCheckAdminPolicyAttached:
+
+    def test_returns_finding_when_admin_policy_attached(self):
+        user = _iam_user(has_admin_policy_attached=True)
+        finding = _check_admin_policy_attached(user)
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_USER_ADMIN_POLICY_ATTACHED"
+
+    def test_returns_none_when_no_admin_policy_attached(self):
+        user = _iam_user(has_admin_policy_attached=False)
+        assert _check_admin_policy_attached(user) is None
+
+    def test_returns_none_when_property_missing(self):
+        # Detection signal: missing data means we don't know, and we
+        # don't invent an admin grant out of that absence, same
+        # semantic as has_console_login.
+        assert _check_admin_policy_attached(_iam_user()) is None
+
+    def test_finding_has_critical_severity_and_correct_shape(self):
+        user = _iam_user("over-privileged-svc", has_admin_policy_attached=True)
+        finding = _check_admin_policy_attached(user)
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.CRITICAL
+        assert finding.resource_id == "over-privileged-svc"
+        assert finding.title == "IAM user has AdministratorAccess attached directly"
+        assert len(finding.framework_references) > 0
+
+
+# --- _check_wildcard_policy_grant ----------------------------------------
+class TestCheckWildcardPolicyGrant:
+
+    def test_returns_finding_when_wildcard_grant_present(self):
+        user = _iam_user(has_wildcard_action_resource_policy=True)
+        finding = _check_wildcard_policy_grant(user)
+        assert finding is not None
+        assert finding.finding_type_id == "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION"
+
+    def test_returns_none_when_no_wildcard_grant(self):
+        user = _iam_user(has_wildcard_action_resource_policy=False)
+        assert _check_wildcard_policy_grant(user) is None
+
+    def test_returns_none_when_property_missing(self):
+        # Detection signal: unparseable/absent policy data means we
+        # don't know, not that a wildcard exists.
+        assert _check_wildcard_policy_grant(_iam_user()) is None
+
+    def test_finding_has_critical_severity_and_correct_shape(self):
+        user = _iam_user(
+            "custom-policy-svc", has_wildcard_action_resource_policy=True
+        )
+        finding = _check_wildcard_policy_grant(user)
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.CRITICAL
+        assert finding.resource_id == "custom-policy-svc"
+        assert (
+            finding.title
+            == "IAM user policy grants unconditioned Action:*/Resource:*"
+        )
         assert len(finding.framework_references) > 0
 
 

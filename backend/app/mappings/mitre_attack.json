@@ -27,7 +27,9 @@
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "T1078.004 a fifth time, under Persistence like the access-key-age finding. Two simultaneously valid credentials for one identity double the number of standing footholds an attacker who compromises either one gets to keep using.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "T1562.008 (Disable or Modify Cloud Logs), reused from S3_LOGGING_DISABLED — but this time as the clean fit that mapping was documented as lacking. S3_LOGGING_DISABLED's audit note called the technique imperfect because it describes an attacker actively disabling logs, not logs having never existed. Here the two collapse into the same thing: CloudTrail not logging, whether because it was disabled or never configured, is exactly what this technique describes at the account level. The technique this file's PAB correction and S3 logging note were both implicitly reaching for.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "T1580, the same corrected mapping S3_PUBLIC_ACCESS_BLOCK_DISABLED uses (originally the wrong T1078.004, fixed to T1580). Same reasoning at account scope: an attacker in reconnaissance can discover public buckets across the whole account more easily when this safety net is off, not just on one bucket.",
-      "RESOURCE_MISSING_TAGS": "Weakest mapping in this file, alongside KMS_KEY_MISSING_ALIAS, flagged honestly rather than forced. Missing tags is a defender-side asset-visibility gap, not an adversary technique -- ATT&CK describes what attackers do, and there's no real technique for 'the defender didn't label a resource'. Mapped to T1580 (Cloud Infrastructure Discovery) only because an attacker enumerating account resources via the same tagging/discovery APIs would see an untagged resource same as anyone else -- a loose association, not a genuine causal one."
+      "RESOURCE_MISSING_TAGS": "Weakest mapping in this file, alongside KMS_KEY_MISSING_ALIAS, flagged honestly rather than forced. Missing tags is a defender-side asset-visibility gap, not an adversary technique -- ATT&CK describes what attackers do, and there's no real technique for 'the defender didn't label a resource'. Mapped to T1580 (Cloud Infrastructure Discovery) only because an attacker enumerating account resources via the same tagging/discovery APIs would see an untagged resource same as anyone else -- a loose association, not a genuine causal one.",
+      "IAM_USER_ADMIN_POLICY_ATTACHED": "T1078.004, but under Privilege Escalation this time -- a third distinct tactic for this technique in this file, alongside Initial Access (root keys, console login) and Persistence (key age, multiple keys). A valid account that already holds AdministratorAccess IS the escalated state an attacker who compromises it inherits, not just a foothold or a way in.",
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "T1078.004 again, same Privilege Escalation tactic as IAM_USER_ADMIN_POLICY_ATTACHED. An unconditioned Action:*/Resource:* grant produces the identical escalated state by a different mechanism, so it earns the same technique and tactic rather than an independently reasoned one."
     }
   },
 
@@ -105,6 +107,14 @@
 
   "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": [
     {"framework": "mitre_attack", "reference_id": "T1078.004", "label": "Valid Accounts: Cloud Accounts (Persistence tactic)"}
+  ],
+
+  "IAM_USER_ADMIN_POLICY_ATTACHED": [
+    {"framework": "mitre_attack", "reference_id": "T1078.004", "label": "Valid Accounts: Cloud Accounts (Privilege Escalation tactic)"}
+  ],
+
+  "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": [
+    {"framework": "mitre_attack", "reference_id": "T1078.004", "label": "Valid Accounts: Cloud Accounts (Privilege Escalation tactic)"}
   ],
 
   "ACCOUNT_CLOUDTRAIL_DISABLED": [

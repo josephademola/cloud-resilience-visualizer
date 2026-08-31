@@ -237,6 +237,70 @@ class TestFetchAwsData:
         assert "_error" not in login_profile
         assert login_profile["LoginProfile"]["UserName"] == "test-user-with-console-login"
 
+    def test_user_details_has_empty_policy_data_when_no_policies_attached(
+        self, moto_aws
+    ):
+        iam = boto3.client("iam", region_name="eu-west-2")
+        iam.create_user(UserName="test-user-no-policies")
+
+        data = fetch_aws_data()
+        details = data["iam"]["user_details"]["test-user-no-policies"]
+        assert details["list_attached_user_policies"]["AttachedPolicies"] == []
+        assert details["attached_policy_documents"] == {}
+        assert details["list_user_policies"]["PolicyNames"] == []
+        assert details["inline_policy_documents"] == {}
+
+    def test_user_details_resolves_attached_managed_policy_document(
+        self, moto_aws, monkeypatch
+    ):
+        # moto gates its full AWS-managed-policy dataset (including
+        # AdministratorAccess) behind this env var by default, since
+        # loading it is slow -- must be set before the client attaches
+        # the policy, not just before fetch_aws_data() reads it back.
+        monkeypatch.setenv("MOTO_IAM_LOAD_MANAGED_POLICIES", "true")
+        iam = boto3.client("iam", region_name="eu-west-2")
+        iam.create_user(UserName="test-user-with-admin")
+        admin_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+        iam.attach_user_policy(UserName="test-user-with-admin", PolicyArn=admin_arn)
+
+        data = fetch_aws_data()
+        details = data["iam"]["user_details"]["test-user-with-admin"]
+        attached_arns = {
+            p["PolicyArn"]
+            for p in details["list_attached_user_policies"]["AttachedPolicies"]
+        }
+        assert admin_arn in attached_arns
+
+        document_response = details["attached_policy_documents"][admin_arn]
+        assert "_error" not in document_response
+        document = document_response["PolicyVersion"]["Document"]
+        statements = document["Statement"]
+        statement = statements[0] if isinstance(statements, list) else statements
+        assert statement["Effect"] == "Allow"
+
+    def test_user_details_resolves_inline_policy_document(self, moto_aws):
+        iam = boto3.client("iam", region_name="eu-west-2")
+        iam.create_user(UserName="test-user-with-inline-policy")
+        policy_document = json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [
+                {"Effect": "Allow", "Action": "*", "Resource": "*"}
+            ],
+        })
+        iam.put_user_policy(
+            UserName="test-user-with-inline-policy",
+            PolicyName="wildcard-inline",
+            PolicyDocument=policy_document,
+        )
+
+        data = fetch_aws_data()
+        details = data["iam"]["user_details"]["test-user-with-inline-policy"]
+        assert "wildcard-inline" in details["list_user_policies"]["PolicyNames"]
+
+        document_response = details["inline_policy_documents"]["wildcard-inline"]
+        assert "_error" not in document_response
+        assert document_response["PolicyDocument"]["Statement"][0]["Action"] == "*"
+
     def test_cloudtrail_section_has_describe_trails_and_trail_status(self, moto_aws):
         data = fetch_aws_data()
         assert "describe_trails" in data["cloudtrail"]

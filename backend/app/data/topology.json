@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-28T05:26:06.638344+00:00",
+    "generated_at": "2026-08-31T22:34:31.262052+00:00",
     "node_count": 12,
     "security_group_count": 3
   },
@@ -171,6 +171,8 @@
         ],
         "arn": "arn:aws:iam::123456789012:user/cloudres-fintech-legacy-svc-account",
         "has_console_login": false,
+        "has_admin_policy_attached": false,
+        "has_wildcard_action_resource_policy": false,
         "has_any_tags": true
       }
     },

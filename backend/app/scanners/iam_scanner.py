@@ -11,6 +11,8 @@ Current rules:
     - Active access key older than 90 days     -> MEDIUM
     - User has a console login profile         -> MEDIUM
     - User has more than one active access key -> LOW
+    - User has AdministratorAccess attached    -> CRITICAL
+    - User's policies grant Action:*/Resource:* -> CRITICAL
 
 Design notes:
 
@@ -77,6 +79,8 @@ def scan_iam(topology: dict[str, Any]) -> list[Finding]:
         _check_access_key_age,
         _check_console_login_profile,
         _check_multiple_active_keys,
+        _check_admin_policy_attached,
+        _check_wildcard_policy_grant,
     )
 
     for node in topology.get("nodes", []):
@@ -208,6 +212,40 @@ def _check_multiple_active_keys(user: dict[str, Any]) -> Finding | None:
     if active_count <= 1:
         return None
     return _build_finding("IAM_MULTIPLE_ACTIVE_ACCESS_KEYS", user["id"])
+
+
+def _check_admin_policy_attached(user: dict[str, Any]) -> Finding | None:
+    """
+    A user should not have the AWS-managed AdministratorAccess policy
+    attached directly. Every user this scanner sees is a service or
+    application identity (see _check_console_login_profile) -- none of
+    them has a legitimate day-to-day need for unrestricted admin
+    rights, the same reasoning IAM_ROOT_ACCESS_KEYS_ACTIVE applies to
+    root itself, just on a non-root identity. Detection signal: missing
+    data means we don't know, and we don't invent an admin grant out of
+    that absence, same semantic as has_console_login.
+    """
+    props = user.get("properties", {})
+    if not props.get("has_admin_policy_attached", False):
+        return None
+    return _build_finding("IAM_USER_ADMIN_POLICY_ATTACHED", user["id"])
+
+
+def _check_wildcard_policy_grant(user: dict[str, Any]) -> Finding | None:
+    """
+    A user's effective policy set should never grant an unconditioned
+    Allow on Action "*" together with Resource "*" -- the broadest
+    possible IAM grant. Distinct from _check_admin_policy_attached: a
+    hand-written or third-party policy can produce the identical
+    "do anything to anything" effect without ever attaching the named
+    AdministratorAccess policy, so this rule catches what that one
+    can't. Detection signal: unparseable/absent policy data means we
+    don't know, not that a wildcard exists.
+    """
+    props = user.get("properties", {})
+    if not props.get("has_wildcard_action_resource_policy", False):
+        return None
+    return _build_finding("IAM_USER_POLICY_GRANTS_WILDCARD_ACTION", user["id"])
 
 
 def _parse_iso_datetime(value: Any) -> datetime | None:

@@ -19,6 +19,8 @@ from app.aws_normalizer import (
     _has_enabled_lifecycle_rule,
     _is_tls_enforced,
     _has_overly_broad_key_policy_principal,
+    _has_admin_policy_attached,
+    _has_wildcard_action_resource_policy,
     S3_ALL_USERS_URI,
 )
 
@@ -330,3 +332,166 @@ class TestHasOverlyBroadKeyPolicyPrincipal:
 
     def test_returns_false_when_policy_key_missing(self):
         assert _has_overly_broad_key_policy_principal({}) is False
+
+
+# --- _has_admin_policy_attached ---------------------------------------
+class TestHasAdminPolicyAttached:
+
+    def test_returns_true_when_administrator_access_attached(self):
+        response = {
+            "AttachedPolicies": [
+                {
+                    "PolicyName": "AdministratorAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess",
+                }
+            ]
+        }
+        assert _has_admin_policy_attached(response) is True
+
+    def test_returns_false_when_other_policies_attached(self):
+        response = {
+            "AttachedPolicies": [
+                {
+                    "PolicyName": "ReadOnlyAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/ReadOnlyAccess",
+                }
+            ]
+        }
+        assert _has_admin_policy_attached(response) is False
+
+    def test_returns_false_when_no_policies_attached(self):
+        assert _has_admin_policy_attached({"AttachedPolicies": []}) is False
+
+    def test_returns_false_when_error_marker_present(self):
+        # Detection signal: an errored/missing fetch means we don't
+        # know, and we don't invent an admin grant out of that
+        # absence, same semantic as has_console_login.
+        assert _has_admin_policy_attached({"_error": "NotFoundException"}) is False
+
+    def test_returns_false_when_key_missing_entirely(self):
+        assert _has_admin_policy_attached({}) is False
+
+
+# --- _has_wildcard_action_resource_policy ------------------------------
+class TestHasWildcardActionResourcePolicy:
+
+    def _managed_document(self, statement: dict) -> dict:
+        return {
+            "attached_policy_documents": {
+                "arn:aws:iam::123456789012:policy/custom": {
+                    "PolicyVersion": {
+                        "Document": {"Version": "2012-10-17", "Statement": [statement]}
+                    }
+                }
+            }
+        }
+
+    def _inline_document(self, statement: dict) -> dict:
+        return {
+            "inline_policy_documents": {
+                "custom-inline": {
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [statement],
+                    }
+                }
+            }
+        }
+
+    def test_returns_true_for_wildcard_in_managed_policy(self):
+        statement = {"Effect": "Allow", "Action": "*", "Resource": "*"}
+        assert _has_wildcard_action_resource_policy(
+            self._managed_document(statement)
+        ) is True
+
+    def test_returns_true_for_wildcard_in_inline_policy(self):
+        statement = {"Effect": "Allow", "Action": "*", "Resource": "*"}
+        assert _has_wildcard_action_resource_policy(
+            self._inline_document(statement)
+        ) is True
+
+    def test_returns_true_when_wildcard_is_inside_an_action_list(self):
+        statement = {"Effect": "Allow", "Action": ["s3:GetObject", "*"], "Resource": "*"}
+        assert _has_wildcard_action_resource_policy(
+            self._managed_document(statement)
+        ) is True
+
+    def test_returns_false_when_only_action_is_wildcard(self):
+        statement = {"Effect": "Allow", "Action": "*", "Resource": "arn:aws:s3:::bucket/*"}
+        assert _has_wildcard_action_resource_policy(
+            self._managed_document(statement)
+        ) is False
+
+    def test_returns_false_when_only_resource_is_wildcard(self):
+        statement = {"Effect": "Allow", "Action": "s3:GetObject", "Resource": "*"}
+        assert _has_wildcard_action_resource_policy(
+            self._managed_document(statement)
+        ) is False
+
+    def test_returns_false_when_statement_is_deny(self):
+        statement = {"Effect": "Deny", "Action": "*", "Resource": "*"}
+        assert _has_wildcard_action_resource_policy(
+            self._managed_document(statement)
+        ) is False
+
+    def test_returns_false_when_condition_narrows_wildcard(self):
+        statement = {
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "*",
+            "Condition": {"StringEquals": {"aws:PrincipalOrgID": "o-example"}},
+        }
+        assert _has_wildcard_action_resource_policy(
+            self._managed_document(statement)
+        ) is False
+
+    def test_returns_false_for_least_privilege_policy(self):
+        statement = {
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::bucket/*",
+        }
+        assert _has_wildcard_action_resource_policy(
+            self._managed_document(statement)
+        ) is False
+
+    def test_ignores_errored_managed_policy_document(self):
+        details = {
+            "attached_policy_documents": {
+                "arn:aws:iam::aws:policy/Broken": {"_error": "NotFoundException"}
+            }
+        }
+        assert _has_wildcard_action_resource_policy(details) is False
+
+    def test_ignores_errored_inline_policy_document(self):
+        details = {
+            "inline_policy_documents": {
+                "broken-inline": {"_error": "NoSuchEntityException"}
+            }
+        }
+        assert _has_wildcard_action_resource_policy(details) is False
+
+    def test_returns_false_when_no_policies_at_all(self):
+        assert _has_wildcard_action_resource_policy({}) is False
+
+    def test_handles_single_statement_as_dict_not_list(self):
+        # AWS permits a policy document's Statement to be a single
+        # dict rather than a one-item list when there's only one
+        # statement.
+        details = {
+            "attached_policy_documents": {
+                "arn:aws:iam::123456789012:policy/custom": {
+                    "PolicyVersion": {
+                        "Document": {
+                            "Version": "2012-10-17",
+                            "Statement": {
+                                "Effect": "Allow",
+                                "Action": "*",
+                                "Resource": "*",
+                            },
+                        }
+                    }
+                }
+            }
+        }
+        assert _has_wildcard_action_resource_policy(details) is True

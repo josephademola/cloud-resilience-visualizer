@@ -208,19 +208,23 @@ def _fetch_kms_key_details(kms) -> dict[str, dict]:
 
 def _fetch_iam_user_details(iam) -> dict[str, dict]:
     """
-    For each IAM user in the account, fetch their access key metadata
-    and console login profile. Per-user errors are captured as
-    '_error' markers rather than propagated, same tolerance as
-    per-bucket and per-key detail calls. get_login_profile specifically
-    raises NoSuchEntityException for a user with no console access,
-    which is the expected/good state for a programmatic-only service
-    account -- not a real error, just how boto3 represents "absent".
+    For each IAM user in the account, fetch their access key metadata,
+    console login profile, and full effective policy document set
+    (managed + inline). Per-user errors are captured as '_error'
+    markers rather than propagated, same tolerance as per-bucket and
+    per-key detail calls. get_login_profile specifically raises
+    NoSuchEntityException for a user with no console access, which is
+    the expected/good state for a programmatic-only service account --
+    not a real error, just how boto3 represents "absent".
     """
     users_response = iam.list_users()
     details: dict[str, dict] = {}
 
     for user in users_response.get("Users", []):
         username = user["UserName"]
+        attached = _safe_call(iam.list_attached_user_policies, UserName=username)
+        inline_names = _safe_call(iam.list_user_policies, UserName=username)
+
         details[username] = {
             "list_access_keys": _safe_call(
                 iam.list_access_keys, UserName=username
@@ -228,8 +232,62 @@ def _fetch_iam_user_details(iam) -> dict[str, dict]:
             "get_login_profile": _safe_call(
                 iam.get_login_profile, UserName=username
             ),
+            "list_attached_user_policies": attached,
+            "attached_policy_documents": _fetch_attached_policy_documents(
+                iam, attached
+            ),
+            "list_user_policies": inline_names,
+            "inline_policy_documents": _fetch_inline_policy_documents(
+                iam, username, inline_names
+            ),
         }
     return details
+
+
+def _fetch_attached_policy_documents(iam, attached: dict) -> dict[str, dict]:
+    """
+    For each managed policy attached to a user, resolve its default
+    version's document. Keyed by policy ARN so the normaliser can pair
+    each document back to the policy that granted it.
+
+    A managed policy's document lives behind two calls -- get_policy
+    first, to learn which version is current, then get_policy_version
+    for the document itself -- unlike KMS or S3 bucket policies, which
+    are a single call each. If get_policy fails or returns no default
+    version, the failure itself is stored under the ARN so the
+    normaliser sees the same '_error' marker convention as everywhere
+    else, rather than a silently missing entry.
+    """
+    documents: dict[str, dict] = {}
+    for policy in attached.get("AttachedPolicies", []):
+        arn = policy.get("PolicyArn")
+        if not arn:
+            continue
+        policy_meta = _safe_call(iam.get_policy, PolicyArn=arn)
+        version_id = policy_meta.get("Policy", {}).get("DefaultVersionId")
+        if not version_id:
+            documents[arn] = policy_meta
+            continue
+        documents[arn] = _safe_call(
+            iam.get_policy_version, PolicyArn=arn, VersionId=version_id
+        )
+    return documents
+
+
+def _fetch_inline_policy_documents(
+    iam, username: str, inline_names: dict
+) -> dict[str, dict]:
+    """
+    For each inline policy attached directly to a user, fetch its
+    document. Keyed by policy name -- inline policies have no ARN of
+    their own, unlike managed policies.
+    """
+    documents: dict[str, dict] = {}
+    for name in inline_names.get("PolicyNames", []):
+        documents[name] = _safe_call(
+            iam.get_user_policy, UserName=username, PolicyName=name
+        )
+    return documents
 
 
 def _fetch_trail_statuses(cloudtrail) -> dict[str, dict]:

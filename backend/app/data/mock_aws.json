@@ -489,7 +489,15 @@
         },
         "get_login_profile": {
           "_error": "NoSuchEntityException"
-        }
+        },
+        "list_attached_user_policies": {
+          "AttachedPolicies": []
+        },
+        "attached_policy_documents": {},
+        "list_user_policies": {
+          "PolicyNames": []
+        },
+        "inline_policy_documents": {}
       }
     }
   },

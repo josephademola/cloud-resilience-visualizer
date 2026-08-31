@@ -1068,6 +1068,8 @@ class TestNormalizeIamUsers:
                     ],
                     "arn": "arn:aws:iam::123456789012:user/svc-account",
                     "has_console_login": False,
+                    "has_admin_policy_attached": False,
+                    "has_wildcard_action_resource_policy": False,
                 },
             }
         ]

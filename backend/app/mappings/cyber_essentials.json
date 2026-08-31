@@ -27,7 +27,9 @@
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "User Access Control, seventh use. Minimising standing credentials to what's actually needed is the same expectation this theme already covers for stale and weak credentials, applied to duplicate live ones instead.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "Secure Configuration, reused for the same reason as S3_LOGGING_DISABLED: Cyber Essentials has no monitoring/logging theme in its five-theme baseline, so this is the nearest fit rather than a precise one.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Secure Configuration, same reference as S3_PUBLIC_ACCESS_BLOCK_DISABLED. Same control, wider scope.",
-      "RESOURCE_MISSING_TAGS": "Secure Configuration, reused. Same reasoning as KMS_KEY_MISSING_ALIAS: Cyber Essentials has no asset-inventory-specific theme, and Secure Configuration is the closest available catch-all."
+      "RESOURCE_MISSING_TAGS": "Secure Configuration, reused. Same reasoning as KMS_KEY_MISSING_ALIAS: Cyber Essentials has no asset-inventory-specific theme, and Secure Configuration is the closest available catch-all.",
+      "IAM_USER_ADMIN_POLICY_ATTACHED": "User Access Control, eighth use. Full administrative access on an identity that doesn't need it is the clearest possible failure of this theme's core expectation: access should be limited to what a role actually requires.",
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "User Access Control, reused. Same least-privilege failure as IAM_USER_ADMIN_POLICY_ATTACHED, reached via a custom policy instead of the named AWS-managed one."
     }
   },
 
@@ -105,6 +107,14 @@
   ],
 
   "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": [
+    {"framework": "cyber_essentials", "reference_id": "user_access_control", "label": "User Access Control"}
+  ],
+
+  "IAM_USER_ADMIN_POLICY_ATTACHED": [
+    {"framework": "cyber_essentials", "reference_id": "user_access_control", "label": "User Access Control"}
+  ],
+
+  "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": [
     {"framework": "cyber_essentials", "reference_id": "user_access_control", "label": "User Access Control"}
   ],
 

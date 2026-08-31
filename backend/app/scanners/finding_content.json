@@ -142,6 +142,20 @@
     "remediation": "Confirm which key is actually in use, then deactivate and delete the other one: `aws iam list-access-keys --user-name <name>` to see both, check recent usage with `aws iam get-access-key-last-used --access-key-id <id>` for each, then `aws iam update-access-key --user-name <name> --access-key-id <old-id> --status Inactive` followed by `aws iam delete-access-key --user-name <name> --access-key-id <old-id>` once you're confident nothing still depends on it."
   },
 
+  "IAM_USER_ADMIN_POLICY_ATTACHED": {
+    "title": "IAM user has AdministratorAccess attached directly",
+    "severity": "critical",
+    "description": "This user has the AWS-managed AdministratorAccess policy attached directly, granting unrestricted permission to every action on every resource in the account -- create and delete any resource, change any IAM policy including its own, disable logging, and read or destroy any data. Every IAM user this scanner sees is a service or application identity, not a person, and no automated workload has a legitimate day-to-day need for full account control. A leaked credential for this user is equivalent to a leaked root credential in practice: there is no IAM guardrail left to stop it, because this user IS the guardrail-setter.",
+    "remediation": "Detach AdministratorAccess and replace it with a least-privilege policy scoped to exactly the actions and resources this identity actually needs. In the AWS Console: IAM -> Users -> the user -> Permissions tab -> select AdministratorAccess -> Remove. From the CLI: `aws iam detach-user-policy --user-name <name> --policy-arn arn:aws:iam::aws:policy/AdministratorAccess`. Use IAM Access Analyzer's policy generator against the user's actual CloudTrail activity to build the replacement policy from real usage rather than guessing."
+  },
+
+  "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": {
+    "title": "IAM user policy grants unconditioned Action:*/Resource:*",
+    "severity": "critical",
+    "description": "One of this user's attached or inline policies contains an Allow statement with Action \"*\" and Resource \"*\" and no Condition narrowing it back down -- functionally identical to AdministratorAccess, but via a hand-written or third-party policy that never shows up in a simple 'is AdministratorAccess attached' check. This is the broadest possible IAM grant: this identity can do literally anything to literally anything in the account, including rewriting its own permissions and covering its tracks by disabling logging.",
+    "remediation": "Identify which attached or inline policy contains the wildcard statement (`aws iam list-attached-user-policies` and `aws iam list-user-policies --user-name <name>`, then inspect each document), and replace it with a least-privilege policy scoped to specific actions and resources. If broader access is genuinely required for a narrow purpose, add a Condition (e.g. restricting by resource tag or aws:PrincipalOrgID) rather than leaving the grant unconditioned. Use IAM Access Analyzer's policy generator against the user's actual CloudTrail activity to build the replacement from real usage."
+  },
+
   "RESOURCE_MISSING_TAGS": {
     "title": "Resource has no tags",
     "severity": "low",

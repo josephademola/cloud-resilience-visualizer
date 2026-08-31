@@ -27,7 +27,9 @@
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "A.5.18 (Access Rights) reused again. Two live access rights of the same kind for one identity is exactly the provisioning-and-review question this control covers — has an access grant outlived its purpose.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "A.8.15 (Logging), reused from S3_LOGGING_DISABLED as the account-wide instance. A.8.16 (Monitoring Activities) added as secondary, since CloudTrail is the data source account-wide monitoring depends on.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "A.8.9 (Configuration Management), reused from S3_PUBLIC_ACCESS_BLOCK_DISABLED as the account-wide instance of the same control.",
-      "RESOURCE_MISSING_TAGS": "A.5.9 (Inventory of Information and Other Associated Assets), reused from KMS_KEY_MISSING_ALIAS. The exact same inventory-and-ownership requirement, generalised across every taggable resource type instead of just KMS keys."
+      "RESOURCE_MISSING_TAGS": "A.5.9 (Inventory of Information and Other Associated Assets), reused from KMS_KEY_MISSING_ALIAS. The exact same inventory-and-ownership requirement, generalised across every taggable resource type instead of just KMS keys.",
+      "IAM_USER_ADMIN_POLICY_ATTACHED": "A.8.2 (Privileged Access Rights), reused from IAM_ROOT_ACCESS_KEYS_ACTIVE rather than A.5.18's provisioning-lifecycle framing used for the other IAM findings -- this is about the PRIVILEGE LEVEL itself being excessive, the same category of failure as root holding access keys, just on a non-root identity.",
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "A.8.2 (Privileged Access Rights), same reference as IAM_USER_ADMIN_POLICY_ATTACHED. An unconditioned Action:*/Resource:* grant is the identical privileged-access failure reached through a custom policy instead of the named AWS-managed one."
     }
   },
 
@@ -105,6 +107,14 @@
 
   "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": [
     {"framework": "iso27001", "reference_id": "A.5.18", "label": "Access Rights"}
+  ],
+
+  "IAM_USER_ADMIN_POLICY_ATTACHED": [
+    {"framework": "iso27001", "reference_id": "A.8.2", "label": "Privileged Access Rights"}
+  ],
+
+  "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": [
+    {"framework": "iso27001", "reference_id": "A.8.2", "label": "Privileged Access Rights"}
   ],
 
   "ACCOUNT_CLOUDTRAIL_DISABLED": [

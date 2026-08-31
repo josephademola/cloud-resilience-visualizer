@@ -493,6 +493,12 @@ def _normalize_iam_users(iam_data: dict[str, Any]) -> list[TopologyNode]:
                 "has_console_login": _has_console_login(
                     details.get("get_login_profile", {})
                 ),
+                "has_admin_policy_attached": _has_admin_policy_attached(
+                    details.get("list_attached_user_policies", {})
+                ),
+                "has_wildcard_action_resource_policy": (
+                    _has_wildcard_action_resource_policy(details)
+                ),
             },
         })
 
@@ -522,6 +528,116 @@ def _has_console_login(login_profile_response: dict[str, Any]) -> bool:
     "raises when absent" boto3 call: {"_error": "NoSuchEntityException"}.
     """
     return "LoginProfile" in login_profile_response
+
+
+# AWS's own managed "full admin" policy -- a fixed, account-independent
+# ARN (the "aws:policy/" prefix, not an account-specific one), the same
+# class of stable public identifier as S3_ALL_USERS_URI below, not the
+# kind of engagement-specific value (an alias name, a dedicated KMS key
+# ARN) this codebase otherwise avoids hardcoding.
+_ADMIN_POLICY_ARN = "arn:aws:iam::aws:policy/AdministratorAccess"
+
+
+def _has_admin_policy_attached(attached_policies_response: dict[str, Any]) -> bool:
+    """
+    Return True if the AWS-managed AdministratorAccess policy is
+    attached directly to this user.
+
+    Direct attachment only -- this codebase has no concept of IAM
+    groups yet, so a user who inherits admin rights via group
+    membership isn't visible here. A detection signal, not a
+    protection signal: missing/errored data means we don't know, and
+    we don't invent an admin grant out of that absence, same semantic
+    as has_console_login.
+    """
+    if "_error" in attached_policies_response:
+        return False
+    return any(
+        policy.get("PolicyArn") == _ADMIN_POLICY_ARN
+        for policy in attached_policies_response.get("AttachedPolicies", [])
+    )
+
+
+def _has_wildcard_action_resource_policy(details: dict[str, Any]) -> bool:
+    """
+    Return True if any of this user's managed or inline policies grant
+    an unconditioned Allow on Action "*" together with Resource "*" --
+    the broadest possible IAM grant: this principal can do literally
+    anything to literally anything. Distinct from (and a superset of)
+    _has_admin_policy_attached: a hand-written or third-party policy
+    can produce the identical effect without ever attaching the named
+    AdministratorAccess policy, so both checks are needed. Same
+    "no Condition" carve-out as _has_overly_broad_key_policy_principal:
+    a Condition is a legitimate way to narrow a wildcard back down.
+    """
+    for statement in _iter_effective_policy_statements(details):
+        if statement.get("Effect") != "Allow":
+            continue
+        if statement.get("Condition"):
+            continue
+        if _grants_wildcard(statement, "Action") and _grants_wildcard(
+            statement, "Resource"
+        ):
+            return True
+    return False
+
+
+def _iter_effective_policy_statements(details: dict[str, Any]):
+    """
+    Yield every statement across all of this user's managed and inline
+    policy documents, resolved into one flat sequence -- this user's
+    EFFECTIVE policy statement set, not scoped to any single document.
+
+    Managed and inline policy documents are keyed differently by the
+    two boto3 calls that produce them (get_policy_version wraps its
+    document in "PolicyVersion" -> "Document"; get_user_policy returns
+    "PolicyDocument" directly), so each branch reaches into its own
+    response shape before handing off to the shared _statements_of.
+    """
+    for doc_response in details.get("attached_policy_documents", {}).values():
+        if "_error" in doc_response:
+            continue
+        document = doc_response.get("PolicyVersion", {}).get("Document")
+        yield from _statements_of(document)
+
+    for doc_response in details.get("inline_policy_documents", {}).values():
+        if "_error" in doc_response:
+            continue
+        document = doc_response.get("PolicyDocument")
+        yield from _statements_of(document)
+
+
+def _statements_of(document: Any) -> list[dict]:
+    """
+    Return a policy document's Statement list as a list.
+
+    Real boto3 returns IAM policy documents already parsed into a
+    dict (unlike KMS's get_key_policy or S3's get_bucket_policy, which
+    return a raw JSON-encoded string) -- but this still defensively
+    handles a string just in case, the same tolerance
+    _has_overly_broad_key_policy_principal applies to KMS. Also
+    normalises Statement to a list when it's a single dict, which AWS
+    permits for a policy with exactly one statement.
+    """
+    if isinstance(document, str):
+        try:
+            document = json.loads(document)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    if not isinstance(document, dict):
+        return []
+    statements = document.get("Statement", [])
+    if isinstance(statements, dict):
+        statements = [statements]
+    return statements if isinstance(statements, list) else []
+
+
+def _grants_wildcard(statement: dict[str, Any], key: str) -> bool:
+    """Return True if statement[key] is "*" or a list containing "*"."""
+    value = statement.get(key)
+    if value == "*":
+        return True
+    return isinstance(value, list) and "*" in value
 
 
 def _normalize_kms_keys(kms_data: dict[str, Any]) -> list[TopologyNode]:

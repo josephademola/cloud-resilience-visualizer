@@ -27,7 +27,9 @@
       "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "Article 9(4)(c) reused a third time. A second simultaneously-active credential is a second standing access grant beyond what's necessary at any given moment outside an active rotation.",
       "ACCOUNT_CLOUDTRAIL_DISABLED": "Article 10(3), reused from S3_LOGGING_DISABLED as the account-wide instance — CloudTrail is the primary mechanism for monitoring user activity and ICT anomalies across the whole account.",
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Article 9(4)(c), reused — the account-wide instance of the same access-limitation requirement as the bucket-level finding.",
-      "RESOURCE_MISSING_TAGS": "Article 8(1), reused from KMS_KEY_MISSING_ALIAS — the same ICT asset identification duty, generalised across every taggable resource type instead of just KMS keys."
+      "RESOURCE_MISSING_TAGS": "Article 8(1), reused from KMS_KEY_MISSING_ALIAS — the same ICT asset identification duty, generalised across every taggable resource type instead of just KMS keys.",
+      "IAM_USER_ADMIN_POLICY_ATTACHED": "Article 9(4)(c) reused a fourth time. Full administrative access on an identity is the opposite of restricting access to necessary functions — the clearest possible violation of this article's core requirement.",
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "Article 9(4)(c), reused. Same access-limitation failure as IAM_USER_ADMIN_POLICY_ATTACHED, reached through a custom policy grant instead of the named AWS-managed one."
     }
   },
 
@@ -104,6 +106,14 @@
   ],
 
   "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "IAM_USER_ADMIN_POLICY_ATTACHED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": [
     {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
   ],
 

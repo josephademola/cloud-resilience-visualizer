@@ -746,6 +746,8 @@ function isBadProperty(key, value) {
     if (key === "key_policy_overly_broad" && value === true) return true;
     if (key === "root_access_keys_present" && value === true) return true;
     if (key === "has_console_login" && value === true) return true;
+    if (key === "has_admin_policy_attached" && value === true) return true;
+    if (key === "has_wildcard_action_resource_policy" && value === true) return true;
     if (key === "account_mfa_enabled" && value === false) return true;
     if (key === "password_policy_min_length" && (value === null || value < 14)) return true;
     if (key === "cloudtrail_logging_enabled" && value === false) return true;
