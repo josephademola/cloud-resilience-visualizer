@@ -847,6 +847,165 @@ body {
 }
 
 
+/* ---- Findings table ---- */
+
+.findings-view-content {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-6) 60px;
+}
+
+.findings-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.findings-filter {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.filter-btn {
+    background: transparent;
+    border: 1px solid var(--border-default);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.filter-btn:hover {
+    color: var(--text-secondary);
+    border-color: var(--border-strong);
+}
+
+.filter-btn-active {
+    color: var(--accent-cyan);
+    background: rgba(0, 200, 215, 0.08);
+    border-color: rgba(0, 200, 215, 0.35);
+}
+
+.findings-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-feature-settings: var(--font-feature-data);
+}
+
+.findings-empty {
+    text-align: center;
+    padding: 60px var(--space-6);
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.findings-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    font-size: 13px;
+}
+
+.findings-table th {
+    text-align: left;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-header);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border-default);
+    white-space: nowrap;
+}
+
+.findings-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.findings-table th.sortable:hover {
+    color: var(--text-secondary);
+}
+
+.findings-table th.sort-active {
+    color: var(--accent-cyan);
+}
+
+.findings-table td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+}
+
+.findings-row {
+    cursor: pointer;
+    transition: background 120ms ease;
+}
+
+.findings-row:last-child td {
+    border-bottom: 0;
+}
+
+.findings-row:hover,
+.findings-row:focus-visible {
+    background: rgba(255, 255, 255, 0.03);
+    outline: none;
+}
+
+.findings-resource {
+    color: var(--text-code);
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+
+.findings-title {
+    color: var(--text-primary);
+}
+
+.findings-frameworks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 260px;
+}
+
+.fw-pill {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    white-space: nowrap;
+}
+
+.risk-accepted-pill {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent-cyan);
+    background: rgba(0, 200, 215, 0.10);
+    border: 1px solid rgba(0, 200, 215, 0.30);
+    border-radius: var(--radius-sm);
+    padding: 3px 7px;
+    white-space: nowrap;
+}
+
+
 /* ---- Download bar ---- */
 
 .download-bar {

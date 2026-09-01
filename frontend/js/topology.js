@@ -36,6 +36,26 @@ const API_KEY = "crv-prod-2026-joseph";
 // lives in whoever's browser URL bar is looking at it.
 const PROJECT_TAG = new URLSearchParams(window.location.search).get("project_tag");
 
+// Canonical framework display order and short labels -- the single
+// source for the finding-card framework references below, the
+// compliance score cards (compliance.js), and the findings table
+// (findings.js). Was three near-identical copies before; consolidated
+// here so a new framework only needs adding in one place.
+const FRAMEWORK_ORDER = [
+    "nis2", "ncsc_caf", "mitre_attack", "cyber_essentials",
+    "iso27001", "dora", "cis_aws_foundations", "confidential",
+];
+const FRAMEWORK_LABELS = {
+    nis2: "NIS2",
+    ncsc_caf: "NCSC CAF",
+    mitre_attack: "MITRE ATT&CK",
+    cyber_essentials: "Cyber Essentials",
+    iso27001: "ISO 27001",
+    dora: "DORA",
+    cis_aws_foundations: "CIS AWS",
+    confidential: "Confidential Client",
+};
+
 // Module-level state, populated at init (live) or by loadSnapshotFile
 // (archived report loaded from disk).
 let FINDINGS = [];
@@ -170,16 +190,22 @@ function switchView(viewName) {
 
     document.getElementById("topbar-title").textContent = SECTION_TITLES[viewName] || "";
 
-    // The details panel is only relevant to Assets (the topology map)
-    // — hide it when switching to any other section.
-    if (viewName !== "assets") {
-        hideDetails();
-    }
+    // The details panel is shared by Assets (a topology node) and
+    // Findings (a single finding row) -- start clean on every switch;
+    // each view reopens it explicitly on its own click interaction.
+    hideDetails();
 
     if (viewName === "compliance") {
         // activateComplianceView is defined in compliance.js, loaded
         // after this file. Lazy-fetches compliance data on first switch.
         activateComplianceView();
+    }
+
+    if (viewName === "findings") {
+        // activateFindingsView is defined in findings.js, loaded after
+        // this file. FINDINGS is already loaded at init -- no fetch,
+        // just re-render (cheap, dataset is small).
+        activateFindingsView();
     }
 }
 
@@ -558,9 +584,17 @@ function updateStatus(topology) {
 // ---- Details panel ----
 
 function showDetails(node) {
+    openDetailsPanel(buildDetailsHtml(node));
+}
+
+// Shared by showDetails() (Assets: a topology node) and
+// showFindingDetails() (Findings: a single finding row, findings.js)
+// -- the slide-in panel itself doesn't care what kind of content it's
+// showing, only the two callers know how to build that content.
+function openDetailsPanel(html) {
     const panel   = document.getElementById("details-panel");
     const content = document.getElementById("details-content");
-    content.innerHTML = buildDetailsHtml(node);
+    content.innerHTML = html;
     panel.classList.add("details-open");
     panel.setAttribute("aria-hidden", "false");
 }
@@ -693,24 +727,10 @@ function groupFrameworkRefs(refs) {
 }
 
 function renderFrameworkRefs(groups) {
-    const frameworkOrder = [
-        "nis2", "ncsc_caf", "mitre_attack", "cyber_essentials",
-        "iso27001", "dora", "cis_aws_foundations", "confidential",
-    ];
-    const frameworkLabels = {
-        nis2: "NIS2",
-        ncsc_caf: "NCSC CAF",
-        mitre_attack: "MITRE ATT&CK",
-        cyber_essentials: "Cyber Essentials",
-        iso27001: "ISO 27001",
-        dora: "DORA",
-        cis_aws_foundations: "CIS AWS",
-        confidential: "Confidential Client",
-    };
     const parts = [];
-    for (const key of frameworkOrder) {
+    for (const key of FRAMEWORK_ORDER) {
         if (!groups[key]) continue;
-        const label = frameworkShortLabel(key, frameworkLabels[key]);
+        const label = frameworkShortLabel(key, FRAMEWORK_LABELS[key]);
         parts.push(`<div class="framework-group">`);
         parts.push(`<div class="framework-name">${escapeHtml(label)}</div>`);
         for (const ref of groups[key]) {

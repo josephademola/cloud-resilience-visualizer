@@ -89,26 +89,17 @@ function renderDownloadBar() {
 
 
 function renderScoreCards(frameworks) {
-    // Short names for the score cards. Full names appear in the
-    // detail section headings below.
-    const shortNames = {
-        nis2: "NIS2",
-        ncsc_caf: "NCSC CAF",
-        mitre_attack: "MITRE ATT&amp;CK",
-        cyber_essentials: "Cyber Essentials",
-        iso27001: "ISO 27001",
-        dora: "DORA",
-        cis_aws_foundations: "CIS AWS",
-        confidential: "Confidential Client",
-    };
-
+    // FRAMEWORK_LABELS (defined in topology.js, loaded before this
+    // file) is the shared short-name source -- full names appear in
+    // the detail section headings below.
     const cards = frameworks.map(fw => {
         const numberClass = fw.failing_count > 0
             ? "score-number score-number-failing"
             : "score-number";
+        const shortName = fw.framework_short_name || FRAMEWORK_LABELS[fw.framework] || fw.framework;
         return `
             <div class="score-card ${fw.failing_count > 0 ? 'score-card-failing' : ''}">
-                <div class="score-framework">${fw.framework_short_name ? escapeHtml(fw.framework_short_name) : (shortNames[fw.framework] || escapeHtml(fw.framework))}</div>
+                <div class="score-framework">${escapeHtml(shortName)}</div>
                 <div class="${numberClass}">${fw.failing_count}</div>
                 <div class="score-label">${escapeHtml(fw.unit_label)}</div>
             </div>
