@@ -1232,20 +1232,6 @@ body {
 }
 
 
-/* ---- Dashboard section label ---- */
-
-.dashboard-section-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    color: var(--text-muted);
-    margin-bottom: var(--space-4);
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-
 /* ---- Framework detail sections ---- */
 
 .framework-section {
@@ -1351,4 +1337,130 @@ body {
     color: var(--text-muted);
     padding: var(--space-3) var(--space-4);
     font-style: italic;
+}
+
+
+/* ---- Evidence view ---- */
+
+.evidence-view-content {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6) 60px;
+}
+
+.evidence-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-5);
+}
+
+.evidence-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* renderDownloadBar() (compliance.js) is reused verbatim here, so its
+   own margin-bottom would push the explainer paragraph down further
+   than intended -- this page lays the button out inline with the
+   title instead of as its own row. */
+.evidence-header .download-bar {
+    margin-bottom: 0;
+}
+
+.evidence-explainer {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.evidence-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-2);
+}
+
+.evidence-field-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.evidence-field-value {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.evidence-mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-code);
+    word-break: break-all;
+}
+
+.evidence-severity-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+}
+
+.evidence-hashes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.evidence-hash-row {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+}
+
+.evidence-hash-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.evidence-hash-value {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-code);
+    word-break: break-all;
+}
+
+.evidence-copy-btn {
+    background: transparent;
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    padding: 4px var(--space-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 120ms ease, border-color 120ms ease;
+}
+
+.evidence-copy-btn:hover {
+    color: var(--accent-cyan);
+    border-color: rgba(0, 200, 215, 0.35);
 }

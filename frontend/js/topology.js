@@ -246,6 +246,13 @@ function switchView(viewName) {
         activateDashboardView();
     }
 
+    if (viewName === "evidence") {
+        // activateEvidenceView is defined in evidence.js, loaded
+        // after this file. Own fetch/cache -- /api/evidence isn't
+        // needed by any other view.
+        activateEvidenceView();
+    }
+
     if (viewName === "assets" && MAP) {
         // Leaflet sizes AND fits itself from the container's
         // dimensions at render time. Dashboard is the default landing
