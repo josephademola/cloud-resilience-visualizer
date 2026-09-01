@@ -51,13 +51,13 @@ def _finding(
 # --- build_compliance_view -------------------------------------------
 class TestBuildComplianceView:
 
-    def test_returns_six_frameworks_in_expected_order_by_default(self):
+    def test_returns_seven_frameworks_in_expected_order_by_default(self):
         # Framework order is a display-layer decision that lives in
         # the aggregator. Locking it in prevents accidental drift.
         # NIS2 first (broadest EU coverage). The confidential-client
         # framework is excluded by default (fail-closed) — this test's
-        # six-item list is that omission, proven directly below by
-        # test_returns_all_seven_frameworks_when_confidential_included.
+        # seven-item list is that omission, proven directly below by
+        # test_returns_all_eight_frameworks_when_confidential_included.
         result = build_compliance_view([])
         framework_names = [fw["framework"] for fw in result["frameworks"]]
         assert framework_names == [
@@ -67,9 +67,10 @@ class TestBuildComplianceView:
             "cyber_essentials",
             "iso27001",
             "dora",
+            "cis_aws_foundations",
         ]
 
-    def test_returns_all_seven_frameworks_when_confidential_included(self):
+    def test_returns_all_eight_frameworks_when_confidential_included(self):
         result = build_compliance_view([], include_confidential=True)
         framework_names = [fw["framework"] for fw in result["frameworks"]]
         assert framework_names == [
@@ -79,6 +80,7 @@ class TestBuildComplianceView:
             "cyber_essentials",
             "iso27001",
             "dora",
+            "cis_aws_foundations",
             "confidential",
         ]
 

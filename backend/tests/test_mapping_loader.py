@@ -2,11 +2,11 @@
 Unit tests for app.mappings.loader.
 
 The loader reads every framework JSON file present in app/mappings/
-and provides a single lookup by finding_type_id. Six files are always
-committed to the repo; a seventh (confidential_controls.json) is
+and provides a single lookup by finding_type_id. Seven files are always
+committed to the repo; an eighth (confidential_controls.json) is
 gitignored and only present on machines where it was placed locally
 (see docs/design_decisions.md #11) — the loader tolerates its
-absence, and these tests treat "seven" as a possible bonus, not a
+absence, and these tests treat "eight" as a possible bonus, not a
 guarantee. These tests verify:
 
   - Known finding types return references from every framework that
@@ -85,6 +85,37 @@ class TestGetFrameworkReferences:
         # (also frozen), not a raw dict.
         for ref in refs:
             assert isinstance(ref, FrameworkReference)
+
+
+# --- CIS AWS Foundations Benchmark's deliberate partial coverage -------
+class TestCisAwsFoundationsCoverage:
+    """
+    Unlike the six always-fully-mapped public frameworks,
+    cis_aws_foundations.json deliberately maps only some finding types
+    (see docs/design_decisions.md #13) -- CIS AWS Foundations is a
+    narrow, foundational-only baseline that never attempted to cover
+    S3 encryption/versioning/logging/lifecycle, KMS aliasing/key-policy
+    content, or resource tagging. These tests prove that split holds
+    at the loader layer, not just inside the mapping file's own JSON.
+    """
+
+    def test_cis_present_for_a_genuinely_mapped_finding_type(self):
+        refs = get_framework_references("IAM_ROOT_ACCESS_KEYS_ACTIVE")
+        frameworks_present = {r.framework for r in refs}
+        assert "cis_aws_foundations" in frameworks_present
+
+    def test_cis_absent_for_a_deliberately_unmapped_finding_type(self):
+        # S3_ENCRYPTION_DISABLED has no CIS AWS Foundations equivalent
+        # at all -- see cis_aws_foundations.json's own audit_notes.
+        refs = get_framework_references("S3_ENCRYPTION_DISABLED")
+        frameworks_present = {r.framework for r in refs}
+        assert "cis_aws_foundations" not in frameworks_present
+        # The other six public frameworks still apply -- CIS's absence
+        # doesn't affect anyone else's coverage of this finding.
+        assert {
+            "nis2", "ncsc_caf", "mitre_attack", "cyber_essentials",
+            "iso27001", "dora",
+        }.issubset(frameworks_present)
 
 
 # --- Missing mapping file tolerance ------------------------------------

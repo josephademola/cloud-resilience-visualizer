@@ -42,10 +42,10 @@ from app.models.finding import Finding
 
 
 # Framework display order for the compliance dashboard. NIS2 first
-# (broadest EU coverage), then the other EU/UK published standards,
-# the confidential client baseline last of all — it's an
+# (broadest EU coverage), then the other EU/UK/international published
+# standards, the confidential client baseline last of all — it's an
 # engagement-specific control catalogue, not a published external
-# standard like the other six.
+# standard like the other seven.
 _FRAMEWORK_ORDER = (
     "nis2",
     "ncsc_caf",
@@ -53,6 +53,7 @@ _FRAMEWORK_ORDER = (
     "cyber_essentials",
     "iso27001",
     "dora",
+    "cis_aws_foundations",
     "confidential",
 )
 
@@ -82,6 +83,10 @@ _FRAMEWORK_META = {
     "dora": {
         "full_name": "EU Digital Operational Resilience Act (2022/2554)",
         "unit_label": "articles failing",
+    },
+    "cis_aws_foundations": {
+        "full_name": "CIS AWS Foundations Benchmark v3.0.0",
+        "unit_label": "requirements failing",
     },
     "confidential": {
         "full_name": "Confidential Client Control Baseline",
@@ -127,7 +132,7 @@ def build_compliance_view(
                 "schema_version": "1.0",
                 "total_findings": <int>,
                 "risk_accepted_count": <int>,
-                "framework_count": 7,
+                "framework_count": 8,
             },
             "frameworks": [
                 {

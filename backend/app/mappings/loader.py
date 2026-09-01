@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # The mapping files live alongside this loader in app/mappings/.
 _MAPPINGS_DIR = Path(__file__).parent
 
-# Files loaded (order doesn't matter — references from all seven
+# Files loaded (order doesn't matter — references from all eight
 # get combined into one list per finding-type-id).
 _FRAMEWORK_FILES = (
     "nis2.json",
@@ -44,6 +44,7 @@ _FRAMEWORK_FILES = (
     "confidential_controls.json",
     "iso27001.json",
     "dora.json",
+    "cis_aws_foundations.json",
 )
 
 # Cache populated on first call to _get_mappings().

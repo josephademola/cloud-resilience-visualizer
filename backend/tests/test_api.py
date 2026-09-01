@@ -154,24 +154,67 @@ class TestFindingsEndpoint:
         resource_ids = {f["resource_id"] for f in data["findings"]}
         assert resource_ids == {"cloudres-fintech-uploads", "123456789012"}
 
-    def test_findings_have_framework_references_from_all_six_public_frameworks(self, client):
+    def test_findings_have_framework_references_from_all_six_fully_mapped_frameworks(self, client):
         # ConfidentialClient is excluded from an unscoped scan — see
-        # TestConfidentialFrameworkConfidentiality below.
-        response = client.get("/api/findings")
-        data = response.json()
-        expected = {
+        # TestConfidentialFrameworkConfidentiality below. CIS AWS
+        # Foundations is deliberately NOT one of these six -- unlike
+        # NIS2/NCSC/MITRE/CE/ISO27001/DORA, it genuinely doesn't map
+        # every finding type (see cis_aws_foundations.json's own
+        # audit_notes for which ones and why), so it can't be asserted
+        # present on every finding the way these six can. See
+        # test_cis_aws_foundations_present_only_on_its_mapped_findings
+        # below for CIS's own, different, coverage assertion.
+        required_on_every_finding = {
             "nis2", "ncsc_caf", "mitre_attack", "cyber_essentials",
             "iso27001", "dora",
         }
+        response = client.get("/api/findings")
+        data = response.json()
         for finding in data["findings"]:
             frameworks = {
                 r["framework"] for r in finding["framework_references"]
             }
-            assert frameworks == expected, (
-                f"{finding['finding_type_id']} missing frameworks: "
-                f"{expected - frameworks}"
+            missing = required_on_every_finding - frameworks
+            assert not missing, (
+                f"{finding['finding_type_id']} missing frameworks: {missing}"
             )
             assert "confidential" not in frameworks
+
+    def test_cis_aws_foundations_present_only_on_its_mapped_findings(self, client):
+        # CIS AWS Foundations Benchmark is a narrow, foundational-only
+        # baseline (see cis_aws_foundations.json's mapping_rationale) --
+        # 13 of this project's 25 finding types have a genuine CIS
+        # equivalent, the other 12 are deliberately left unmapped
+        # rather than force-fit. This proves both halves of that
+        # deliberate split actually hold at the API layer, not just
+        # inside the mapping file.
+        expected_mapped_finding_types = {
+            "S3_PUBLIC_VIA_ACL",
+            "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL",
+            "S3_PUBLIC_ACCESS_BLOCK_DISABLED",
+            "S3_TLS_NOT_ENFORCED",
+            "KMS_KEY_ROTATION_DISABLED",
+            "IAM_ROOT_ACCESS_KEYS_ACTIVE",
+            "IAM_ACCOUNT_MFA_NOT_ENABLED",
+            "IAM_PASSWORD_POLICY_WEAK",
+            "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS",
+            "IAM_USER_ADMIN_POLICY_ATTACHED",
+            "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION",
+            "ACCOUNT_CLOUDTRAIL_DISABLED",
+            "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED",
+        }
+        response = client.get("/api/findings")
+        data = response.json()
+        for finding in data["findings"]:
+            frameworks = {
+                r["framework"] for r in finding["framework_references"]
+            }
+            has_cis = "cis_aws_foundations" in frameworks
+            should_have_cis = finding["finding_type_id"] in expected_mapped_finding_types
+            assert has_cis == should_have_cis, (
+                f"{finding['finding_type_id']}: expected cis_aws_foundations "
+                f"present={should_have_cis}, got {has_cis}"
+            )
 
 
 # --- _is_confidential_scope / _scan_all --------------------------------
@@ -382,7 +425,7 @@ class TestComplianceEndpoint:
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/json")
 
-    def test_response_has_six_frameworks_by_default(self, client):
+    def test_response_has_seven_frameworks_by_default(self, client):
         # ConfidentialClient is client-confidential and must not appear on
         # an unscoped scan — see TestConfidentialFrameworkConfidentiality.
         response = client.get("/api/compliance")
@@ -395,6 +438,7 @@ class TestComplianceEndpoint:
             "cyber_essentials",
             "iso27001",
             "dora",
+            "cis_aws_foundations",
         ]
 
     def test_response_reflects_scanner_findings(self, client):

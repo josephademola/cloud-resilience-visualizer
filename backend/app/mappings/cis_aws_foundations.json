@@ -1,0 +1,88 @@
+{
+  "_meta": {
+    "framework": "cis_aws_foundations",
+    "framework_full_name": "CIS AWS Foundations Benchmark v3.0.0",
+    "description": "Mapping of finding types to the CIS AWS Foundations Benchmark v3.0.0, a vendor-neutral, foundational security baseline for AWS accounts (IAM, logging/monitoring, networking, and a narrow slice of storage/database controls). Reference IDs are the benchmark's own numbered requirements (e.g. 1.4, 2.1.4, 3.6).",
+    "source_url": "https://docs.aws.amazon.com/securityhub/latest/userguide/cis-aws-foundations-benchmark.html",
+    "mapping_rationale": "The CIS benchmark's own PDF text is published by the Center for Internet Security behind a registration wall, not a stable public URL this file can cite directly. Control numbers and titles here are taken from AWS Security Hub's own published mapping of its automated CIS checks to CIS v3.0.0 requirement numbers -- an authoritative secondary source (Security Hub's CIS integration is CIS-certified for this version), used because it is the one durable, linkable reference available. Version v3.0.0 was chosen deliberately over the newer v5.0.0: it is the version most CSPM tooling (Prowler, ScoutSuite, Security Hub's own default) still targets in practice, and it has stable AWS documentation. CIS AWS Foundations is a narrow, 'foundational quick-wins' benchmark, not a comprehensive control catalogue -- unlike NIS2/ISO27001/DORA, it does not attempt to cover encryption-at-rest, versioning, access logging, lifecycle management, or resource tagging for general-purpose S3 buckets at all, nor KMS key policy content, key aliasing, or per-user credential-count hygiene. Twelve of this project's twenty-five finding types have no CIS v3.0.0 equivalent for that reason and are deliberately left unmapped here rather than forced onto an unrelated control -- see audit_notes below for each one specifically. This absence is itself a genuine, useful finding for a compliance officer: it means passing every CIS AWS Foundations check does NOT mean an environment is fully secure by the standards this tool otherwise checks against.",
+    "audit_notes": {
+      "S3_PUBLIC_VIA_ACL": "2.1.4 (Security Hub controls S3.1/S3.8, both titled around 'S3 general purpose buckets should block public access'). This is the account's/bucket's Block Public Access configuration, which is the control CIS actually automates -- an ACL grant to AllUsers is exactly the exposure this setting is designed to catch and prevent, even though the technical mechanism CIS's check inspects (the PAB flags) differs slightly from the ACL grant our finding detects directly. Same practical failure either way: the bucket is reachable by the public.",
+      "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": "2.1.4, reused from S3_PUBLIC_VIA_ACL. Same control, narrower grantee (any AWS account rather than the whole internet) -- CIS's Block Public Access check does not distinguish between the two ACL grantee groups, so both findings map to the same requirement.",
+      "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "2.1.4, reused. This is the most literal possible match in the entire file: CIS 2.1.4 IS the Block Public Access setting, which is exactly what this finding checks directly.",
+      "S3_ENCRYPTION_DISABLED": "UNMAPPED. CIS AWS Foundations v3.0.0 has no requirement that general-purpose S3 buckets use server-side encryption at rest -- Security Hub's CIS-certified control set includes default-encryption requirements for EFS (2.4.1) and RDS (2.3.1) but not S3. This is a genuine scope gap in the benchmark, not an oversight in this mapping: S3 encryption-at-rest is covered by NIS2/ISO27001/DORA/Cyber Essentials in this project's other mapping files, just not by CIS.",
+      "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "UNMAPPED, same reason as S3_ENCRYPTION_DISABLED -- CIS has no S3 encryption requirement at all to refine.",
+      "S3_VERSIONING_DISABLED": "UNMAPPED. CIS v3.0.0's closest adjacent control is S3.20 (2.1.2, MFA Delete), but MFA Delete is a stricter, different requirement -- a bucket can have versioning enabled without MFA Delete, which is the normal, common configuration this project's own mock/real buckets use. Mapping this finding to 2.1.2 would misrepresent what that control actually requires, so it is left unmapped rather than force-fit onto a control it doesn't satisfy the intent of.",
+      "S3_LOGGING_DISABLED": "UNMAPPED. CIS v3.0.0 has no requirement that general-purpose S3 buckets enable server access logging. The benchmark's only S3-logging-adjacent control (CloudTrail.7 / 3.4) is specific to the bucket that stores CloudTrail's own logs, not general-purpose buckets -- a different bucket, a different purpose, not a substitute for this finding.",
+      "S3_LIFECYCLE_MISSING": "UNMAPPED. CIS AWS Foundations does not address S3 lifecycle/retention policy at all.",
+      "S3_LIFECYCLE_RULE_DISABLED": "UNMAPPED, same reason as S3_LIFECYCLE_MISSING.",
+      "S3_TLS_NOT_ENFORCED": "2.1.1 (S3.5, 'S3 general purpose buckets should require requests to use SSL'). Direct, unambiguous match -- this is precisely what the finding checks.",
+      "KMS_KEY_ROTATION_DISABLED": "3.6 (KMS.4, 'AWS KMS key rotation should be enabled'). Direct match, one of CIS's cleanest and most literally-worded requirements.",
+      "KMS_KEY_PENDING_DELETION": "UNMAPPED for v3.0.0. Older CIS versions (v1.2.0 section 3.7, v1.4.0 section 4.7) had a CloudWatch-alarm requirement for detecting scheduled key deletion, but Security Hub marks it 'not supported -- manual check' under v3.0.0, and even in the older versions it was an ALERTING requirement (raise an alarm when deletion is scheduled), not a PREVENTIVE one (don't allow deletion to be scheduled) like this finding. CIS has never had a direct equivalent to what this finding actually checks.",
+      "KMS_KEY_MISSING_ALIAS": "UNMAPPED. CIS AWS Foundations does not address KMS key aliasing.",
+      "KMS_KEY_POLICY_OVERLY_BROAD": "UNMAPPED. Beyond key rotation (KMS.4), CIS AWS Foundations does not inspect KMS key policy content at all.",
+      "IAM_ROOT_ACCESS_KEYS_ACTIVE": "1.4 (IAM.4, 'IAM root user access key should not exist'). Direct match -- one of CIS's best-known, most-cited requirements.",
+      "IAM_ACCOUNT_MFA_NOT_ENABLED": "1.5 (IAM.9, 'MFA should be enabled for the root user'). Direct match. CIS also has a stricter hardware-MFA-specific requirement (IAM.6 / 1.6) which this finding's underlying data (AccountMFAEnabled, a boolean with no hardware-vs-virtual distinction) can't distinguish -- 1.5 is the honest match for what's actually detected.",
+      "IAM_PASSWORD_POLICY_WEAK": "1.8 (IAM.15, 'Ensure IAM password policy requires minimum password length of 14 or greater'). Direct match, down to the identical 14-character threshold this finding already uses.",
+      "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": "1.14 (IAM.3, 'IAM users' access keys should be rotated every 90 days or less'). Direct match, down to the identical 90-day threshold this finding already uses.",
+      "IAM_CONSOLE_LOGIN_ENABLED": "UNMAPPED. CIS AWS Foundations has no requirement distinguishing a service/application identity's console access from a human user's -- it isn't a concept CIS's IAM controls model at all.",
+      "IAM_MULTIPLE_ACTIVE_ACCESS_KEYS": "UNMAPPED. CIS has no requirement limiting the number of active access keys per user, only their age (see IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS above).",
+      "IAM_USER_ADMIN_POLICY_ATTACHED": "1.15 (IAM.2, 'IAM users should not have IAM policies attached [directly]'). An imperfect but real fit worth being explicit about: IAM.2's actual concern is manageability -- permissions should flow through groups or roles, not direct attachment, regardless of what the policy grants -- not specifically excessive privilege. A user with a narrow, harmless directly-attached policy would also fail IAM.2. This finding is a more severe special case of that same underlying mechanism (a directly-attached policy), so the mapping is on mechanism, not on privilege level -- documented here rather than presented as a clean match.",
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "1.15, reused from IAM_USER_ADMIN_POLICY_ATTACHED, same imperfect-fit caveat. CIS v1.4.0/v1.2.0 had a much cleaner, purpose-built control for this exact finding (IAM.1, 'IAM policies should not allow full * administrative privileges'), but Security Hub marks it unsupported under v3.0.0 -- CIS itself narrowed or dropped this requirement in later versions. Noted here rather than silently switching this file to an older CIS version just to get one cleaner match.",
+      "RESOURCE_MISSING_TAGS": "UNMAPPED. CIS AWS Foundations does not address resource tagging or asset inventory at all -- consistent with this same finding being left unmapped in confidential_controls.json for the identical reason.",
+      "ACCOUNT_CLOUDTRAIL_DISABLED": "3.1 (CloudTrail.1, 'CloudTrail should be enabled and configured with at least one multi-Region trail that includes read and write management events'). Direct, unambiguous match -- arguably THE canonical CIS AWS control.",
+      "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "2.1.4, reused from S3_PUBLIC_ACCESS_BLOCK_DISABLED. Same control, account-wide scope instead of bucket scope -- not an independently reasoned mapping."
+    }
+  },
+
+  "S3_PUBLIC_VIA_ACL": [
+    {"framework": "cis_aws_foundations", "reference_id": "2.1.4", "label": "S3 general purpose buckets should block public access"}
+  ],
+
+  "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": [
+    {"framework": "cis_aws_foundations", "reference_id": "2.1.4", "label": "S3 general purpose buckets should block public access"}
+  ],
+
+  "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [
+    {"framework": "cis_aws_foundations", "reference_id": "2.1.4", "label": "S3 general purpose buckets should block public access"}
+  ],
+
+  "S3_TLS_NOT_ENFORCED": [
+    {"framework": "cis_aws_foundations", "reference_id": "2.1.1", "label": "S3 general purpose buckets should require requests to use SSL"}
+  ],
+
+  "KMS_KEY_ROTATION_DISABLED": [
+    {"framework": "cis_aws_foundations", "reference_id": "3.6", "label": "AWS KMS key rotation should be enabled"}
+  ],
+
+  "IAM_ROOT_ACCESS_KEYS_ACTIVE": [
+    {"framework": "cis_aws_foundations", "reference_id": "1.4", "label": "IAM root user access key should not exist"}
+  ],
+
+  "IAM_ACCOUNT_MFA_NOT_ENABLED": [
+    {"framework": "cis_aws_foundations", "reference_id": "1.5", "label": "MFA should be enabled for the root user"}
+  ],
+
+  "IAM_PASSWORD_POLICY_WEAK": [
+    {"framework": "cis_aws_foundations", "reference_id": "1.8", "label": "Ensure IAM password policy requires minimum password length of 14 or greater"}
+  ],
+
+  "IAM_ACCESS_KEY_AGE_EXCEEDS_90_DAYS": [
+    {"framework": "cis_aws_foundations", "reference_id": "1.14", "label": "IAM users' access keys should be rotated every 90 days or less"}
+  ],
+
+  "IAM_USER_ADMIN_POLICY_ATTACHED": [
+    {"framework": "cis_aws_foundations", "reference_id": "1.15", "label": "IAM users should not have IAM policies attached"}
+  ],
+
+  "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": [
+    {"framework": "cis_aws_foundations", "reference_id": "1.15", "label": "IAM users should not have IAM policies attached"}
+  ],
+
+  "ACCOUNT_CLOUDTRAIL_DISABLED": [
+    {"framework": "cis_aws_foundations", "reference_id": "3.1", "label": "CloudTrail should be enabled and configured with at least one multi-Region trail that includes read and write management events"}
+  ],
+
+  "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": [
+    {"framework": "cis_aws_foundations", "reference_id": "2.1.4", "label": "S3 general purpose buckets should block public access"}
+  ]
+}
