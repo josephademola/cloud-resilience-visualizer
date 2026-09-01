@@ -182,5 +182,40 @@
     "severity": "high",
     "description": "This is the account-wide version of the same Public Access Block safety net that bucket-level findings in this tool already check for individually. Set once at the account level, it overrides accidentally-public ACLs and bucket policies on every bucket in the account, including ones created after this setting was configured and any that individual bucket-level settings miss. Without it, protection depends entirely on every bucket being configured correctly on its own, every time, forever — one missed bucket is one public data exposure. This is the single highest-leverage S3 control available: one setting protects the whole account, present and future.",
     "remediation": "Enable all four account-level Public Access Block flags. In the AWS Console: S3 -> Block Public Access settings for this account -> Edit -> check 'Block all public access' -> Save. From the AWS CLI: `aws s3control put-public-access-block --account-id <account-id> --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true`. Buckets that legitimately serve public content should do so via CloudFront with an Origin Access Identity, not by leaving the account-level protection off to accommodate one bucket."
+  },
+
+  "EC2_IMDSV2_NOT_REQUIRED": {
+    "title": "EC2 instance does not require IMDSv2",
+    "severity": "medium",
+    "description": "This instance's metadata service accepts IMDSv1 requests — plain, unsigned HTTP calls to http://169.254.169.254 with no token required. That's exactly what makes SSRF-based credential theft against EC2 metadata possible: an attacker who tricks the instance into making an arbitrary outbound HTTP request (a classic SSRF bug in an application running on the box) can use that same request path to read the instance's IAM role credentials directly, with no additional exploitation needed. IMDSv2 closes this off by requiring a session token obtained via a signed PUT request first — a step a basic SSRF primitive typically can't complete. This exact attack pattern was how the 2019 Capital One breach exfiltrated data from millions of customers.",
+    "remediation": "Require IMDSv2 on the instance's metadata options. In the AWS Console: EC2 -> Instances -> select the instance -> Actions -> Instance settings -> Modify instance metadata options -> set 'IMDSv2' to Required -> Save. From the AWS CLI: `aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-tokens required --http-endpoint enabled`. This can also be enforced account-wide at launch time via the account's default instance metadata service settings, so new instances aren't launched with IMDSv1 available in the first place."
+  },
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": {
+    "title": "Security group allows unrestricted SSH access",
+    "severity": "high",
+    "description": "A security group attached to this instance allows inbound SSH (port 22) from 0.0.0.0/0 or ::/0 — anyone on the internet can attempt to connect. SSH exposed to the entire internet is one of the most consistently scanned and attacked ports that exists; automated credential-stuffing and brute-force bots find and probe newly-exposed SSH ports within minutes of them appearing. A single weak or reused key or password is the only thing standing between this instance and full compromise.",
+    "remediation": "Restrict the security group's SSH rule to specific, known source IP ranges — your office network, a VPN endpoint, or a bastion host's security group — rather than 0.0.0.0/0. In the AWS Console: EC2 -> Security Groups -> select the group -> Inbound rules -> Edit -> change the SSH rule's source. From the AWS CLI: `aws ec2 revoke-security-group-ingress --group-id <sg-id> --protocol tcp --port 22 --cidr 0.0.0.0/0` followed by `aws ec2 authorize-security-group-ingress --group-id <sg-id> --protocol tcp --port 22 --cidr <your-known-cidr>/32`. For broader access needs, AWS Systems Manager Session Manager removes the need for an open SSH port entirely."
+  },
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": {
+    "title": "Security group allows unrestricted RDP access",
+    "severity": "high",
+    "description": "A security group attached to this instance allows inbound RDP (port 3389) from 0.0.0.0/0 or ::/0. RDP exposed to the internet is one of the single most common initial-access vectors in real ransomware incidents — attackers scan for it continuously, and a compromised RDP credential typically hands over full interactive desktop access to the box, not just a limited API foothold.",
+    "remediation": "Restrict the security group's RDP rule to specific, known source IP ranges rather than 0.0.0.0/0. In the AWS Console: EC2 -> Security Groups -> select the group -> Inbound rules -> Edit -> change the RDP rule's source. From the AWS CLI: `aws ec2 revoke-security-group-ingress --group-id <sg-id> --protocol tcp --port 3389 --cidr 0.0.0.0/0` followed by `aws ec2 authorize-security-group-ingress --group-id <sg-id> --protocol tcp --port 3389 --cidr <your-known-cidr>/32`. AWS Systems Manager Session Manager or Fleet Manager can provide remote access without an open RDP port at all."
+  },
+
+  "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": {
+    "title": "Instance has a public IP address inside a private subnet",
+    "severity": "medium",
+    "description": "This instance has a public IP address, but its containing subnet is classified as private — a design contradiction, not just a loose end. Something the network design says shouldn't be internet-reachable is internet-reachable anyway, whether through an explicit public IP assignment or an Elastic IP attached after launch. This often happens when a subnet's routing was tightened after instances were already running, or when 'Auto-assign public IP' was left on for an instance launched into what should be an isolated tier.",
+    "remediation": "Release the instance's public/Elastic IP if it doesn't genuinely need direct internet exposure, and route any traffic it needs to send outbound through a NAT gateway instead. In the AWS Console: EC2 -> Elastic IPs -> select the address -> Actions -> Disassociate, then Release. If the instance does need to be reachable, move it into a properly-tagged public subnet, or front it with a load balancer in the public tier instead of exposing the instance itself directly."
+  },
+
+  "EC2_EBS_UNENCRYPTED": {
+    "title": "Instance has an unencrypted EBS volume attached",
+    "severity": "high",
+    "description": "At least one EBS volume attached to this instance does not have encryption enabled. An unencrypted volume means the underlying data is readable in plaintext from a snapshot, from the physical storage layer, or by anyone who gains access to a copy of the volume — none of the protections EBS encryption normally provides (encryption at rest, encrypted snapshots, encrypted data in transit between the instance and the volume) apply to it. There is essentially no operational cost to enabling this on modern EBS volume types, which is part of why AWS added account-level default EBS encryption as an option.",
+    "remediation": "Enable account-level default EBS encryption so every new volume is encrypted automatically: EC2 -> EBS -> EBS encryption -> Enable, or `aws ec2 enable-ebs-encryption-by-default`. For this specific existing unencrypted volume, encryption can't be toggled in place — snapshot it, create a new encrypted volume from that snapshot (`aws ec2 copy-snapshot --encrypted`), then detach the old volume and attach the new encrypted one in its place. Plan for the instance to be briefly stopped during the swap."
   }
 }

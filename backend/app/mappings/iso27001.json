@@ -4,7 +4,7 @@
     "framework_full_name": "ISO/IEC 27001:2022 Annex A",
     "description": "Mapping of finding types to ISO/IEC 27001:2022 Annex A controls (93 controls across Organisational, People, Physical, and Technological themes). Only the Technological (A.8) and Organisational (A.5) controls that cloud misconfigurations actually touch are used here.",
     "source_url": "https://www.iso.org/standard/27001",
-    "mapping_rationale": "Annex A control titles and numbers were independently verified against a current ISO 27001:2022 reference guide before this file was written (A.5.18, A.8.2, A.8.3, A.8.5, A.8.9, A.8.10, A.8.13, A.8.15, A.8.16, A.8.24 all confirmed). The full standard text itself is paywalled, unlike NIS2 (EUR-Lex, free) or NCSC CAF (ncsc.gov.uk, free) — the mapping here is based on each control's well-established scope and title, not a line-by-line reading of the paywalled clause text the way NIS2's mapping could be. Several controls are deliberately reused across multiple findings where ISO doesn't distinguish as finely as this tool's rules do (A.8.24 covers cryptography broadly, with no separate control for at-rest vs in-transit vs key-management, unlike NCSC CAF's B3.b/B3.c split).",
+    "mapping_rationale": "Annex A control titles and numbers were independently verified against a current ISO 27001:2022 reference guide before this file was written (A.5.18, A.8.2, A.8.3, A.8.5, A.8.9, A.8.10, A.8.13, A.8.15, A.8.16, A.8.24 all confirmed; A.8.20 and A.8.22 additionally verified via web search when the EC2 scanner's network-layer findings were added). The full standard text itself is paywalled, unlike NIS2 (EUR-Lex, free) or NCSC CAF (ncsc.gov.uk, free) — the mapping here is based on each control's well-established scope and title, not a line-by-line reading of the paywalled clause text the way NIS2's mapping could be. Several controls are deliberately reused across multiple findings where ISO doesn't distinguish as finely as this tool's rules do (A.8.24 covers cryptography broadly, with no separate control for at-rest vs in-transit vs key-management, unlike NCSC CAF's B3.b/B3.c split).",
     "audit_notes": {
       "S3_PUBLIC_VIA_ACL": "A.8.3 (Information Access Restriction) — an AllUsers ACL grant is a direct, unambiguous failure of this control.",
       "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": "A.8.3 (Information Access Restriction), reused. Same failure, narrower grantee -- the control is about restricting access to what's necessary regardless of how wide the unauthorised audience turns out to be.",
@@ -30,7 +30,12 @@
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "A.8.9 (Configuration Management), reused from S3_PUBLIC_ACCESS_BLOCK_DISABLED as the account-wide instance of the same control.",
       "RESOURCE_MISSING_TAGS": "A.5.9 (Inventory of Information and Other Associated Assets), reused from KMS_KEY_MISSING_ALIAS. The exact same inventory-and-ownership requirement, generalised across every taggable resource type instead of just KMS keys.",
       "IAM_USER_ADMIN_POLICY_ATTACHED": "A.8.2 (Privileged Access Rights), reused from IAM_ROOT_ACCESS_KEYS_ACTIVE rather than A.5.18's provisioning-lifecycle framing used for the other IAM findings -- this is about the PRIVILEGE LEVEL itself being excessive, the same category of failure as root holding access keys, just on a non-root identity.",
-      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "A.8.2 (Privileged Access Rights), same reference as IAM_USER_ADMIN_POLICY_ATTACHED. An unconditioned Action:*/Resource:* grant is the identical privileged-access failure reached through a custom policy instead of the named AWS-managed one."
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "A.8.2 (Privileged Access Rights), same reference as IAM_USER_ADMIN_POLICY_ATTACHED. An unconditioned Action:*/Resource:* grant is the identical privileged-access failure reached through a custom policy instead of the named AWS-managed one.",
+      "EC2_IMDSV2_NOT_REQUIRED": "A.8.5 (Secure Authentication), reused from the MFA and password findings. IMDSv2's mandatory session token is an authentication mechanism gating access to the instance's credentials, the same control category as MFA gating access to a human identity.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": "A.8.20 (Networks Security), first use of this control in the file, verified via web search when this finding was added. A.8.20 requires managing and controlling the flow of information across networks to prevent unauthorised access -- a security group open to the world on an administrative port is precisely that flow left uncontrolled.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": "A.8.20, reused. Same uncontrolled-network-flow failure as the SSH finding, different administrative port.",
+      "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": "A.8.22 (Segregation of Networks), also verified via web search when this finding was added -- a cleaner fit than most EC2 mappings in this file. A.8.22 requires separating groups of systems into network zones based on risk; an instance with a public IP sitting inside a subnet declared private is exactly the zone boundary this control exists to enforce, breached.",
+      "EC2_EBS_UNENCRYPTED": "A.8.24 (Use of Cryptography), reused from the S3 and KMS encryption findings, per this file's own mapping_rationale note that A.8.24 covers cryptography broadly with no separate at-rest/in-transit/key-management split."
     }
   },
 
@@ -133,5 +138,25 @@
 
   "RESOURCE_MISSING_TAGS": [
     {"framework": "iso27001", "reference_id": "A.5.9", "label": "Inventory of Information and Other Associated Assets"}
+  ],
+
+  "EC2_IMDSV2_NOT_REQUIRED": [
+    {"framework": "iso27001", "reference_id": "A.8.5", "label": "Secure Authentication"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": [
+    {"framework": "iso27001", "reference_id": "A.8.20", "label": "Networks Security"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": [
+    {"framework": "iso27001", "reference_id": "A.8.20", "label": "Networks Security"}
+  ],
+
+  "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": [
+    {"framework": "iso27001", "reference_id": "A.8.22", "label": "Segregation of Networks"}
+  ],
+
+  "EC2_EBS_UNENCRYPTED": [
+    {"framework": "iso27001", "reference_id": "A.8.24", "label": "Use of Cryptography"}
   ]
 }

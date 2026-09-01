@@ -175,16 +175,6 @@ def _normalize_subnets(ec2_data: dict[str, Any]) -> list[TopologyNode]:
             )
             continue
 
-        # Tier: explicit tag wins, else infer from MapPublicIpOnLaunch.
-        # This mirrors how most CSPM tools classify subnets in practice.
-        tier_tag = _get_tag(subnet.get("Tags"), "Tier")
-        if tier_tag:
-            tier = tier_tag
-        elif subnet.get("MapPublicIpOnLaunch"):
-            tier = "public"
-        else:
-            tier = "private"
-
         nodes.append({
             "id": subnet_id,
             "type": "subnet",
@@ -193,7 +183,7 @@ def _normalize_subnets(ec2_data: dict[str, Any]) -> list[TopologyNode]:
             "properties": {
                 "cidr_block": subnet.get("CidrBlock"),
                 "availability_zone": subnet.get("AvailabilityZone"),
-                "tier": tier,
+                "tier": _infer_subnet_tier(subnet),
                 "map_public_ip_on_launch": subnet.get(
                     "MapPublicIpOnLaunch", False
                 ),
@@ -201,6 +191,26 @@ def _normalize_subnets(ec2_data: dict[str, Any]) -> list[TopologyNode]:
         })
 
     return nodes
+
+
+def _infer_subnet_tier(subnet: dict[str, Any]) -> str:
+    """
+    Tier (public vs. private): explicit 'Tier' tag wins, else infer
+    from MapPublicIpOnLaunch (instances get a public IP by default in
+    this subnet -> effectively a public subnet). This mirrors how most
+    CSPM tools classify subnets in practice.
+
+    Shared by _normalize_subnets (the subnet node's own tier property)
+    and _normalize_ec2_instances (EC2_PUBLIC_IP_IN_PRIVATE_SUBNET needs
+    to know an instance's PARENT subnet's tier, not just its own data)
+    -- one inference, not two copies of the same tag-or-flag logic.
+    """
+    tier_tag = _get_tag(subnet.get("Tags"), "Tier")
+    if tier_tag:
+        return tier_tag
+    if subnet.get("MapPublicIpOnLaunch"):
+        return "public"
+    return "private"
 
 
 def _normalize_internet_gateways(
@@ -264,11 +274,39 @@ def _normalize_ec2_instances(ec2_data: dict[str, Any],) -> list[TopologyNode]:
     instance independently.
 
     Each instance's parent_id is its containing subnet.
+
+    Four properties here are resolved by cross-referencing OTHER
+    sections of the same ec2_data dict against this instance -- the
+    same "look the raw related data up by ID" pattern KMS's has_alias
+    and IAM's has_any_tags already use, just with three different
+    lookups instead of one:
+      - has_unrestricted_ssh_ingress / has_unrestricted_rdp_ingress:
+        resolved against describe_security_groups by this instance's
+        own SecurityGroups list.
+      - has_unencrypted_ebs_volume: resolved against describe_volumes
+        by InstanceId (EBS encryption isn't on describe_instances at
+        all -- see aws_client.py's comment on that call).
+      - is_public_ip_in_private_subnet: resolved against
+        describe_subnets by this instance's own SubnetId.
     """
     nodes: list[TopologyNode] = []
 
     instances_response = ec2_data.get("describe_instances", {})
     reservations = instances_response.get("Reservations", [])
+
+    sg_raw_by_id = {
+        sg["GroupId"]: sg
+        for sg in ec2_data.get("describe_security_groups", {}).get(
+            "SecurityGroups", []
+        )
+        if sg.get("GroupId")
+    }
+    subnet_by_id = {
+        subnet["SubnetId"]: subnet
+        for subnet in ec2_data.get("describe_subnets", {}).get("Subnets", [])
+        if subnet.get("SubnetId")
+    }
+    volumes_response = ec2_data.get("describe_volumes", {})
 
     for reservation in reservations:
         for instance in reservation.get("Instances", []):
@@ -295,6 +333,15 @@ def _normalize_ec2_instances(ec2_data: dict[str, Any],) -> list[TopologyNode]:
                 for sg in instance.get("SecurityGroups", [])
                 if sg.get("GroupId")
             ]
+            instance_sgs = [sg_raw_by_id[sid] for sid in sg_ids if sid in sg_raw_by_id]
+
+            public_ip = instance.get("PublicIpAddress")
+            parent_subnet = subnet_by_id.get(subnet_id)
+            is_public_ip_in_private_subnet = bool(
+                public_ip
+                and parent_subnet
+                and _infer_subnet_tier(parent_subnet) == "private"
+            )
 
             nodes.append({
                 "id": instance_id,
@@ -305,13 +352,98 @@ def _normalize_ec2_instances(ec2_data: dict[str, Any],) -> list[TopologyNode]:
                     "instance_type": instance.get("InstanceType"),
                     "state": state_name,
                     "private_ip": instance.get("PrivateIpAddress"),
-                    "public_ip": instance.get("PublicIpAddress"),
+                    "public_ip": public_ip,
                     "platform": instance.get("PlatformDetails"),
                     "security_group_ids": sg_ids,
+                    "imdsv2_required": (
+                        instance.get("MetadataOptions", {}).get("HttpTokens")
+                        == "required"
+                    ),
+                    "has_unrestricted_ssh_ingress": any(
+                        _security_group_allows_ingress_on_port(sg, 22)
+                        for sg in instance_sgs
+                    ),
+                    "has_unrestricted_rdp_ingress": any(
+                        _security_group_allows_ingress_on_port(sg, 3389)
+                        for sg in instance_sgs
+                    ),
+                    "has_unencrypted_ebs_volume": _instance_has_unencrypted_ebs_volume(
+                        instance_id, volumes_response
+                    ),
+                    "is_public_ip_in_private_subnet": is_public_ip_in_private_subnet,
                 },
             })
 
     return nodes
+
+
+def _security_group_allows_ingress_on_port(
+    sg_raw: dict[str, Any], port: int
+) -> bool:
+    """
+    Return True if this security group's ingress rules (raw boto3
+    describe_security_groups shape -- IpPermissions, not the
+    normalized 'ingress_rules' key _normalize_security_groups produces)
+    allow the given port from anywhere: 0.0.0.0/0 or ::/0.
+
+    IpProtocol "-1" means "all traffic" and has no FromPort/ToPort at
+    all in that case -- it already covers every port, this one
+    included, so it's treated as covering the port without checking a
+    range that doesn't exist for it.
+    """
+    for rule in sg_raw.get("IpPermissions", []):
+        proto = rule.get("IpProtocol")
+        if proto not in ("tcp", "-1"):
+            continue
+
+        if proto == "-1":
+            port_covered = True
+        else:
+            from_port = rule.get("FromPort")
+            to_port = rule.get("ToPort")
+            port_covered = (
+                from_port is not None
+                and to_port is not None
+                and from_port <= port <= to_port
+            )
+        if not port_covered:
+            continue
+
+        for ip_range in rule.get("IpRanges", []):
+            if ip_range.get("CidrIp") == "0.0.0.0/0":
+                return True
+        for ip_range in rule.get("Ipv6Ranges", []):
+            if ip_range.get("CidrIpv6") == "::/0":
+                return True
+
+    return False
+
+
+def _instance_has_unencrypted_ebs_volume(
+    instance_id: str, volumes_response: dict[str, Any]
+) -> bool:
+    """
+    Return True if any EBS volume attached to this instance has
+    Encrypted != True.
+
+    Fail-closed on a total fetch failure (the '_error' marker) -- if
+    we can't confirm any volume's encryption state at all, we don't
+    assume they're all encrypted. An instance with zero matched
+    volumes (no '_error', just nothing attached in the data) resolves
+    to False -- a real, if unusual, state where there's genuinely
+    nothing unencrypted to find, not a sign of missing data the way an
+    '_error' marker is.
+    """
+    if "_error" in volumes_response:
+        return True
+
+    attached = [
+        volume
+        for volume in volumes_response.get("Volumes", [])
+        for attachment in volume.get("Attachments", [])
+        if attachment.get("InstanceId") == instance_id
+    ]
+    return any(not volume.get("Encrypted", False) for volume in attached)
 
 
 def _normalize_rds_instances(rds_data: dict[str, Any],) -> list[TopologyNode]:

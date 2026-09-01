@@ -24,6 +24,8 @@ from app.aws_normalizer import (
     _has_admin_policy_attached,
     _has_wildcard_action_resource_policy,
     S3_ALL_USERS_URI,
+    _security_group_allows_ingress_on_port,
+    _instance_has_unencrypted_ebs_volume,
 )
 
 
@@ -517,6 +519,113 @@ class TestHasWildcardActionResourcePolicy:
             }
         }
         assert _has_wildcard_action_resource_policy(details) is False
+
+
+# --- _security_group_allows_ingress_on_port ----------------------------
+class TestSecurityGroupAllowsIngressOnPort:
+
+    def _sg(self, *rules: dict) -> dict:
+        return {"GroupId": "sg-test", "IpPermissions": list(rules)}
+
+    def test_returns_true_for_exact_port_open_to_ipv4_world(self):
+        sg = self._sg({
+            "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22,
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+        })
+        assert _security_group_allows_ingress_on_port(sg, 22) is True
+
+    def test_returns_true_for_port_inside_a_wider_open_range(self):
+        sg = self._sg({
+            "IpProtocol": "tcp", "FromPort": 0, "ToPort": 65535,
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+        })
+        assert _security_group_allows_ingress_on_port(sg, 22) is True
+
+    def test_returns_true_for_ipv6_world_range(self):
+        sg = self._sg({
+            "IpProtocol": "tcp", "FromPort": 3389, "ToPort": 3389,
+            "Ipv6Ranges": [{"CidrIpv6": "::/0"}],
+        })
+        assert _security_group_allows_ingress_on_port(sg, 3389) is True
+
+    def test_returns_true_for_all_traffic_protocol_negative_one(self):
+        # IpProtocol "-1" has no FromPort/ToPort at all -- it already
+        # covers every port, this one included.
+        sg = self._sg({
+            "IpProtocol": "-1",
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+        })
+        assert _security_group_allows_ingress_on_port(sg, 22) is True
+
+    def test_returns_false_when_port_is_outside_the_rule_range(self):
+        sg = self._sg({
+            "IpProtocol": "tcp", "FromPort": 80, "ToPort": 443,
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+        })
+        assert _security_group_allows_ingress_on_port(sg, 22) is False
+
+    def test_returns_false_when_open_port_is_scoped_to_a_specific_cidr(self):
+        # A real restriction (e.g. an office IP range), not the world --
+        # this must not be flagged.
+        sg = self._sg({
+            "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22,
+            "IpRanges": [{"CidrIp": "203.0.113.0/24"}],
+        })
+        assert _security_group_allows_ingress_on_port(sg, 22) is False
+
+    def test_returns_false_for_udp_protocol(self):
+        sg = self._sg({
+            "IpProtocol": "udp", "FromPort": 22, "ToPort": 22,
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+        })
+        assert _security_group_allows_ingress_on_port(sg, 22) is False
+
+    def test_returns_false_for_security_group_with_no_rules(self):
+        assert _security_group_allows_ingress_on_port(self._sg(), 22) is False
+
+
+# --- _instance_has_unencrypted_ebs_volume -------------------------------
+class TestInstanceHasUnencryptedEbsVolume:
+
+    def _volumes_response(self, *volumes: dict) -> dict:
+        return {"Volumes": list(volumes)}
+
+    def _volume(self, instance_id: str, encrypted: bool) -> dict:
+        return {
+            "Encrypted": encrypted,
+            "Attachments": [{"InstanceId": instance_id}],
+        }
+
+    def test_returns_true_when_attached_volume_is_unencrypted(self):
+        response = self._volumes_response(self._volume("i-1", encrypted=False))
+        assert _instance_has_unencrypted_ebs_volume("i-1", response) is True
+
+    def test_returns_false_when_attached_volume_is_encrypted(self):
+        response = self._volumes_response(self._volume("i-1", encrypted=True))
+        assert _instance_has_unencrypted_ebs_volume("i-1", response) is False
+
+    def test_returns_true_when_any_of_multiple_attached_volumes_is_unencrypted(self):
+        response = self._volumes_response(
+            self._volume("i-1", encrypted=True),
+            self._volume("i-1", encrypted=False),
+        )
+        assert _instance_has_unencrypted_ebs_volume("i-1", response) is True
+
+    def test_ignores_volumes_attached_to_a_different_instance(self):
+        response = self._volumes_response(self._volume("i-other", encrypted=False))
+        assert _instance_has_unencrypted_ebs_volume("i-1", response) is False
+
+    def test_returns_false_when_instance_has_no_attached_volumes(self):
+        # No '_error' marker, just genuinely nothing attached -- a
+        # real, if unusual, state, not missing data.
+        assert _instance_has_unencrypted_ebs_volume("i-1", {"Volumes": []}) is False
+
+    def test_returns_true_fail_closed_on_error_marker(self):
+        # A total fetch failure -- can't confirm any volume's
+        # encryption state, so don't assume they're all encrypted.
+        assert _instance_has_unencrypted_ebs_volume(
+            "i-1", {"_error": "AccessDenied"}
+        ) is True
 
     def test_returns_false_when_no_policies_at_all(self):
         assert _has_wildcard_action_resource_policy({}) is False

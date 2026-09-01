@@ -30,7 +30,12 @@
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "B4.a, the same reference S3_PUBLIC_ACCESS_BLOCK_DISABLED uses. Same control, account scope instead of bucket scope — the mapping doesn't change because the blast radius does.",
       "RESOURCE_MISSING_TAGS": "A3.a (Asset Management), reused from KMS_KEY_MISSING_ALIAS. An untagged resource is exactly the 'everything required... is determined and understood' gap this outcome names, generalised across every taggable resource type instead of just KMS keys.",
       "IAM_USER_ADMIN_POLICY_ATTACHED": "B2.a, eighth use. Whether an identity has been authorised for full administrative control of the account is the most direct possible instance of this outcome's 'authorisation' language.",
-      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "B2.a, reused. An unconditioned Action:*/Resource:* grant is the same authorisation failure as IAM_USER_ADMIN_POLICY_ATTACHED reached by a different mechanism -- the outcome doesn't distinguish how excessive authorisation was granted, only that it was."
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "B2.a, reused. An unconditioned Action:*/Resource:* grant is the same authorisation failure as IAM_USER_ADMIN_POLICY_ATTACHED reached by a different mechanism -- the outcome doesn't distinguish how excessive authorisation was granted, only that it was.",
+      "EC2_IMDSV2_NOT_REQUIRED": "B2.a, reused. IMDSv2 is a session-token authentication step in front of the instance's credential-issuing endpoint -- its absence is the same 'identity verification, authentication and authorisation' gap this outcome already covers for MFA, password strength, and key rotation, applied to a machine identity instead of a human one.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": "First use of B4.b (Secure Configuration) in this file, deliberately not B2.a. B2.a covers identity verification and authorisation; a security group open to the world on an administrative port is a network hardening failure, not an identity failure -- CAF's own B4.b text ('you securely configure the network and information systems that support the operation of your essential function(s)') is a materially better fit than stretching B2.a to cover it.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": "B4.b, reused. Same network-hardening gap as the SSH finding, different administrative port.",
+      "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": "B4.a, reused from S3_PUBLIC_ACCESS_BLOCK_DISABLED. This isn't a missing safety-net setting the way PAB is, but the underlying outcome is the same: a subnet's tier is a design decision about what should and shouldn't be internet-reachable, and an instance with a public IP inside a subnet declared private has broken that design boundary -- 'Secure by design' names exactly this failure mode.",
+      "EC2_EBS_UNENCRYPTED": "B3.c, reused from S3_ENCRYPTION_DISABLED and KMS_KEY_ROTATION_DISABLED. Same 'Stored data' outcome -- an unencrypted attached volume is stored data without the protection this outcome expects, block storage instead of object storage."
     }
   },
 
@@ -133,5 +138,25 @@
 
   "RESOURCE_MISSING_TAGS": [
     {"framework": "ncsc_caf", "reference_id": "A3.a", "label": "Asset Management"}
+  ],
+
+  "EC2_IMDSV2_NOT_REQUIRED": [
+    {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": [
+    {"framework": "ncsc_caf", "reference_id": "B4.b", "label": "Secure Configuration"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": [
+    {"framework": "ncsc_caf", "reference_id": "B4.b", "label": "Secure Configuration"}
+  ],
+
+  "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": [
+    {"framework": "ncsc_caf", "reference_id": "B4.a", "label": "Secure by design"}
+  ],
+
+  "EC2_EBS_UNENCRYPTED": [
+    {"framework": "ncsc_caf", "reference_id": "B3.c", "label": "Stored data"}
   ]
 }

@@ -325,6 +325,11 @@ class TestNormalizeEc2Instances:
                     "public_ip": "54.1.2.3",
                     "platform": "Linux/UNIX",
                     "security_group_ids": ["sg-aaa"],
+                    "imdsv2_required": False,
+                    "has_unrestricted_ssh_ingress": False,
+                    "has_unrestricted_rdp_ingress": False,
+                    "has_unencrypted_ebs_volume": False,
+                    "is_public_ip_in_private_subnet": False,
                 },
             }
         ]

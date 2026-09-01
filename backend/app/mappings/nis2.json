@@ -30,7 +30,12 @@
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Same two references as S3_PUBLIC_ACCESS_BLOCK_DISABLED, reused deliberately rather than independently reasoned: this is the same control at account scope instead of bucket scope, not a different finding that happens to look similar.",
       "RESOURCE_MISSING_TAGS": "21(2)(i), reused a fifth time. An untagged resource is the most literal possible asset-management gap this sub-paragraph names -- it can't be tracked, attributed, or scoped into a project's asset inventory at all.",
       "IAM_USER_ADMIN_POLICY_ATTACHED": "21(2)(i) reused a sixth time. A directly-attached AdministratorAccess policy is the single largest access-control-policy failure this file maps to anything -- the same sub-paragraph already covering every other IAM access-control gap, just at maximum severity.",
-      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "21(2)(i), reused. Functionally the same access-control-policy failure as IAM_USER_ADMIN_POLICY_ATTACHED -- an unconditioned Action:*/Resource:* grant produces an identical real-world effect to AdministratorAccess, just via a different mechanism, so it gets the same reference rather than an independently reasoned one."
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "21(2)(i), reused. Functionally the same access-control-policy failure as IAM_USER_ADMIN_POLICY_ATTACHED -- an unconditioned Action:*/Resource:* grant produces an identical real-world effect to AdministratorAccess, just via a different mechanism, so it gets the same reference rather than an independently reasoned one.",
+      "EC2_IMDSV2_NOT_REQUIRED": "21(2)(i), reused. IMDSv2 requires a signed session token before the metadata service will answer -- absence of that requirement is an access-control gap on the pathway to the instance's IAM credentials, the same category of failure as this sub-paragraph's other access-control findings.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": "21(2)(i), reused. A security group open to 0.0.0.0/0 on an administrative port is an access-control-policy failure at the network layer instead of the identity layer -- who may reach this port is exactly what access control governs, whether enforced by IAM or by a network ACL.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": "21(2)(i), reused. Same network-layer access-control failure as the SSH finding, different administrative port.",
+      "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": "Weakest EC2 mapping in this file, flagged honestly rather than forced to look clean, same spirit as S3_LIFECYCLE_MISSING above. NIS2 has no sub-paragraph naming network architecture or subnet design specifically, so this is mapped to 21(2)(a) -- policies on risk analysis and information system security -- as the general policy catch-all: the gap is a contradiction between the subnet's declared design intent and the instance's actual reachability, not a named technical control.",
+      "EC2_EBS_UNENCRYPTED": "21(2)(h), reused from the S3 and KMS encryption findings. Cryptography and encryption policy doesn't stop being that just because the storage is a block volume instead of an object store."
     }
   },
 
@@ -241,6 +246,46 @@
       "framework": "nis2",
       "reference_id": "Article 21(2)(i)",
       "label": "Access control policies and asset management"
+    }
+  ],
+
+  "EC2_IMDSV2_NOT_REQUIRED": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(i)",
+      "label": "Access control policies and asset management"
+    }
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(i)",
+      "label": "Access control policies and asset management"
+    }
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(i)",
+      "label": "Access control policies and asset management"
+    }
+  ],
+
+  "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(a)",
+      "label": "Policies on risk analysis and information system security"
+    }
+  ],
+
+  "EC2_EBS_UNENCRYPTED": [
+    {
+      "framework": "nis2",
+      "reference_id": "Article 21(2)(h)",
+      "label": "Policies and procedures regarding the use of cryptography and encryption"
     }
   ]
 }

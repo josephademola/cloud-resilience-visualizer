@@ -89,6 +89,13 @@ def fetch_aws_data(project_tag: str | None = None) -> dict[str, Any]:
             "describe_security_groups": _strip_metadata(
                 ec2.describe_security_groups()
             ),
+            # EBS encryption status lives here, not on describe_instances'
+            # BlockDeviceMappings (which only has AttachTime/DeleteOnTermination/
+            # Status/VolumeId -- no Encrypted field at all). _safe_call, not a
+            # bare call: an account with zero EC2 volumes is a valid state,
+            # not an error, and this shouldn't take down the whole scan either
+            # way.
+            "describe_volumes": _safe_call(ec2.describe_volumes),
         },
         "rds": {
             "describe_db_instances": _strip_metadata(rds.describe_db_instances()),

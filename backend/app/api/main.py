@@ -55,6 +55,7 @@ from app.scanners.kms_scanner import scan_kms_keys
 from app.scanners.iam_scanner import scan_iam
 from app.scanners.account_scanner import scan_account
 from app.scanners.tagging_scanner import scan_tagging
+from app.scanners.ec2_scanner import scan_ec2_instances
 from app.compliance import build_compliance_view
 from app.risk_acceptance import load_risk_acceptances, apply_risk_acceptances
 from fastapi.responses import Response
@@ -221,6 +222,7 @@ def _scan_all(topology: dict, project_tag: str | None = None) -> list[Finding]:
         + scan_iam(topology)
         + scan_account(topology)
         + scan_tagging(topology)
+        + scan_ec2_instances(topology)
     )
 
     findings = apply_risk_acceptances(findings, load_risk_acceptances())

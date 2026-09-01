@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": "1.0",
-    "generated_at": "2026-09-01T01:28:50.018279+00:00",
+    "generated_at": "2026-09-01T21:03:50.306888+00:00",
     "node_count": 12,
     "security_group_count": 3
   },
@@ -63,7 +63,12 @@
         "platform": null,
         "security_group_ids": [
           "sg-0aabbccddeeff1122"
-        ]
+        ],
+        "imdsv2_required": true,
+        "has_unrestricted_ssh_ingress": false,
+        "has_unrestricted_rdp_ingress": false,
+        "has_unencrypted_ebs_volume": false,
+        "is_public_ip_in_private_subnet": false
       }
     },
     {
@@ -79,7 +84,12 @@
         "platform": null,
         "security_group_ids": [
           "sg-09a8b7c6d5e4f3a21"
-        ]
+        ],
+        "imdsv2_required": true,
+        "has_unrestricted_ssh_ingress": false,
+        "has_unrestricted_rdp_ingress": false,
+        "has_unencrypted_ebs_volume": false,
+        "is_public_ip_in_private_subnet": false
       }
     },
     {

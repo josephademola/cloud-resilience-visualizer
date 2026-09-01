@@ -183,8 +183,8 @@ class TestFindingsEndpoint:
     def test_cis_aws_foundations_present_only_on_its_mapped_findings(self, client):
         # CIS AWS Foundations Benchmark is a narrow, foundational-only
         # baseline (see cis_aws_foundations.json's mapping_rationale) --
-        # 13 of this project's 25 finding types have a genuine CIS
-        # equivalent, the other 12 are deliberately left unmapped
+        # 17 of this project's 30 finding types have a genuine CIS
+        # equivalent, the other 13 are deliberately left unmapped
         # rather than force-fit. This proves both halves of that
         # deliberate split actually hold at the API layer, not just
         # inside the mapping file.
@@ -202,6 +202,10 @@ class TestFindingsEndpoint:
             "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION",
             "ACCOUNT_CLOUDTRAIL_DISABLED",
             "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED",
+            "EC2_IMDSV2_NOT_REQUIRED",
+            "EC2_SECURITY_GROUP_UNRESTRICTED_SSH",
+            "EC2_SECURITY_GROUP_UNRESTRICTED_RDP",
+            "EC2_EBS_UNENCRYPTED",
         }
         response = client.get("/api/findings")
         data = response.json()

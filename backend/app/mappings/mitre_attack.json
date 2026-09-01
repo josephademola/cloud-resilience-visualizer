@@ -30,7 +30,12 @@
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "T1580, the same corrected mapping S3_PUBLIC_ACCESS_BLOCK_DISABLED uses (originally the wrong T1078.004, fixed to T1580). Same reasoning at account scope: an attacker in reconnaissance can discover public buckets across the whole account more easily when this safety net is off, not just on one bucket.",
       "RESOURCE_MISSING_TAGS": "Weakest mapping in this file, alongside KMS_KEY_MISSING_ALIAS, flagged honestly rather than forced. Missing tags is a defender-side asset-visibility gap, not an adversary technique -- ATT&CK describes what attackers do, and there's no real technique for 'the defender didn't label a resource'. Mapped to T1580 (Cloud Infrastructure Discovery) only because an attacker enumerating account resources via the same tagging/discovery APIs would see an untagged resource same as anyone else -- a loose association, not a genuine causal one.",
       "IAM_USER_ADMIN_POLICY_ATTACHED": "T1078.004, but under Privilege Escalation this time -- a third distinct tactic for this technique in this file, alongside Initial Access (root keys, console login) and Persistence (key age, multiple keys). A valid account that already holds AdministratorAccess IS the escalated state an attacker who compromises it inherits, not just a foothold or a way in.",
-      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "T1078.004 again, same Privilege Escalation tactic as IAM_USER_ADMIN_POLICY_ATTACHED. An unconditioned Action:*/Resource:* grant produces the identical escalated state by a different mechanism, so it earns the same technique and tactic rather than an independently reasoned one."
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "T1078.004 again, same Privilege Escalation tactic as IAM_USER_ADMIN_POLICY_ATTACHED. An unconditioned Action:*/Resource:* grant produces the identical escalated state by a different mechanism, so it earns the same technique and tactic rather than an independently reasoned one.",
+      "EC2_IMDSV2_NOT_REQUIRED": "T1552.005 (Unsecured Credentials: Cloud Instance Metadata API, Credential Access tactic) -- verified via web search this session, a direct and well-documented match. IMDSv1's lack of a signed request step is exactly the SSRF-to-credential-theft path this technique names; this is the real-world technique behind the 2019 Capital One breach.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": "T1133 (External Remote Services, Initial Access and Persistence tactics) -- verified via web search this session, which explicitly names SSH and RDP as the remote services this technique covers. A security group open to the world on port 22 is precisely the external remote service this technique describes an attacker using to gain and maintain access.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": "T1133, reused. Same technique, same dual tactic -- RDP is the other remote-administration service this technique names by name.",
+      "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": "T1580 (Cloud Infrastructure Discovery), reused from the PAB and tagging findings on the same honest-but-weak logic: an instance that's unexpectedly internet-reachable is easier for an attacker in the reconnaissance phase to discover than one properly confined to a private subnet. Not a primary enablement, the same caveat as the other T1580 mappings in this file.",
+      "EC2_EBS_UNENCRYPTED": "T1530 by extension, same reasoning as the S3 and KMS encryption findings in this file: an attacker who gains access to an unencrypted volume (via snapshot sharing, a compromised instance, or a misconfigured backup) gets directly usable data instead of ciphertext. Secondary consequence, not a primary enablement, but the same defensible extension already used for KMS_KEY_ROTATION_DISABLED."
     }
   },
 
@@ -132,5 +137,25 @@
 
   "RESOURCE_MISSING_TAGS": [
     {"framework": "mitre_attack", "reference_id": "T1580", "label": "Cloud Infrastructure Discovery (Discovery tactic)"}
+  ],
+
+  "EC2_IMDSV2_NOT_REQUIRED": [
+    {"framework": "mitre_attack", "reference_id": "T1552.005", "label": "Unsecured Credentials: Cloud Instance Metadata API (Credential Access tactic)"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": [
+    {"framework": "mitre_attack", "reference_id": "T1133", "label": "External Remote Services (Initial Access, Persistence tactics)"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": [
+    {"framework": "mitre_attack", "reference_id": "T1133", "label": "External Remote Services (Initial Access, Persistence tactics)"}
+  ],
+
+  "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": [
+    {"framework": "mitre_attack", "reference_id": "T1580", "label": "Cloud Infrastructure Discovery (Discovery tactic)"}
+  ],
+
+  "EC2_EBS_UNENCRYPTED": [
+    {"framework": "mitre_attack", "reference_id": "T1530", "label": "Data from Cloud Storage (Collection tactic)"}
   ]
 }

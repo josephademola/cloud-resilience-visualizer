@@ -30,7 +30,12 @@
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Secure Configuration, same reference as S3_PUBLIC_ACCESS_BLOCK_DISABLED. Same control, wider scope.",
       "RESOURCE_MISSING_TAGS": "Secure Configuration, reused. Same reasoning as KMS_KEY_MISSING_ALIAS: Cyber Essentials has no asset-inventory-specific theme, and Secure Configuration is the closest available catch-all.",
       "IAM_USER_ADMIN_POLICY_ATTACHED": "User Access Control, eighth use. Full administrative access on an identity that doesn't need it is the clearest possible failure of this theme's core expectation: access should be limited to what a role actually requires.",
-      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "User Access Control, reused. Same least-privilege failure as IAM_USER_ADMIN_POLICY_ATTACHED, reached via a custom policy instead of the named AWS-managed one."
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "User Access Control, reused. Same least-privilege failure as IAM_USER_ADMIN_POLICY_ATTACHED, reached via a custom policy instead of the named AWS-managed one.",
+      "EC2_IMDSV2_NOT_REQUIRED": "Secure Configuration, reused. Requiring IMDSv2 is an instance-level configuration setting, the same category as the other Secure Configuration findings in this file.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": "First use of the Firewalls theme in this file. Cyber Essentials' own scheme describes Firewalls as controlling which network traffic may travel in and out of a device or network -- a security group open to the world on an administrative port is exactly that boundary control failing, a genuinely better fit than stretching Secure Configuration to cover it the way this file does for findings with no closer theme.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": "Firewalls, reused. Same boundary-control failure as the SSH finding, different administrative port.",
+      "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": "Secure Configuration, for lack of a better theme -- Cyber Essentials has no network-architecture or segmentation theme in its five-theme baseline, so this is the nearest fit rather than a precise one, same reasoning as several other findings in this file.",
+      "EC2_EBS_UNENCRYPTED": "Secure Configuration, reused. Encryption on an attached volume is a configuration setting, same reasoning as every other encryption finding in this file."
     }
   },
 
@@ -132,6 +137,26 @@
   ],
 
   "RESOURCE_MISSING_TAGS": [
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
+  ],
+
+  "EC2_IMDSV2_NOT_REQUIRED": [
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": [
+    {"framework": "cyber_essentials", "reference_id": "firewalls", "label": "Firewalls"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": [
+    {"framework": "cyber_essentials", "reference_id": "firewalls", "label": "Firewalls"}
+  ],
+
+  "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": [
+    {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
+  ],
+
+  "EC2_EBS_UNENCRYPTED": [
     {"framework": "cyber_essentials", "reference_id": "secure_configuration", "label": "Secure Configuration"}
   ]
 }

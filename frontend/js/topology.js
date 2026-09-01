@@ -870,6 +870,11 @@ function isBadProperty(key, value) {
     if (key === "account_s3_block_public_access_enabled" && value === false) return true;
     if (key === "publicly_accessible" && value === true) return true;
     if (key === "has_any_tags" && value === false) return true;
+    if (key === "imdsv2_required" && value === false) return true;
+    if (key === "has_unrestricted_ssh_ingress" && value === true) return true;
+    if (key === "has_unrestricted_rdp_ingress" && value === true) return true;
+    if (key === "has_unencrypted_ebs_volume" && value === true) return true;
+    if (key === "is_public_ip_in_private_subnet" && value === true) return true;
     return false;
 }
 

@@ -30,7 +30,12 @@
       "ACCOUNT_S3_BLOCK_PUBLIC_ACCESS_DISABLED": "Article 9(4)(c), reused — the account-wide instance of the same access-limitation requirement as the bucket-level finding.",
       "RESOURCE_MISSING_TAGS": "Article 8(1), reused from KMS_KEY_MISSING_ALIAS — the same ICT asset identification duty, generalised across every taggable resource type instead of just KMS keys.",
       "IAM_USER_ADMIN_POLICY_ATTACHED": "Article 9(4)(c) reused a fourth time. Full administrative access on an identity is the opposite of restricting access to necessary functions — the clearest possible violation of this article's core requirement.",
-      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "Article 9(4)(c), reused. Same access-limitation failure as IAM_USER_ADMIN_POLICY_ATTACHED, reached through a custom policy grant instead of the named AWS-managed one."
+      "IAM_USER_POLICY_GRANTS_WILDCARD_ACTION": "Article 9(4)(c), reused. Same access-limitation failure as IAM_USER_ADMIN_POLICY_ATTACHED, reached through a custom policy grant instead of the named AWS-managed one.",
+      "EC2_IMDSV2_NOT_REQUIRED": "Article 9(4)(d), reused from the MFA and password findings -- 'strong authentication mechanisms' covers IMDSv2's mandatory session token the same way it covers MFA, just gating access to an instance's credentials instead of a human identity.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": "Article 9(4)(c), reused -- this file's dominant reference for 'more access than necessary' findings. A security group open to the world on an administrative port restricts access to nothing, the clearest possible failure of 'necessary functions only' at the network layer instead of the identity layer.",
+      "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": "Article 9(4)(c), reused. Same network-layer access-limitation failure as the SSH finding.",
+      "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": "Article 9(4)(c), reused, though a weaker fit than the SSH/RDP findings and flagged as such: the subnet's private classification is a declared intent that access should be limited, and an instance with a public IP anyway is that intent not being enforced -- the same access-limitation article, reached through a network-design contradiction rather than an open port.",
+      "EC2_EBS_UNENCRYPTED": "Article 9(4)(d), reused from the S3 and KMS encryption findings -- 'protection measures of cryptographic keys whereby data is encrypted' doesn't stop applying because the storage is a block volume instead of an object."
     }
   },
 
@@ -132,5 +137,25 @@
 
   "RESOURCE_MISSING_TAGS": [
     {"framework": "dora", "reference_id": "Article 8(1)", "label": "Identification and classification of ICT assets"}
+  ],
+
+  "EC2_IMDSV2_NOT_REQUIRED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(d)", "label": "Strong authentication mechanisms and cryptographic key protection"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_SSH": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "EC2_SECURITY_GROUP_UNRESTRICTED_RDP": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "EC2_PUBLIC_IP_IN_PRIVATE_SUBNET": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "EC2_EBS_UNENCRYPTED": [
+    {"framework": "dora", "reference_id": "Article 9(4)(d)", "label": "Strong authentication mechanisms and cryptographic key protection"}
   ]
 }

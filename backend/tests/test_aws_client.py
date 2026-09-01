@@ -127,7 +127,39 @@ class TestFetchAwsData:
             "describe_internet_gateways",
             "describe_instances",
             "describe_security_groups",
+            "describe_volumes",
         }
+
+    def test_describe_volumes_is_empty_list_for_fresh_account(self, moto_aws):
+        # A fresh account has zero EBS volumes -- a valid state, not
+        # an error, unlike get_account_password_policy or
+        # get_public_access_block.
+        data = fetch_aws_data()
+        assert data["ec2"]["describe_volumes"]["Volumes"] == []
+
+    def test_describe_volumes_reflects_encrypted_volume(self, moto_aws):
+        ec2 = boto3.client("ec2", region_name="eu-west-2")
+        volume = ec2.create_volume(
+            AvailabilityZone="eu-west-2a", Size=8, Encrypted=True
+        )
+
+        data = fetch_aws_data()
+        volumes = data["ec2"]["describe_volumes"]["Volumes"]
+        matching = [v for v in volumes if v["VolumeId"] == volume["VolumeId"]]
+        assert len(matching) == 1
+        assert matching[0]["Encrypted"] is True
+
+    def test_describe_volumes_reflects_unencrypted_volume(self, moto_aws):
+        ec2 = boto3.client("ec2", region_name="eu-west-2")
+        volume = ec2.create_volume(
+            AvailabilityZone="eu-west-2a", Size=8, Encrypted=False
+        )
+
+        data = fetch_aws_data()
+        volumes = data["ec2"]["describe_volumes"]["Volumes"]
+        matching = [v for v in volumes if v["VolumeId"] == volume["VolumeId"]]
+        assert len(matching) == 1
+        assert matching[0]["Encrypted"] is False
 
     def test_s3_section_has_list_and_details(self, moto_aws):
         # The normaliser reads both list_buckets AND bucket_details.
