@@ -57,9 +57,9 @@ async function init() {
         if (e.key === "Escape") hideDetails();
     });
 
-    // Wire the nav buttons so clicks switch between topology and
-    // compliance views. Handler defined below in switchView().
-    document.querySelectorAll(".nav-btn").forEach(btn => {
+    // Wire the sidebar nav buttons so clicks switch between sections.
+    // Handler defined below in switchView().
+    document.querySelectorAll(".sidebar-nav-btn").forEach(btn => {
         btn.addEventListener("click", () => switchView(btn.dataset.view));
     });
 
@@ -147,10 +147,20 @@ async function loadSnapshotFile(file) {
     }
 }
 
+// Section titles shown in the topbar. Keyed by the same data-view
+// values as the sidebar buttons and the "<view>-view" section ids.
+const SECTION_TITLES = {
+    dashboard: "Dashboard",
+    assets: "Assets",
+    findings: "Findings",
+    compliance: "Compliance",
+    evidence: "Evidence",
+};
+
 function switchView(viewName) {
-    // Update which nav button looks active.
-    document.querySelectorAll(".nav-btn").forEach(btn => {
-        btn.classList.toggle("nav-btn-active", btn.dataset.view === viewName);
+    // Update which sidebar button looks active.
+    document.querySelectorAll(".sidebar-nav-btn").forEach(btn => {
+        btn.classList.toggle("sidebar-nav-btn-active", btn.dataset.view === viewName);
     });
 
     // Show the requested view, hide the others.
@@ -158,10 +168,15 @@ function switchView(viewName) {
         view.classList.toggle("view-active", view.id === viewName + "-view");
     });
 
-    // The details panel is only relevant to topology — hide it when
-    // switching away.
-    if (viewName === "compliance") {
+    document.getElementById("topbar-title").textContent = SECTION_TITLES[viewName] || "";
+
+    // The details panel is only relevant to Assets (the topology map)
+    // — hide it when switching to any other section.
+    if (viewName !== "assets") {
         hideDetails();
+    }
+
+    if (viewName === "compliance") {
         // activateComplianceView is defined in compliance.js, loaded
         // after this file. Lazy-fetches compliance data on first switch.
         activateComplianceView();

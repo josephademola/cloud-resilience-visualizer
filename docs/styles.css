@@ -96,7 +96,7 @@ html, body {
 
 body {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.5;
@@ -107,51 +107,29 @@ body {
 }
 
 
-/* ---- App header ---- */
+/* ---- Sidebar ---- */
 
-.app-header {
+.app-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-header);
+    border-right: 1px solid var(--border-subtle);
+    height: 100%;
+    overflow-y: auto;
+}
+
+.sidebar-brand {
     display: flex;
     align-items: center;
-    gap: var(--space-6);
-    padding: 0 var(--space-6);
-    height: 52px;
-    background: var(--bg-header);
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-4);
     border-bottom: 1px solid var(--border-subtle);
     flex-shrink: 0;
-    position: relative;
-    z-index: 200;
 }
 
-/* Subtle scan-line texture — the signature element.
-   Suggests a live monitoring dashboard without being loud. */
-.app-header::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(255, 255, 255, 0.012) 2px,
-        rgba(255, 255, 255, 0.012) 4px
-    );
-    pointer-events: none;
-}
-
-/* Shield icon + wordmark */
-.app-title {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
+/* Shield icon */
 .app-title-icon {
     width: 22px;
     height: 22px;
@@ -169,65 +147,119 @@ body {
     color: var(--accent-cyan);
 }
 
-.app-title-text {
+.sidebar-brand-text {
+    font-size: 13px;
     font-weight: 600;
+    line-height: 1.35;
     color: var(--text-primary);
 }
 
-.app-title-text span {
+.sidebar-brand-text span {
+    display: block;
     font-weight: 400;
     color: var(--text-muted);
 }
 
-
-/* ---- Navigation tabs ---- */
-
-.app-nav {
+.sidebar-nav {
     display: flex;
-    gap: var(--space-1);
-    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-3);
 }
 
-.nav-btn {
+.sidebar-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
     background: transparent;
     border: 0;
+    border-left: 2px solid transparent;
     color: var(--text-muted);
     font-size: 13px;
     font-family: var(--font-sans);
     font-weight: 500;
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-sm);
+    padding: var(--space-3) calc(var(--space-3) - 2px);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: color 120ms ease, background 120ms ease;
-    position: relative;
+    transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+    text-align: left;
+    width: 100%;
 }
 
-.nav-btn:hover {
+.sidebar-nav-btn .ti {
+    font-size: 17px;
+    width: 18px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.sidebar-nav-btn:hover {
     color: var(--text-secondary);
     background: rgba(255, 255, 255, 0.04);
 }
 
-.nav-btn-active {
+.sidebar-nav-btn-active {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.07);
+    background: rgba(0, 200, 215, 0.08);
+    border-left-color: var(--accent-cyan);
 }
 
-/* Active tab indicator — bottom line */
-.nav-btn-active::after {
+
+/* ---- Main column (topbar + views) ---- */
+
+.app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100%;
+}
+
+
+/* ---- App topbar ---- */
+
+.app-topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: 0 var(--space-6);
+    height: 52px;
+    background: var(--bg-header);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 200;
+}
+
+/* Subtle scan-line texture — the signature element.
+   Suggests a live monitoring dashboard without being loud. */
+.app-topbar::after {
     content: "";
     position: absolute;
-    bottom: -1px;
-    left: var(--space-3);
-    right: var(--space-3);
-    height: 2px;
-    background: var(--accent-cyan);
-    border-radius: 2px 2px 0 0;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255, 255, 255, 0.012) 2px,
+        rgba(255, 255, 255, 0.012) 4px
+    );
+    pointer-events: none;
+}
+
+.app-topbar-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    white-space: nowrap;
 }
 
 
-/* "Load report file" header button -- reuses .download-btn's look,
+/* "Load report file" topbar button -- reuses .download-btn's look,
    but needs flex-shrink:0/white-space:nowrap here since it sits
-   between .app-nav (flex:1) and .app-status (margin-left:auto),
+   between .app-topbar-title (flex:1) and .app-status (margin-left:auto),
    both of which compete for space and would otherwise squeeze this
    button down to the point of wrapping its own label. */
 #load-report-btn {
@@ -287,6 +319,18 @@ body {
 .view-active {
     display: flex;
     flex-direction: column;
+}
+
+/* Placeholder content for a section not built yet (Phase A: sidebar
+   shell + routing only -- Dashboard/Findings/Evidence get their real
+   content in later phases). */
+.view-stub {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 14px;
 }
 
 
