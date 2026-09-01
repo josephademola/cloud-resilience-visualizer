@@ -776,6 +776,37 @@ def _is_bucket_public_via_acl(acl_response: dict[str, Any]) -> bool:
     return False
 
 
+# AWS's well-known URI for "any AWS account, anywhere" -- distinct
+# from S3_ALL_USERS_URI above. A grant to this group is readable by
+# any of AWS's tens of millions of customer accounts without needing
+# any relationship to the bucket owner, not just the whole unauthenticated
+# internet -- a narrower but still real exposure, easy to overlook
+# specifically because "AuthenticatedUsers" sounds like it means
+# something restrictive.
+S3_AUTHENTICATED_USERS_URI = "http://acs.amazonaws.com/groups/global/AuthenticatedUsers"
+
+
+def _is_bucket_public_via_authenticated_users_acl(
+    acl_response: dict[str, Any],
+) -> bool:
+    """
+    Return True if the bucket's ACL grants any permission to the
+    AuthenticatedUsers group (i.e. any AWS account in existence).
+
+    A separate finding from _is_bucket_public_via_acl (AllUsers)
+    rather than folded into it: the two grantees represent genuinely
+    different blast radii (the entire internet vs. any AWS customer),
+    which is exactly the kind of distinction a real auditor cares
+    about and a generic "is this bucket public" boolean would erase.
+    """
+    grants = acl_response.get("Grants", [])
+    for grant in grants:
+        grantee = grant.get("Grantee", {})
+        if grantee.get("URI") == S3_AUTHENTICATED_USERS_URI:
+            return True
+    return False
+
+
 def _is_pab_fully_enabled(pab_response: dict[str, Any]) -> bool:
     """
     Return True only when ALL FOUR Public Access Block flags are True.
@@ -976,6 +1007,9 @@ def _normalize_s3_buckets(s3_data: dict[str, Any]) -> list[TopologyNode]:
             "properties": {
                 "creation_date": bucket.get("CreationDate"),
                 "is_public_via_acl": _is_bucket_public_via_acl(acl),
+                "is_public_via_authenticated_users_acl": (
+                    _is_bucket_public_via_authenticated_users_acl(acl)
+                ),
                 "public_access_block_fully_enabled": _is_pab_fully_enabled(pab),
                 "encryption_enabled": _is_bucket_encryption_enabled(encryption),
                 "encryption_algorithm": encryption_default.get("SSEAlgorithm"),

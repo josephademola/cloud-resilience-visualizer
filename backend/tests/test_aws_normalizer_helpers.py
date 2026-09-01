@@ -11,6 +11,8 @@ from app.aws_normalizer import (
     _get_tag,
     _name_or_id,
     _is_bucket_public_via_acl,
+    _is_bucket_public_via_authenticated_users_acl,
+    S3_AUTHENTICATED_USERS_URI,
     _is_pab_fully_enabled,
     _is_bucket_encryption_enabled,
     _is_bucket_versioning_enabled,
@@ -102,6 +104,51 @@ class TestIsBucketPublicViaAcl:
 
     def test_returns_false_for_missing_grants_key(self):
         assert _is_bucket_public_via_acl({}) is False
+
+
+# --- _is_bucket_public_via_authenticated_users_acl ---------------------
+class TestIsBucketPublicViaAuthenticatedUsersAcl:
+
+    def test_detects_authenticatedusers_grant(self):
+        acl = {
+            "Grants": [
+                {
+                    "Grantee": {"Type": "Group", "URI": S3_AUTHENTICATED_USERS_URI},
+                    "Permission": "READ",
+                }
+            ]
+        }
+        assert _is_bucket_public_via_authenticated_users_acl(acl) is True
+
+    def test_returns_false_for_owner_only_grant(self):
+        acl = {
+            "Grants": [
+                {
+                    "Grantee": {"Type": "CanonicalUser", "ID": "abc"},
+                    "Permission": "FULL_CONTROL",
+                }
+            ]
+        }
+        assert _is_bucket_public_via_authenticated_users_acl(acl) is False
+
+    def test_returns_false_for_allusers_grant(self):
+        # Distinct grantee, distinct property -- an AllUsers grant
+        # alone must not also trip the AuthenticatedUsers check.
+        acl = {
+            "Grants": [
+                {
+                    "Grantee": {"Type": "Group", "URI": S3_ALL_USERS_URI},
+                    "Permission": "READ",
+                }
+            ]
+        }
+        assert _is_bucket_public_via_authenticated_users_acl(acl) is False
+
+    def test_returns_false_for_empty_grants(self):
+        assert _is_bucket_public_via_authenticated_users_acl({"Grants": []}) is False
+
+    def test_returns_false_for_missing_grants_key(self):
+        assert _is_bucket_public_via_authenticated_users_acl({}) is False
 
 
 # --- _is_pab_fully_enabled -------------------------------------------

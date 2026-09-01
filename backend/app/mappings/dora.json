@@ -7,6 +7,7 @@
     "mapping_rationale": "Article titles (Article 9 'Protection and prevention', Article 10 'Detection', Article 12 'Backup policies and procedures, restoration and recovery procedures and methods') and the specific sub-paragraph quotes in audit_notes below were verified against DORA reference sources before this file was written, not generated from memory. EUR-Lex's own page for this regulation repeatedly truncated before reaching Chapter II in this session (a very long preamble precedes the articles), so sub-paragraph text was cross-checked against a secondary DORA reference site quoting the regulation article-by-article, rather than read directly off the Official Journal PDF. Article and paragraph numbers are accurate to that source; a human should spot-check the exact wording against the official Official Journal PDF before this mapping is relied on in front of a real auditor, the same caveat NIS2's mapping_rationale already carries for its own interpretive judgment calls.",
     "audit_notes": {
       "S3_PUBLIC_VIA_ACL": "Article 9(4)(c): 'implement access limitation policies restricting physical or logical access to necessary functions only'. An AllUsers ACL grant is the direct opposite of this.",
+      "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": "Article 9(4)(c), reused. Same access-limitation failure, narrower audience -- still not limited to necessary functions.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Article 9(4)(c), reused — PAB is exactly the access-limitation control this sub-paragraph describes, at the safety-net level rather than the individual-grant level.",
       "S3_ENCRYPTION_DISABLED": "Article 9(4)(d): 'implement policies and protocols for strong authentication mechanisms... and protection measures of cryptographic keys whereby data is encrypted'. Encryption at rest is the data-protection half of this sub-paragraph.",
       "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "Article 9(4)(d), reused — 'protection measures of cryptographic keys' names key management directly, which is exactly what this finding is about.",
@@ -34,6 +35,10 @@
   },
 
   "S3_PUBLIC_VIA_ACL": [
+    {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
+  ],
+
+  "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": [
     {"framework": "dora", "reference_id": "Article 9(4)(c)", "label": "Access limitation policies restricting access to necessary functions"}
   ],
 

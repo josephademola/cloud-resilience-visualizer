@@ -6,6 +6,7 @@ for each rule that fails.
 
 Current rules:
     - Public via ACL (AllUsers grant)          -> CRITICAL
+    - Public via ACL (AuthenticatedUsers grant) -> HIGH
     - Public Access Block not fully enabled    -> MEDIUM
     - Server-side encryption not configured    -> HIGH
     - Encrypted, but not with a dedicated KMS
@@ -61,6 +62,7 @@ def scan_s3_buckets(topology: dict[str, Any]) -> list[Finding]:
 
     rules = (
         _check_public_via_acl,
+        _check_public_via_authenticated_users_acl,
         _check_public_access_block,
         _check_encryption,
         _check_encryption_uses_dedicated_kms_key,
@@ -94,6 +96,22 @@ def _check_public_via_acl(bucket: dict[str, Any]) -> Finding | None:
     if not props.get("is_public_via_acl", False):
         return None
     return _build_finding("S3_PUBLIC_VIA_ACL", bucket["id"])
+
+
+def _check_public_via_authenticated_users_acl(bucket: dict[str, Any]) -> Finding | None:
+    """
+    Bucket must not have an AuthenticatedUsers ACL grant.
+
+    Distinct from _check_public_via_acl (AllUsers): AuthenticatedUsers
+    means any AWS account on the planet, not any unauthenticated
+    internet visitor -- a narrower but still real exposure, and a
+    genuinely different failure mode an auditor would ask about
+    separately, not a duplicate of the AllUsers case.
+    """
+    props = bucket.get("properties", {})
+    if not props.get("is_public_via_authenticated_users_acl", False):
+        return None
+    return _build_finding("S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL", bucket["id"])
 
 
 def _check_public_access_block(bucket: dict[str, Any]) -> Finding | None:

@@ -619,6 +619,7 @@ class TestNormalizeS3Buckets:
                 "properties": {
                     "creation_date": "2024-01-15T10:00:00Z",
                     "is_public_via_acl": False,
+                    "is_public_via_authenticated_users_acl": False,
                     "public_access_block_fully_enabled": True,
                     "encryption_enabled": True,
                     "encryption_algorithm": "AES256",

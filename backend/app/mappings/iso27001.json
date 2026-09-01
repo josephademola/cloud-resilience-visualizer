@@ -7,6 +7,7 @@
     "mapping_rationale": "Annex A control titles and numbers were independently verified against a current ISO 27001:2022 reference guide before this file was written (A.5.18, A.8.2, A.8.3, A.8.5, A.8.9, A.8.10, A.8.13, A.8.15, A.8.16, A.8.24 all confirmed). The full standard text itself is paywalled, unlike NIS2 (EUR-Lex, free) or NCSC CAF (ncsc.gov.uk, free) — the mapping here is based on each control's well-established scope and title, not a line-by-line reading of the paywalled clause text the way NIS2's mapping could be. Several controls are deliberately reused across multiple findings where ISO doesn't distinguish as finely as this tool's rules do (A.8.24 covers cryptography broadly, with no separate control for at-rest vs in-transit vs key-management, unlike NCSC CAF's B3.b/B3.c split).",
     "audit_notes": {
       "S3_PUBLIC_VIA_ACL": "A.8.3 (Information Access Restriction) — an AllUsers ACL grant is a direct, unambiguous failure of this control.",
+      "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": "A.8.3 (Information Access Restriction), reused. Same failure, narrower grantee -- the control is about restricting access to what's necessary regardless of how wide the unauthorised audience turns out to be.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "A.8.9 (Configuration Management) — PAB is a configuration setting; leaving it disabled is a configuration-management gap.",
       "S3_ENCRYPTION_DISABLED": "A.8.24 (Use of Cryptography) — direct match, encryption at rest.",
       "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "A.8.24, reused. Cryptographic key management -- not just whether encryption is used but how the key behind it is managed -- is squarely inside this control's scope.",
@@ -34,6 +35,10 @@
   },
 
   "S3_PUBLIC_VIA_ACL": [
+    {"framework": "iso27001", "reference_id": "A.8.3", "label": "Information Access Restriction"}
+  ],
+
+  "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": [
     {"framework": "iso27001", "reference_id": "A.8.3", "label": "Information Access Restriction"}
   ],
 

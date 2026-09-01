@@ -23,6 +23,7 @@ the loader-to-scanner integration breaks.
 from app.models.finding import Finding, Severity
 from app.scanners.s3_scanner import (
     _check_public_via_acl,
+    _check_public_via_authenticated_users_acl,
     _check_public_access_block,
     _check_encryption,
     _check_encryption_uses_dedicated_kms_key,
@@ -88,6 +89,47 @@ class TestCheckPublicViaAcl:
         # Framework references must have been stitched in — an empty
         # list here would indicate the loader is broken or the
         # mapping file lost this finding type.
+        assert len(finding.framework_references) > 0
+
+
+# --- _check_public_via_authenticated_users_acl -------------------------
+class TestCheckPublicViaAuthenticatedUsersAcl:
+
+    def test_returns_finding_when_bucket_is_public_via_authenticated_users_acl(self):
+        finding = _check_public_via_authenticated_users_acl(
+            _bucket(is_public_via_authenticated_users_acl=True)
+        )
+        assert finding is not None
+        assert finding.finding_type_id == "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL"
+
+    def test_returns_none_when_bucket_is_not_public_via_authenticated_users_acl(self):
+        finding = _check_public_via_authenticated_users_acl(
+            _bucket(is_public_via_authenticated_users_acl=False)
+        )
+        assert finding is None
+
+    def test_returns_none_when_property_missing(self):
+        # Detection signal, same semantic as is_public_via_acl: missing
+        # data means we didn't detect anything -> no finding.
+        finding = _check_public_via_authenticated_users_acl(_bucket())
+        assert finding is None
+
+    def test_is_independent_of_allusers_acl_property(self):
+        # A bucket public via AllUsers but NOT via AuthenticatedUsers
+        # must not trigger this rule -- the two are separate findings.
+        finding = _check_public_via_authenticated_users_acl(
+            _bucket(is_public_via_acl=True, is_public_via_authenticated_users_acl=False)
+        )
+        assert finding is None
+
+    def test_finding_has_high_severity_and_correct_shape(self):
+        finding = _check_public_via_authenticated_users_acl(
+            _bucket("any-aws-account-can-read", is_public_via_authenticated_users_acl=True)
+        )
+        assert isinstance(finding, Finding)
+        assert finding.severity == Severity.HIGH
+        assert finding.resource_id == "any-aws-account-can-read"
+        assert finding.title == "Bucket readable by any AWS account via legacy ACL"
         assert len(finding.framework_references) > 0
 
 

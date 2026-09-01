@@ -680,7 +680,7 @@ function groupFrameworkRefs(refs) {
 function renderFrameworkRefs(groups) {
     const frameworkOrder = [
         "nis2", "ncsc_caf", "mitre_attack", "cyber_essentials",
-        "iso27001", "dora", "confidential",
+        "iso27001", "dora", "cis_aws_foundations", "confidential",
     ];
     const frameworkLabels = {
         nis2: "NIS2",
@@ -689,6 +689,7 @@ function renderFrameworkRefs(groups) {
         cyber_essentials: "Cyber Essentials",
         iso27001: "ISO 27001",
         dora: "DORA",
+        cis_aws_foundations: "CIS AWS",
         confidential: "Confidential Client",
     };
     const parts = [];
@@ -751,6 +752,7 @@ function formatValue(value) {
 
 function isBadProperty(key, value) {
     if (key === "is_public_via_acl" && value === true) return true;
+    if (key === "is_public_via_authenticated_users_acl" && value === true) return true;
     if (key === "public_access_block_fully_enabled" && value === false) return true;
     if (key === "encryption_enabled" && value === false) return true;
     if (key === "encryption_algorithm" && value === "AES256") return true;

@@ -16,6 +16,13 @@
     "remediation": "Remove the AllUsers grant. In the AWS Console: S3 -> the bucket -> Permissions tab -> Access Control List -> Edit -> uncheck all 'Everyone (public access)' boxes -> Save. From the AWS CLI: `aws s3api put-bucket-acl --bucket <name> --acl private`. Verify with `aws s3api get-bucket-acl --bucket <name>` and confirm no Grantee with URI 'http://acs.amazonaws.com/groups/global/AllUsers' appears in the output."
   },
 
+  "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": {
+    "title": "Bucket readable by any AWS account via legacy ACL",
+    "severity": "high",
+    "description": "The bucket ACL grants the AuthenticatedUsers group a permission -- a name that sounds restrictive but actually means any of AWS's tens of millions of customer accounts worldwide, not people specifically authenticated to this bucket or this AWS account. Anyone with any AWS account at all, with zero relationship to this organisation, can read the granted permission. This is a narrower exposure than an AllUsers grant (it requires an AWS account, not just internet access), but it is a real, historically-exploited misconfiguration in its own right, and its misleading name is exactly why it gets left in place unnoticed.",
+    "remediation": "Remove the AuthenticatedUsers grant. In the AWS Console: S3 -> the bucket -> Permissions tab -> Access Control List -> Edit -> remove any grant assigned to 'Authenticated users group' -> Save. From the AWS CLI: `aws s3api put-bucket-acl --bucket <name> --acl private`. Verify with `aws s3api get-bucket-acl --bucket <name>` and confirm no Grantee with URI 'http://acs.amazonaws.com/groups/global/AuthenticatedUsers' appears in the output."
+  },
+
   "S3_PUBLIC_ACCESS_BLOCK_DISABLED": {
     "title": "S3 Public Access Block not fully enabled",
     "severity": "medium",

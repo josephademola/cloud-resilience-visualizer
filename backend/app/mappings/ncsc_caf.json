@@ -7,6 +7,7 @@
     "mapping_rationale": "CAF is outcomes-based, not control-based. Each outcome describes a state the organisation should reach; mappings link finding types to the outcome(s) they most directly compromise. Most cloud misconfigurations land in Objective B (Protecting Against Cyber Attack), since that is where technical misconfigurations sit. Detection-oriented findings are mapped to Objective C (Detecting Cyber Security Events) instead, on the same 'most direct outcome' logic, rather than being forced into B for consistency.",
     "audit_notes": {
       "S3_PUBLIC_VIA_ACL": "Two references. B2.a is primary — a bucket readable by AllUsers has bypassed identity verification and authorisation entirely. B3.a is secondary and softer — 'Understanding Data' captures the case where the organisation may not know that the misconfigured bucket contains sensitive data. B3.a is defensible but weaker than B2.a.",
+      "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": "B2.a only, reused from S3_PUBLIC_VIA_ACL's primary reference. Same authorisation-bypass failure at a narrower blast radius (any AWS account, not the whole internet) -- the B3.a 'Understanding Data' secondary reference isn't repeated here, since that rationale was specifically about not realising a PUBLICLY exposed bucket held sensitive data, which doesn't map as cleanly onto a still-authenticated, narrower grant.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "B4.a covers 'Secure by design'. PAB is the security-by-default configuration for S3 buckets; leaving it disabled is a design failure. This mapping is clean.",
       "S3_ENCRYPTION_DISABLED": "B3.c covers 'Stored data' outcomes and explicitly includes encryption at rest as a control. This mapping is unambiguous.",
       "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "B3.c, reused. Same stored-data outcome — this finding is about the key-management quality of that protection, not whether it exists.",
@@ -36,6 +37,10 @@
   "S3_PUBLIC_VIA_ACL": [
     {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"},
     {"framework": "ncsc_caf", "reference_id": "B3.a", "label": "Understanding data"}
+  ],
+
+  "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": [
+    {"framework": "ncsc_caf", "reference_id": "B2.a", "label": "Identity verification, authentication and authorisation"}
   ],
 
   "S3_PUBLIC_ACCESS_BLOCK_DISABLED": [

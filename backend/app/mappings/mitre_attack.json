@@ -7,6 +7,7 @@
     "mapping_rationale": "MITRE ATT&CK catalogues attacker behaviour. Not every misconfiguration cleanly maps to a specific technique — some are defensive control weaknesses that don't directly enable an attacker action, and forcing a mapping in those cases produces misleading noise. Mappings below prioritise honesty over completeness.",
     "audit_notes": {
       "S3_PUBLIC_VIA_ACL": "T1530 (Data from Cloud Storage) is a direct match. An attacker downloading objects from a publicly-readable bucket is exactly what this technique describes.",
+      "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": "T1530, reused from S3_PUBLIC_VIA_ACL. Still exactly the technique it describes -- the only difference is that the attacker needs any AWS account rather than nothing at all, which doesn't change what they do once they have access: download objects from cloud storage.",
       "S3_PUBLIC_ACCESS_BLOCK_DISABLED": "Corrected from an earlier draft that mapped this to T1078.004 (Valid Accounts: Cloud Accounts). That mapping was wrong — T1078.004 is about compromised credentials, and PAB being off doesn't enable credential-based attacks. T1580 (Cloud Infrastructure Discovery) is a weaker but more honest fit: an attacker in reconnaissance can discover misconfigured buckets more easily when PAB is off. Mapping defensive control weaknesses to attacker techniques is inherently forced; documented here rather than papered over.",
       "S3_ENCRYPTION_DISABLED": "T1530 covers this by extension — data extracted from cloud storage is more valuable and usable if not encrypted at rest. This is a secondary consequence rather than a primary enablement, but it is defensible.",
       "S3_ENCRYPTION_NOT_DEDICATED_KMS_KEY": "T1530, reused. A weaker version of the same consequence: data protected by a shared/default key rather than a dedicated one is still meaningfully more exposed if that shared key or its access is ever compromised, since it's a bigger blast radius than a key scoped to one bucket.",
@@ -34,6 +35,10 @@
   },
 
   "S3_PUBLIC_VIA_ACL": [
+    {"framework": "mitre_attack", "reference_id": "T1530", "label": "Data from Cloud Storage (Collection tactic)"}
+  ],
+
+  "S3_PUBLIC_VIA_AUTHENTICATED_USERS_ACL": [
     {"framework": "mitre_attack", "reference_id": "T1530", "label": "Data from Cloud Storage (Collection tactic)"}
   ],
 
