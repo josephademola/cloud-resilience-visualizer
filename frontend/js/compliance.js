@@ -56,9 +56,21 @@ async function fetchCompliance() {
 function renderComplianceDashboard(container, data) {
     const parts = [];
     parts.push(renderDownloadBar());
+    parts.push(renderRiskAcceptedNote(data.metadata));
     parts.push(renderScoreCards(data.frameworks));
     parts.push(renderFrameworkSections(data.frameworks));
     container.innerHTML = parts.join("");
+}
+
+function renderRiskAcceptedNote(metadata) {
+    const count = metadata && metadata.risk_accepted_count;
+    if (!count) return "";
+    return `
+        <div class="risk-accepted-note">
+            ${count} finding${count === 1 ? "" : "s"} consciously risk-accepted and excluded from the counts below.
+            See the findings list for full detail.
+        </div>
+    `;
 }
 
 function renderDownloadBar() {

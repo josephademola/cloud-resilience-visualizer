@@ -30,6 +30,7 @@ def _finding(
     finding_type_id: str = "S3_PUBLIC_VIA_ACL",
     severity: Severity = Severity.CRITICAL,
     resource_id: str = "test-bucket",
+    risk_acceptance: dict | None = None,
 ) -> Finding:
     return Finding(
         finding_type_id=finding_type_id,
@@ -41,6 +42,7 @@ def _finding(
         framework_references=(
             FrameworkReference("nis2", "Article 21(2)(i)", "Access control"),
         ),
+        risk_acceptance=risk_acceptance,
     )
 
 
@@ -187,6 +189,19 @@ class TestFindingsSummary:
         assert summary["total"] == 0
         assert all(v == 0 for v in summary["by_severity"].values())
         assert summary["affected_resources"] == []
+        assert summary["risk_accepted"] == 0
+
+    def test_risk_accepted_counts_findings_with_acceptance_attached(self):
+        findings = [
+            _finding(resource_id="bucket-a", risk_acceptance={"reason": "accepted"}),
+            _finding(resource_id="bucket-b"),
+        ]
+        record = build_evidence_record(_topology(), findings)
+        summary = record["findings_summary"]
+        assert summary["risk_accepted"] == 1
+        # total still counts everything -- nothing silently dropped
+        # from the evidence record just because it was accepted.
+        assert summary["total"] == 2
 
 
 class TestHashing:

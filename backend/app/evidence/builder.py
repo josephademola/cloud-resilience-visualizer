@@ -122,18 +122,31 @@ def _build_scope(
 
 
 def _build_findings_summary(findings: list[Finding]) -> dict[str, Any]:
-    """Summarise findings by count and severity."""
+    """
+    Summarise findings by count and severity.
+
+    risk_accepted counts findings with a risk_acceptance attached
+    (Phase 4 -- see app.risk_acceptance): total still includes them, so
+    an auditor sees the full picture at a glance -- how many findings
+    existed in total, and how many of those were consciously accepted
+    rather than genuinely open. Nothing is silently dropped from this
+    record; a risk acceptance is documented here, never hidden.
+    """
     by_severity = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     affected = set()
+    risk_accepted = 0
 
     for f in findings:
         by_severity[f.severity.value] = by_severity.get(f.severity.value, 0) + 1
         affected.add(f.resource_id)
+        if f.risk_acceptance is not None:
+            risk_accepted += 1
 
     return {
         "total": len(findings),
         "by_severity": by_severity,
         "affected_resources": sorted(affected),
+        "risk_accepted": risk_accepted,
     }
 
 

@@ -76,6 +76,13 @@ CLAUDE_HANDOVER*.md
 # scans; app/mappings/loader.py tolerates its absence everywhere else.
 backend/app/mappings/confidential_controls.json
 
+# === Risk acceptance records — never committed ===
+# Names real people, real resource IDs, and real business
+# justifications for accepting a known risk -- at least as sensitive
+# as the confidential control catalogue above, same treatment.
+# app/risk_acceptance.py tolerates its absence (zero acceptances).
+backend/app/data/risk_acceptances.json
+
 # === Evidence reports produced by scripts/run_scheduled_audit.py ===
 # Output of a real, potentially client-scoped scan — never committed,
 # wherever it ends up in the tree (e.g. a downloaded workflow-run zip

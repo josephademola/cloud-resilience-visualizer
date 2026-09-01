@@ -109,11 +109,24 @@ def build_compliance_view(
     unrelated scan doesn't even reveal that a "confidential" framework
     exists.
 
+    A finding with risk_acceptance set (Phase 4 -- see
+    app.risk_acceptance) is EXCLUDED from failing_requirements: a
+    consciously accepted risk is no longer an open compliance gap by
+    definition, the same distinction a real GRC risk register draws
+    between "open" and "accepted" risk. It is never hidden entirely,
+    though -- total_findings still counts it, and
+    risk_accepted_count says how many of that total were excluded this
+    way, so nothing about this view is a silent, unexplained drop. The
+    full per-finding detail (who accepted it, why, until when) lives in
+    GET /api/findings and the evidence record, which never filter
+    anything out.
+
     Return shape:
         {
             "metadata": {
                 "schema_version": "1.0",
                 "total_findings": <int>,
+                "risk_accepted_count": <int>,
                 "framework_count": 7,
             },
             "frameworks": [
@@ -142,6 +155,9 @@ def build_compliance_view(
             ]
         }
     """
+    active_findings = [f for f in findings if f.risk_acceptance is None]
+    risk_accepted_count = len(findings) - len(active_findings)
+
     frameworks_output = []
     framework_order = (
         _FRAMEWORK_ORDER
@@ -152,7 +168,7 @@ def build_compliance_view(
     for framework_name in framework_order:
         meta = _FRAMEWORK_META[framework_name]
         failing_requirements = _group_findings_by_requirement(
-            findings, framework_name
+            active_findings, framework_name
         )
         entry = {
             "framework": framework_name,
@@ -183,6 +199,7 @@ def build_compliance_view(
         "metadata": {
             "schema_version": "1.0",
             "total_findings": len(findings),
+            "risk_accepted_count": risk_accepted_count,
             "framework_count": len(frameworks_output),
         },
         "frameworks": frameworks_output,

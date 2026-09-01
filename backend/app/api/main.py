@@ -56,6 +56,7 @@ from app.scanners.iam_scanner import scan_iam
 from app.scanners.account_scanner import scan_account
 from app.scanners.tagging_scanner import scan_tagging
 from app.compliance import build_compliance_view
+from app.risk_acceptance import load_risk_acceptances, apply_risk_acceptances
 from fastapi.responses import Response
 
 from app.reports.pdf_report import build_pdf_report
@@ -206,6 +207,13 @@ def _scan_all(topology: dict, project_tag: str | None = None) -> list[Finding]:
     _is_confidential_scope). An unscoped scan, or one scoped to a
     different tagged project, must never surface another client's
     internal control mappings.
+
+    Risk acceptances (Phase 4) are applied here too, before the
+    confidential-stripping step -- order doesn't matter between the
+    two (they touch different fields, framework_references vs.
+    risk_acceptance), but doing it here means every endpoint gets
+    accepted-risk annotation for free, the same way every endpoint
+    already gets confidential-framework scope-gating for free.
     """
     findings = (
         scan_s3_buckets(topology)
@@ -214,6 +222,8 @@ def _scan_all(topology: dict, project_tag: str | None = None) -> list[Finding]:
         + scan_account(topology)
         + scan_tagging(topology)
     )
+
+    findings = apply_risk_acceptances(findings, load_risk_acceptances())
 
     if _is_confidential_scope(project_tag):
         return findings

@@ -256,6 +256,17 @@ def _executive_summary(compliance, findings, styles) -> list:
     ]))
     story.append(framework_table)
 
+    risk_accepted_count = compliance.get("metadata", {}).get("risk_accepted_count", 0)
+    if risk_accepted_count:
+        story.append(Spacer(1, 0.4 * cm))
+        story.append(Paragraph(
+            f"{risk_accepted_count} finding(s) in this scan have been "
+            "consciously risk-accepted by the organisation and are excluded "
+            "from the framework counts above. They remain listed in full, "
+            "marked as risk-accepted, in the findings detail appendix.",
+            styles["muted"],
+        ))
+
     return story
 
 
@@ -335,10 +346,15 @@ def _finding_block(finding, styles) -> list:
     severity = finding.severity.value
     colour = _SEVERITY_COLOURS[severity].hexval()
 
-    return [
+    block = [
         Paragraph(
             f"<font color='{colour}'>&#9632;</font> "
-            f"<b>{_escape_xml(finding.title)}</b>",
+            f"<b>{_escape_xml(finding.title)}</b>"
+            + (
+                " <font color='#2E7D32'>[RISK ACCEPTED]</font>"
+                if finding.risk_acceptance
+                else ""
+            ),
             styles["h2"],
         ),
         Paragraph(
@@ -361,6 +377,19 @@ def _finding_block(finding, styles) -> list:
             styles["body"],
         ),
     ]
+
+    if finding.risk_acceptance:
+        ra = finding.risk_acceptance
+        block.append(Paragraph("<b>Risk acceptance</b>", styles["body"]))
+        block.append(Paragraph(
+            f"<b>Accepted by:</b> {_escape_xml(ra.get('accepted_by') or 'unspecified')} "
+            f"&nbsp;&nbsp; <b>Date:</b> {_escape_xml(ra.get('accepted_date') or 'unspecified')} "
+            f"&nbsp;&nbsp; <b>Expires:</b> {_escape_xml(ra.get('expires') or 'indefinite')}",
+            styles["muted"],
+        ))
+        block.append(Paragraph(_escape_xml(ra.get("reason") or ""), styles["body"]))
+
+    return block
 
 
 # ---- Helpers ---------------------------------------------------------

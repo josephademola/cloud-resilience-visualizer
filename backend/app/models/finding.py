@@ -26,12 +26,23 @@ Design decisions embedded in this module:
 - Framework references are their own small dataclass, so each has
   the same shape (framework name + reference ID + short label)
   regardless of which framework it's from.
+
+- risk_acceptance (Phase 4, 2026-08-28) carries a consciously-accepted
+  risk's metadata -- who accepted it, why, and until when -- WITHOUT
+  the finding ever being deleted or hidden. See app.risk_acceptance
+  for how it gets attached. None (the default) means the finding is
+  still active/open. This is the one field on Finding that can be
+  set after initial construction, via dataclasses.replace() in
+  app.risk_acceptance.apply_risk_acceptances() -- consistent with the
+  "immutable once emitted" design above: nothing mutates a Finding in
+  place, a new one is produced instead.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 
 class Severity(str, Enum):
@@ -94,9 +105,15 @@ class Finding:
             populated from the mapping files. Empty list is valid
             (means the finding hasn't been mapped yet — should never
             happen in normal operation).
+        risk_acceptance: None (the default) for an active finding, or
+            a dict with reason/accepted_by/accepted_date/expires when
+            a compliance officer has consciously accepted this risk
+            (see app.risk_acceptance). Never causes a finding to be
+            deleted or hidden -- only annotated.
 
-    Fields have no defaults on purpose: forgetting one is a bug we
-    want the constructor to catch loudly.
+    Fields have no defaults on purpose (except risk_acceptance, whose
+    default of None IS the safe/active state): forgetting one is a bug
+    we want the constructor to catch loudly.
     """
 
     finding_type_id: str
@@ -108,6 +125,7 @@ class Finding:
     framework_references: tuple[FrameworkReference, ...] = field(
         default_factory=tuple
     )
+    risk_acceptance: dict[str, Any] | None = None
 
 def finding_to_dict(finding: Finding) -> dict:
     """
@@ -135,4 +153,6 @@ def finding_to_dict(finding: Finding) -> dict:
             }
             for r in finding.framework_references
         ],
+        "risk_accepted": finding.risk_acceptance is not None,
+        "risk_acceptance": finding.risk_acceptance,
     }

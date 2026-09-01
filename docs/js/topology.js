@@ -641,11 +641,29 @@ function renderFindingCard(finding) {
                 <div class="finding-title">${escapeHtml(finding.title)}</div>
                 <span class="finding-severity finding-severity-${escapeHtml(finding.severity)}">${escapeHtml(finding.severity)}</span>
             </div>
+            ${finding.risk_accepted ? renderRiskAcceptedBadge(finding.risk_acceptance) : ""}
             <div class="finding-description">${escapeHtml(finding.description)}</div>
             <div class="finding-section-title">Remediation</div>
             <div class="finding-remediation">${escapeHtml(finding.remediation)}</div>
             <div class="finding-section-title">Framework references</div>
             <div class="finding-frameworks">${renderFrameworkRefs(grouped)}</div>
+        </div>
+    `;
+}
+
+function renderRiskAcceptedBadge(riskAcceptance) {
+    const ra = riskAcceptance || {};
+    const acceptedBy = ra.accepted_by ? escapeHtml(ra.accepted_by) : "unspecified";
+    const acceptedDate = ra.accepted_date ? escapeHtml(ra.accepted_date) : "unspecified";
+    const expires = ra.expires ? escapeHtml(ra.expires) : "indefinite";
+    const reason = ra.reason ? escapeHtml(ra.reason) : "";
+    return `
+        <div class="finding-risk-accepted">
+            <span class="finding-risk-accepted-badge">Risk accepted</span>
+            <div class="finding-risk-accepted-detail">
+                Accepted by ${acceptedBy} on ${acceptedDate} &middot; expires ${expires}
+                ${reason ? `<br>${reason}` : ""}
+            </div>
         </div>
     `;
 }

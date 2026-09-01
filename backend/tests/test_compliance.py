@@ -33,6 +33,7 @@ def _finding(
     resource_id: str,
     title: str,
     refs: tuple[FrameworkReference, ...],
+    risk_acceptance: dict | None = None,
 ) -> Finding:
     """Shorthand for building a Finding in test fixtures."""
     return Finding(
@@ -43,6 +44,7 @@ def _finding(
         description="test description",
         remediation="test remediation",
         framework_references=refs,
+        risk_acceptance=risk_acceptance,
     )
 
 
@@ -206,3 +208,61 @@ class TestBuildComplianceView:
             "severity": "critical",
             "title": "The title text",
         }
+
+
+# --- risk-accepted findings (Phase 4) ---------------------------------
+class TestRiskAcceptedFindings:
+
+    def test_risk_accepted_count_is_zero_by_default(self):
+        f = _finding(
+            "S3_TEST", Severity.HIGH, "test-bucket", "Test",
+            (_ref("nis2", "Article 21(2)(i)", "Access control"),),
+        )
+        result = build_compliance_view([f])
+        assert result["metadata"]["risk_accepted_count"] == 0
+
+    def test_risk_accepted_finding_excluded_from_failing_requirements(self):
+        f = _finding(
+            "S3_TEST", Severity.HIGH, "test-bucket", "Test",
+            (_ref("nis2", "Article 21(2)(i)", "Access control"),),
+            risk_acceptance={"reason": "accepted", "accepted_by": "Jane Doe"},
+        )
+        result = build_compliance_view([f])
+        nis2 = next(fw for fw in result["frameworks"] if fw["framework"] == "nis2")
+        assert nis2["failing_count"] == 0
+        assert nis2["failing_requirements"] == []
+
+    def test_risk_accepted_count_reflects_accepted_findings(self):
+        accepted = _finding(
+            "S3_TEST", Severity.HIGH, "bucket-a", "Test",
+            (_ref("nis2", "Article 21(2)(i)", "Access control"),),
+            risk_acceptance={"reason": "accepted"},
+        )
+        active = _finding(
+            "S3_OTHER", Severity.LOW, "bucket-b", "Test 2",
+            (_ref("nis2", "Article 21(2)(h)", "Encryption"),),
+        )
+        result = build_compliance_view([accepted, active])
+        assert result["metadata"]["risk_accepted_count"] == 1
+        # total_findings still counts everything, accepted or not --
+        # nothing is silently dropped from the overall total.
+        assert result["metadata"]["total_findings"] == 2
+
+    def test_requirement_still_active_when_only_some_findings_accepted(self):
+        # Two findings share a requirement; only one is accepted. The
+        # requirement must still show as failing, with just the one
+        # active finding under it.
+        accepted = _finding(
+            "S3_TEST", Severity.HIGH, "bucket-a", "Accepted one",
+            (_ref("nis2", "Article 21(2)(i)", "Access control"),),
+            risk_acceptance={"reason": "accepted"},
+        )
+        active = _finding(
+            "S3_OTHER", Severity.LOW, "bucket-b", "Still open",
+            (_ref("nis2", "Article 21(2)(i)", "Access control"),),
+        )
+        result = build_compliance_view([accepted, active])
+        nis2 = next(fw for fw in result["frameworks"] if fw["framework"] == "nis2")
+        assert nis2["failing_count"] == 1
+        assert len(nis2["failing_requirements"][0]["findings"]) == 1
+        assert nis2["failing_requirements"][0]["findings"][0]["title"] == "Still open"

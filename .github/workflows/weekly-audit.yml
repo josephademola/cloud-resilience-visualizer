@@ -40,6 +40,14 @@
 #                               and CONFIDENTIAL_PROJECT_TAG if this
 #                               engagement has no confidential
 #                               framework to include.
+#   RISK_ACCEPTANCES_JSON    -- (optional) full JSON content of
+#                               risk_acceptances.json (see
+#                               app/risk_acceptance.py). Written to
+#                               disk only for the duration of this
+#                               job; never committed. Omit if no risk
+#                               has been consciously accepted for this
+#                               engagement -- every finding scans as
+#                               active by default.
 # Repository variables required:
 #   AWS_REGION           -- region the audited resources live in
 #   EVIDENCE_S3_BUCKET   -- name of the private S3 bucket to upload to
@@ -97,6 +105,17 @@ jobs:
             echo "confidential_controls.json written ($(wc -c < app/mappings/confidential_controls.json) bytes)"
           else
             echo "CONFIDENTIAL_CONTROLS_JSON secret is empty or unset -- skipping write"
+          fi
+
+      - name: Write risk acceptances (if configured)
+        env:
+          RISK_ACCEPTANCES_JSON: ${{ secrets.RISK_ACCEPTANCES_JSON }}
+        run: |
+          if [ -n "$RISK_ACCEPTANCES_JSON" ]; then
+            printf '%s' "$RISK_ACCEPTANCES_JSON" > app/data/risk_acceptances.json
+            echo "risk_acceptances.json written ($(wc -c < app/data/risk_acceptances.json) bytes)"
+          else
+            echo "RISK_ACCEPTANCES_JSON secret is empty or unset -- skipping write"
           fi
 
       - name: Run audit

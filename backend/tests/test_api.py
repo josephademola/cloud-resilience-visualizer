@@ -293,6 +293,75 @@ class TestConfidentialFrameworkConfidentiality:
         assert "confidential" not in framework_names
 
 
+# --- Risk acceptance end-to-end (Phase 4) -----------------------------
+class TestRiskAcceptanceEndToEnd:
+    """
+    Proves the full pipeline -- file on disk -> _scan_all() ->
+    /api/findings (annotated, not filtered) and /api/compliance
+    (excluded from failing counts) -- works together, not just each
+    piece in isolation. Uses the same monkeypatch-the-module-global
+    pattern test_mapping_loader.py uses for confidential_controls.json
+    (see _MAPPINGS_DIR there / RISK_ACCEPTANCES_PATH here), since
+    load_risk_acceptances() resolves its default path from the module
+    global at call time specifically to make this possible.
+    """
+
+    @pytest.fixture
+    def with_acceptance_for_uploads_bucket(self, monkeypatch, tmp_path):
+        import app.risk_acceptance as risk_acceptance_module
+
+        acceptances_file = tmp_path / "risk_acceptances.json"
+        acceptances_file.write_text(
+            '{"acceptances": [{'
+            '"finding_type_id": "S3_PUBLIC_VIA_ACL", '
+            '"resource_id": "cloudres-fintech-uploads", '
+            '"reason": "Compensating control in place", '
+            '"accepted_by": "Test Approver", '
+            '"accepted_date": "2026-01-01", '
+            '"expires": null'
+            '}]}',
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(
+            risk_acceptance_module, "RISK_ACCEPTANCES_PATH", acceptances_file
+        )
+
+    def test_accepted_finding_still_appears_in_findings_endpoint(
+        self, client, with_acceptance_for_uploads_bucket
+    ):
+        response = client.get("/api/findings")
+        data = response.json()
+        matching = [
+            f for f in data["findings"]
+            if f["finding_type_id"] == "S3_PUBLIC_VIA_ACL"
+            and f["resource_id"] == "cloudres-fintech-uploads"
+        ]
+        assert len(matching) == 1
+        assert matching[0]["risk_accepted"] is True
+        assert matching[0]["risk_acceptance"]["accepted_by"] == "Test Approver"
+
+    def test_accepted_finding_excluded_from_compliance_failing_counts(
+        self, client, with_acceptance_for_uploads_bucket
+    ):
+        response = client.get("/api/compliance")
+        data = response.json()
+        assert data["metadata"]["risk_accepted_count"] == 1
+
+        nis2 = next(fw for fw in data["frameworks"] if fw["framework"] == "nis2")
+        matching_resource_ids = {
+            f["resource_id"]
+            for req in nis2["failing_requirements"]
+            for f in req["findings"]
+            if f["finding_type_id"] == "S3_PUBLIC_VIA_ACL"
+        }
+        assert "cloudres-fintech-uploads" not in matching_resource_ids
+
+    def test_no_acceptance_file_means_zero_accepted(self, client):
+        response = client.get("/api/compliance")
+        data = response.json()
+        assert data["metadata"]["risk_accepted_count"] == 0
+
+
 # --- Error handling --------------------------------------------------
 class TestErrorHandling:
 
