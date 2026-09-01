@@ -31,14 +31,24 @@ async function activateComplianceView() {
     container.innerHTML = `<div class="compliance-loading">Loading compliance data...</div>`;
 
     try {
-        const data = await fetchCompliance();
-        COMPLIANCE_CACHE = data;
+        const data = await ensureComplianceData();
         renderComplianceDashboard(container, data);
     } catch (err) {
         console.error("Failed to fetch compliance data:", err);
         container.innerHTML =
             `<div class="compliance-error">Cannot reach compliance endpoint. Is the backend running on port 8000?</div>`;
     }
+}
+
+// Shared by activateComplianceView() above and dashboard.js's
+// activateDashboardView() -- Dashboard is now the default landing
+// view, so it's often the FIRST thing that needs compliance data, not
+// Compliance itself. One cache (COMPLIANCE_CACHE), one fetch, however
+// many views end up needing it.
+async function ensureComplianceData() {
+    if (COMPLIANCE_CACHE) return COMPLIANCE_CACHE;
+    COMPLIANCE_CACHE = await fetchCompliance();
+    return COMPLIANCE_CACHE;
 }
 
 

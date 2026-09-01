@@ -29,10 +29,10 @@
         </div>
 
         <nav class="sidebar-nav" aria-label="Main navigation">
-            <button class="sidebar-nav-btn" data-view="dashboard">
+            <button class="sidebar-nav-btn sidebar-nav-btn-active" data-view="dashboard">
                 <i class="ti ti-layout-dashboard"></i><span>Dashboard</span>
             </button>
-            <button class="sidebar-nav-btn sidebar-nav-btn-active" data-view="assets">
+            <button class="sidebar-nav-btn" data-view="assets">
                 <i class="ti ti-affiliate"></i><span>Assets</span>
             </button>
             <button class="sidebar-nav-btn" data-view="findings">
@@ -49,7 +49,7 @@
 
     <div class="app-main">
         <header class="app-topbar">
-            <h1 class="app-topbar-title" id="topbar-title">Assets</h1>
+            <h1 class="app-topbar-title" id="topbar-title">Dashboard</h1>
 
             <input type="file" id="snapshot-file-input" accept="application/json" hidden>
             <button id="load-report-btn" class="download-btn" type="button">
@@ -62,11 +62,13 @@
             </div>
         </header>
 
-        <section id="dashboard-view" class="view" aria-label="Dashboard view">
-            <div class="view-stub">Dashboard — coming soon.</div>
+        <section id="dashboard-view" class="view view-active" aria-label="Dashboard view">
+            <div id="dashboard-view-content" class="dashboard-view-content">
+                <div class="compliance-loading">Loading dashboard...</div>
+            </div>
         </section>
 
-        <section id="assets-view" class="view view-active" aria-label="Assets view">
+        <section id="assets-view" class="view" aria-label="Assets view">
             <div id="map" class="topology-map"></div>
         </section>
 
@@ -96,5 +98,6 @@
     <script src="js/topology.js"></script>
     <script src="js/compliance.js"></script>
     <script src="js/findings.js"></script>
+    <script src="js/dashboard.js"></script>
 </body>
 </html>

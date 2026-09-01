@@ -61,6 +61,23 @@ const FRAMEWORK_LABELS = {
 let FINDINGS = [];
 let MAP = null;
 
+// The topology's own {schema_version, generated_at, node_count,
+// security_group_count} block -- kept around (not just consumed once
+// by the map) so the Dashboard's scope line (dashboard.js) can show a
+// real scan timestamp and resource count instead of inventing one.
+let TOPOLOGY_METADATA = {};
+
+// The most recent layout computation from renderTopology() -- kept
+// around so switchView() can re-fit the map to it when Assets becomes
+// visible again. Needed because Dashboard is the default landing view
+// now: fitMapToContent() runs once at render time, using the
+// container's pixel size at that moment to pick a zoom/center: if the
+// container was hidden (display:none, size 0) at that moment, the fit
+// it computed is wrong, and Leaflet's invalidateSize() alone only
+// tells it the size changed -- it does NOT redo the fit. Re-running
+// fitMapToContent() against the now-correctly-sized container does.
+let LAST_LAYOUTS = null;
+
 // Set only when viewing a report loaded from a file instead of a live
 // scan — { generated_at, project_tag } from the snapshot's own top
 // level. null means "viewing live data", which is the default.
@@ -92,6 +109,7 @@ async function init() {
             fetchFindings(),
         ]);
         renderFromData(topology, findings);
+        switchView("dashboard");
     } catch (err) {
         console.error("Failed to render topology:", err);
         const statusEl = document.getElementById("status");
@@ -111,6 +129,7 @@ function renderFromData(topology, findings) {
     MAP = createMap();
     renderTopology(MAP, topology);
     FINDINGS = findings;
+    TOPOLOGY_METADATA = topology.metadata || {};
     updateStatus(topology);
 }
 
@@ -165,6 +184,17 @@ async function loadSnapshotFile(file) {
             COMPLIANCE_CACHE
         );
     }
+    // Dashboard is the default landing view, so this is the more
+    // likely case in practice -- without it, loading a file while
+    // already on Dashboard would leave the old scan's severity strip
+    // and framework bars on screen. renderDashboard is defined in
+    // dashboard.js, loaded after this file.
+    if (document.getElementById("dashboard-view").classList.contains("view-active")) {
+        renderDashboard(
+            document.getElementById("dashboard-view-content"),
+            COMPLIANCE_CACHE
+        );
+    }
 }
 
 // Section titles shown in the topbar. Keyed by the same data-view
@@ -206,6 +236,29 @@ function switchView(viewName) {
         // this file. FINDINGS is already loaded at init -- no fetch,
         // just re-render (cheap, dataset is small).
         activateFindingsView();
+    }
+
+    if (viewName === "dashboard") {
+        // activateDashboardView is defined in dashboard.js, loaded
+        // after this file. Shares compliance.js's cached fetch, so
+        // visiting Dashboard first (now the default) doesn't cost a
+        // second network call when Compliance is opened afterward.
+        activateDashboardView();
+    }
+
+    if (viewName === "assets" && MAP) {
+        // Leaflet sizes AND fits itself from the container's
+        // dimensions at render time. Dashboard is the default landing
+        // view now, so the map's container is display:none the first
+        // time Assets is opened -- invalidateSize() alone only tells
+        // Leaflet the size changed, it does not redo the fit, so the
+        // view stays wrong (tiny, off-center) unless fitMapToContent
+        // is re-run against the now-correctly-sized container. Safe
+        // to call on every switch, not just the first.
+        MAP.invalidateSize();
+        if (LAST_LAYOUTS) {
+            fitMapToContent(MAP, LAST_LAYOUTS);
+        }
     }
 }
 
@@ -387,6 +440,7 @@ function renderTopology(map, topology) {
         }
     }
 
+    LAST_LAYOUTS = layouts;
     fitMapToContent(map, layouts);
 }
 
