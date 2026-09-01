@@ -1,10 +1,13 @@
 /* ============================================================
    Cloud Resilience Visualizer — compliance view
 
-   Renders the compliance dashboard: four score cards at top,
-   framework detail sections below. Fetches from /api/compliance
-   lazily (only on first switch to the tab) and caches the result
-   in memory. Subsequent switches use the cache — no re-fetch.
+   Renders the compliance dashboard: one score card per framework at
+   top, full framework detail sections (every failing requirement,
+   grouped, with the findings under it) below -- the deep-dive
+   companion to the Dashboard's framework-standing bars, which only
+   show the ranking. Fetches from /api/compliance lazily (only on
+   first switch to the tab) and caches the result in memory.
+   Subsequent switches use the cache — no re-fetch.
 
    Depends on API_BASE defined in topology.js (loaded before this
    file). Uses escapeHtml also defined in topology.js.

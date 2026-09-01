@@ -1179,7 +1179,13 @@ body {
 
 .score-cards {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* auto-fit rather than a fixed column count: this grid started at
+       4 frameworks and is at 7-8 now (CIS AWS Foundations, and the
+       confidential framework when scoped) -- a hardcoded column count
+       left a half-empty trailing row every time a framework was
+       added. auto-fit reflows to however many columns actually fit,
+       so the next framework added doesn't need a CSS change too. */
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: var(--space-4);
     margin-bottom: var(--space-8);
 }
