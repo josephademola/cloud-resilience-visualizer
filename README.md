@@ -95,7 +95,7 @@ Key design decisions:
 | UK Cyber Essentials | UK government baseline certification | Five control themes |
 | ISO/IEC 27001:2022 Annex A | International information security management standard | Annex A controls |
 | EU DORA (2022/2554) | EU digital operational resilience regulation for financial entities | Numbered articles |
-| CIS AWS Foundations Benchmark v3.0.0 | Vendor-neutral foundational AWS security baseline | Numbered requirements — mapped for 13 of 25 finding types; the other 12 are documented gaps in the benchmark's own scope, not this project's mapping |
+| CIS AWS Foundations Benchmark v5.0.0 | Vendor-neutral foundational AWS security baseline | Numbered requirements — mapped for 13 of 25 finding types; the other 12 are documented gaps in the benchmark's own scope, not this project's mapping |
 
 An eighth, engagement-specific control-catalogue mapping exists in the codebase's design but is gitignored and only ever loaded for a scan explicitly scoped to that project's AWS resource tag — it is never present in this repo or its history.
 

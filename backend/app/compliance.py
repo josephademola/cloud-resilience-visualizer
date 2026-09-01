@@ -85,7 +85,7 @@ _FRAMEWORK_META = {
         "unit_label": "articles failing",
     },
     "cis_aws_foundations": {
-        "full_name": "CIS AWS Foundations Benchmark v3.0.0",
+        "full_name": "CIS AWS Foundations Benchmark v5.0.0",
         "unit_label": "requirements failing",
     },
     "confidential": {
